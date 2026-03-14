@@ -2,6 +2,9 @@
   "name": "elixpo-blogs",
   "type": "module",
   "dependencies": {
+    "@blocknote/core": "^0.47.1",
+    "@blocknote/mantine": "^0.47.1",
+    "@blocknote/react": "^0.47.1",
     "bad-words": "^4.0.0",
     "chokidar": "^3.6.0",
     "cookie-parser": "^1.4.7",
