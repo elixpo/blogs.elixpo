@@ -7,7 +7,7 @@ export default function ProfilePage() {
       {/* Header */}
       <section className="w-full h-[60px]">
         <div className="relative w-full h-[60px] border-b-2 border-[#1D202A] flex items-center bg-[#030712] z-[1000]">
-          <div className="absolute left-[3%] h-10 w-10 rounded-full bg-[url('../../CSS/IMAGES/logo.png')] bg-cover"></div>
+          <div className="absolute left-[3%] h-10 w-10 rounded-full bg-[url('/logo.png')] bg-cover"></div>
           <p className="absolute left-[5%] text-3xl font-bold font-[Kanit,serif] text-white cursor-pointer">LixBlogs</p>
           <div className="absolute left-[80%] text-white text-[1.3em] cursor-pointer px-2.5 py-1.5 bg-[#10141E] border border-[#7ba8f0] rounded-[15px] flex items-center">
             <span className="mr-1 text-[#7ba8f0]">
@@ -68,8 +68,8 @@ export default function ProfilePage() {
         <div className="w-[80%] h-full bg-[#10141E] px-10 box-border flex flex-col">
           <div className="w-full h-full max-h-[calc(85%)] overflow-y-auto mt-5">
             <div className="relative w-full h-[200px] box-border flex items-center justify-center">
-              <div className="h-[200px] w-full bg-[url('../../CSS/IMAGES/SAMPLE_PICS/img_two.jpg')] bg-cover bg-center rounded-[12px] skeleton"></div>
-              <div className="absolute left-[5%] top-[50%] h-[170px] w-[170px] bg-[url('../../CSS/IMAGES/SAMPLE_PICS/img_three.jpg')] bg-cover bg-center rounded-full border-[6px] border-[#10141E] skeleton"></div>
+              <div className="h-[200px] w-full bg-[url('/sample_pics/img_two.jpg')] bg-cover bg-center rounded-[12px] skeleton"></div>
+              <div className="absolute left-[5%] top-[50%] h-[170px] w-[170px] bg-[url('/sample_pics/img_three.jpg')] bg-cover bg-center rounded-full border-[6px] border-[#10141E] skeleton"></div>
             </div>
             <div className="flex flex-row mt-10 gap-5 items-center justify-between">
               <div className="w-1/2 py-5 flex flex-row gap-5 items-center justify-start">
