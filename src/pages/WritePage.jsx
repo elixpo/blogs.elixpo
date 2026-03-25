@@ -21,6 +21,11 @@ const BlogCodeView = dynamic(
   { ssr: false }
 );
 
+const CoverUploadModal = dynamic(
+  () => import('../components/Editor/CoverUploadModal'),
+  { ssr: false }
+);
+
 const STORAGE_KEY_PREFIX = 'lixblogs_draft_';
 
 function getDraftKey(slug) {
@@ -42,7 +47,12 @@ function saveDraft(slug, data) {
       ...data,
       savedAt: Date.now(),
     }));
-  } catch { /* storage full, ignore */ }
+  } catch { /* storage full */ }
+}
+
+function truncateSlug(s, max = 18) {
+  if (!s) return 'untitled';
+  return s.length > max ? s.slice(0, max) + '...' : s;
 }
 
 export default function WritePage({ slug }) {
@@ -58,13 +68,16 @@ export default function WritePage({ slug }) {
   const [tagInput, setTagInput] = useState('');
   const [showPublishPanel, setShowPublishPanel] = useState(false);
   const [showPublishMenu, setShowPublishMenu] = useState(false);
+  const [showCoverModal, setShowCoverModal] = useState(false);
   const [editorContent, setEditorContent] = useState(null);
   const [previewHtml, setPreviewHtml] = useState('');
   const [markdown, setMarkdown] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [lastSaved, setLastSaved] = useState(null);
 
-  // Load draft from localStorage on mount
+  // TODO: replace with real user from session
+  const username = 'you';
+
   useEffect(() => {
     const draft = loadDraft(slug);
     if (draft) {
@@ -78,32 +91,21 @@ export default function WritePage({ slug }) {
     }
   }, [slug]);
 
-  // Auto-save to localStorage every 5s when content changes
   useEffect(() => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       if (title || editorContent) {
-        saveDraft(slug, {
-          title,
-          subtitle,
-          tags,
-          publishAs,
-          coverPreview,
-          editorContent,
-        });
+        saveDraft(slug, { title, subtitle, tags, publishAs, coverPreview, editorContent });
         setLastSaved(Date.now());
       }
     }, 5000);
     return () => clearTimeout(autoSaveTimer.current);
   }, [title, subtitle, tags, publishAs, coverPreview, editorContent, slug]);
 
-  const handleCoverUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setCoverImage(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setCoverPreview(ev.target.result);
-    reader.readAsDataURL(file);
+  const handleCoverSelect = (dataUrl) => {
+    setCoverPreview(dataUrl);
+    // Convert data URL to blob for future R2 upload
+    fetch(dataUrl).then(r => r.blob()).then(blob => setCoverImage(blob));
   };
 
   const removeCover = () => {
@@ -119,26 +121,16 @@ export default function WritePage({ slug }) {
     }
   };
 
-  const removeTag = (tag) => {
-    setTags(tags.filter((t) => t !== tag));
-  };
+  const removeTag = (tag) => setTags(tags.filter((t) => t !== tag));
 
   const handleTagKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addTag();
-    }
+    if (e.key === 'Enter') { e.preventDefault(); addTag(); }
   };
 
   const handleEditorChange = useCallback((blocks) => {
     setEditorContent(blocks);
     const text = blocks
-      .map((b) => {
-        if (b.content && Array.isArray(b.content)) {
-          return b.content.map((c) => c.text || '').join('');
-        }
-        return '';
-      })
+      .map((b) => (b.content && Array.isArray(b.content)) ? b.content.map((c) => c.text || '').join('') : '')
       .join(' ');
     setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
   }, []);
@@ -146,13 +138,10 @@ export default function WritePage({ slug }) {
   const switchMode = useCallback(async (newMode) => {
     if (newMode !== 'edit' && editorRef.current) {
       try {
-        const [html, md] = await Promise.all([
-          editorRef.current.getHTML(),
-          editorRef.current.getMarkdown(),
-        ]);
+        const [html, md] = await Promise.all([editorRef.current.getHTML(), editorRef.current.getMarkdown()]);
         setPreviewHtml(html);
         setMarkdown(md);
-      } catch { /* editor not ready */ }
+      } catch { /* not ready */ }
     }
     setMode(newMode);
   }, []);
@@ -161,22 +150,16 @@ export default function WritePage({ slug }) {
     saveDraft(slug, { title, subtitle, tags, publishAs, coverPreview, editorContent });
     setLastSaved(Date.now());
     setShowPublishMenu(false);
-    // TODO: sync to cloud via API
-    console.log('Draft saved locally');
   };
 
   const handlePublish = () => {
-    const blogData = { title, subtitle, content: editorContent, tags, publishAs, coverImage };
-    console.log('Publishing blog:', blogData);
+    console.log('Publishing:', { title, subtitle, content: editorContent, tags, publishAs, coverImage });
     setShowPublishMenu(false);
-    // TODO: API call to publish
   };
 
   const handlePublishBeta = () => {
-    const blogData = { title, subtitle, content: editorContent, tags, publishAs, coverImage, status: 'unlisted' };
-    console.log('Publishing beta (unlisted):', blogData);
+    console.log('Publishing beta:', { title, subtitle, content: editorContent, tags, publishAs, coverImage, status: 'unlisted' });
     setShowPublishMenu(false);
-    // TODO: API call to publish as unlisted
   };
 
   const readTime = Math.max(1, Math.ceil(wordCount / 250));
@@ -193,35 +176,39 @@ export default function WritePage({ slug }) {
   return (
     <div className="min-h-screen bg-[#030712] text-white">
       {/* Header */}
-      <header className="fixed top-0 left-0 w-full h-[60px] border-b border-[#1D202A] flex items-center justify-between px-6 bg-[#030712]/95 backdrop-blur-sm z-50">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-[url('/logo.png')] bg-cover" />
-          <p className="text-xl font-bold font-[Kanit,serif]">LixBlogs</p>
+      <header className="fixed top-0 left-0 w-full h-[52px] border-b border-[#1D202A] flex items-center justify-between px-5 bg-[#030712]/95 backdrop-blur-sm z-50">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="h-7 w-7 shrink-0 rounded-full bg-[url('/logo.png')] bg-cover" />
+          <p className="text-base font-bold font-[Kanit,serif] shrink-0">LixBlogs</p>
+          <span className="text-[#444] text-xs mx-1">/</span>
+          <span className="text-[#666] text-xs truncate">
+            @{username}/{truncateSlug(slug)}
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-[#555] text-xs">
-            {wordCount} words &middot; {readTime} min read
+        <div className="flex items-center gap-2.5">
+          <span className="text-[#555] text-[11px]">
+            {wordCount}w &middot; {readTime}m
           </span>
           {lastSaved && (
-            <span className="text-[#444] text-xs">{formatSavedTime(lastSaved)}</span>
+            <span className="text-[#444] text-[11px]">{formatSavedTime(lastSaved)}</span>
           )}
-          <span className="text-[#888] text-sm px-2 py-0.5 rounded bg-[#1D202A]">Draft</span>
+          <span className="text-[#666] text-[11px] px-1.5 py-0.5 rounded bg-[#1D202A]">Draft</span>
 
-          {/* Publish button with dropdown */}
+          {/* Publish split button */}
           <div className="relative">
             <div className="flex items-center">
               <button
                 onClick={() => setShowPublishPanel(!showPublishPanel)}
-                className="px-5 py-1.5 bg-[#7ba8f0] text-[#030712] font-semibold rounded-l-full text-sm hover:bg-[#9dc0ff] transition-colors"
+                className="px-4 py-1 bg-[#7ba8f0] text-[#030712] font-semibold rounded-l-full text-xs hover:bg-[#9dc0ff] transition-colors"
               >
                 Publish
               </button>
               <button
                 onClick={() => setShowPublishMenu(!showPublishMenu)}
-                className="px-2 py-1.5 bg-[#7ba8f0] text-[#030712] rounded-r-full border-l border-[#030712]/20 hover:bg-[#9dc0ff] transition-colors"
+                className="px-1.5 py-1 bg-[#7ba8f0] text-[#030712] rounded-r-full border-l border-[#030712]/20 hover:bg-[#9dc0ff] transition-colors"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </button>
@@ -230,38 +217,17 @@ export default function WritePage({ slug }) {
             {showPublishMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowPublishMenu(false)} />
-                <div className="absolute right-0 top-full mt-2 w-48 bg-[#10141E] border border-[#1D202A] rounded-xl shadow-2xl z-50 overflow-hidden">
-                  <button
-                    onClick={handleSaveDraft}
-                    className="w-full px-4 py-2.5 text-left text-sm text-[#e4e4e7] hover:bg-[#1D202A] flex items-center gap-2 transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                      <polyline points="17 21 17 13 7 13 7 21" />
-                      <polyline points="7 3 7 8 15 8" />
-                    </svg>
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-[#10141E] border border-[#1D202A] rounded-xl shadow-2xl z-50 overflow-hidden py-1">
+                  <button onClick={handleSaveDraft} className="w-full px-3 py-2 text-left text-xs text-[#e4e4e7] hover:bg-[#1D202A] flex items-center gap-2 transition-colors">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                     Save Draft
                   </button>
-                  <button
-                    onClick={handlePublish}
-                    disabled={!title.trim()}
-                    className="w-full px-4 py-2.5 text-left text-sm text-[#e4e4e7] hover:bg-[#1D202A] flex items-center gap-2 transition-colors disabled:opacity-40"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="22" y1="2" x2="11" y2="13" />
-                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                    </svg>
+                  <button onClick={handlePublish} disabled={!title.trim()} className="w-full px-3 py-2 text-left text-xs text-[#e4e4e7] hover:bg-[#1D202A] flex items-center gap-2 transition-colors disabled:opacity-40">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                     Publish
                   </button>
-                  <button
-                    onClick={handlePublishBeta}
-                    disabled={!title.trim()}
-                    className="w-full px-4 py-2.5 text-left text-sm text-[#888] hover:bg-[#1D202A] flex items-center gap-2 transition-colors disabled:opacity-40"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
+                  <button onClick={handlePublishBeta} disabled={!title.trim()} className="w-full px-3 py-2 text-left text-xs text-[#888] hover:bg-[#1D202A] flex items-center gap-2 transition-colors disabled:opacity-40">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     Publish Beta
                   </button>
                 </div>
@@ -269,45 +235,30 @@ export default function WritePage({ slug }) {
             )}
           </div>
 
-          <div className="h-8 w-8 rounded-full bg-[#1D202A] flex items-center justify-center cursor-pointer hover:bg-[#282c3a] transition-colors">
-            <ion-icon name="ellipsis-horizontal" style={{ color: '#888', fontSize: '16px' }} />
+          <div className="h-7 w-7 rounded-full bg-[#1D202A] flex items-center justify-center cursor-pointer hover:bg-[#282c3a] transition-colors">
+            <ion-icon name="ellipsis-horizontal" style={{ color: '#888', fontSize: '14px' }} />
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="pt-[60px] flex justify-center">
-        <div className={`w-full max-w-[820px] px-6 py-10 ${showPublishPanel ? 'mr-[400px]' : ''} transition-all`}>
+      <main className="pt-[52px] flex justify-center">
+        <div className={`w-full max-w-[720px] px-6 py-8 ${showPublishPanel ? 'mr-[380px]' : ''} transition-all`}>
 
-          {/* Mode tabs inside editor area */}
-          <div className="flex items-center gap-1 mb-6">
+          {/* Mode icons */}
+          <div className="flex items-center gap-0.5 mb-5">
             {[
-              { key: 'edit', icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              )},
-              { key: 'preview', icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              )},
-              { key: 'code', icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="16 18 22 12 16 6" />
-                  <polyline points="8 6 2 12 8 18" />
-                </svg>
-              )},
+              { key: 'edit', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> },
+              { key: 'preview', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> },
+              { key: 'code', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => switchMode(tab.key)}
-                className={`p-2 rounded-lg transition-all ${
+                className={`p-1.5 rounded-md transition-all ${
                   mode === tab.key
                     ? 'bg-[#1D202A] text-[#7ba8f0]'
-                    : 'text-[#555] hover:text-[#888] hover:bg-[#1D202A]/50'
+                    : 'text-[#444] hover:text-[#888] hover:bg-[#1D202A]/50'
                 }`}
                 title={tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}
               >
@@ -321,27 +272,40 @@ export default function WritePage({ slug }) {
             <>
               {/* Cover Image */}
               {coverPreview ? (
-                <div className="relative mb-8 rounded-xl overflow-hidden group">
-                  <img src={coverPreview} alt="Cover" className="w-full h-[300px] object-cover" />
+                <div className="relative mb-6 rounded-xl overflow-hidden group" style={{ aspectRatio: '3/1' }}>
+                  <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <label className="px-4 py-2 bg-white/20 backdrop-blur rounded-lg cursor-pointer text-sm hover:bg-white/30 transition-colors">
-                      Change
-                      <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
-                    </label>
                     <button
-                      onClick={removeCover}
-                      className="px-4 py-2 bg-red-500/60 backdrop-blur rounded-lg text-sm hover:bg-red-500/80 transition-colors"
+                      onClick={() => setShowCoverModal(true)}
+                      className="px-3 py-1.5 bg-white/20 backdrop-blur rounded-lg text-xs hover:bg-white/30 transition-colors"
                     >
+                      Change
+                    </button>
+                    <button onClick={removeCover} className="px-3 py-1.5 bg-red-500/60 backdrop-blur rounded-lg text-xs hover:bg-red-500/80 transition-colors">
                       Remove
                     </button>
                   </div>
                 </div>
               ) : (
-                <label className="flex items-center gap-2 mb-6 text-[#555] cursor-pointer hover:text-[#7ba8f0] transition-colors text-sm w-fit">
-                  <ion-icon name="image-outline" style={{ fontSize: '18px' }} />
-                  Add cover image
-                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
-                </label>
+                <button
+                  onClick={() => setShowCoverModal(true)}
+                  className="inline-flex items-center gap-1.5 mb-5 text-[#444] hover:text-[#7ba8f0] transition-colors text-xs"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  Add cover
+                </button>
+              )}
+
+              {/* Cover Upload Modal */}
+              {showCoverModal && (
+                <CoverUploadModal
+                  onSelect={handleCoverSelect}
+                  onClose={() => setShowCoverModal(false)}
+                />
               )}
 
               {/* Title */}
@@ -350,7 +314,7 @@ export default function WritePage({ slug }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Blog title..."
-                className="w-full bg-transparent text-[2.8em] font-extrabold outline-none placeholder-[#222] mb-2 leading-tight"
+                className="w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[#222] mb-1 leading-tight"
               />
 
               {/* Subtitle */}
@@ -359,11 +323,11 @@ export default function WritePage({ slug }) {
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
                 placeholder="Add a subtitle..."
-                className="w-full bg-transparent text-xl text-[#888] outline-none placeholder-[#222] mb-8"
+                className="w-full bg-transparent text-base text-[#888] outline-none placeholder-[#222] mb-6"
               />
 
               {/* Block Editor */}
-              <div className="min-h-[500px] editor-aligned">
+              <div className="min-h-[500px]">
                 <BlockNoteEditor
                   ref={editorRef}
                   onChange={handleEditorChange}
@@ -375,13 +339,7 @@ export default function WritePage({ slug }) {
 
           {/* === PREVIEW MODE === */}
           {mode === 'preview' && (
-            <BlogPreview
-              title={title}
-              subtitle={subtitle}
-              coverPreview={coverPreview}
-              tags={tags}
-              html={previewHtml}
-            />
+            <BlogPreview title={title} subtitle={subtitle} coverPreview={coverPreview} tags={tags} html={previewHtml} />
           )}
 
           {/* === CODE MODE === */}
@@ -393,60 +351,45 @@ export default function WritePage({ slug }) {
 
       {/* Publish Side Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-[400px] bg-[#10141E] border-l border-[#1D202A] z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
+        className={`fixed top-0 right-0 h-full w-[380px] bg-[#10141E] border-l border-[#1D202A] z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
           showPublishPanel ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between p-5 border-b border-[#1D202A]">
-          <h2 className="text-lg font-bold">Publish Settings</h2>
-          <button
-            onClick={() => setShowPublishPanel(false)}
-            className="text-[#888] hover:text-white transition-colors"
-          >
-            <ion-icon name="close" style={{ fontSize: '22px' }} />
+        <div className="flex items-center justify-between p-4 border-b border-[#1D202A]">
+          <h2 className="text-sm font-bold">Publish Settings</h2>
+          <button onClick={() => setShowPublishPanel(false)} className="text-[#888] hover:text-white transition-colors">
+            <ion-icon name="close" style={{ fontSize: '18px' }} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
           {/* Publish As */}
           <div>
-            <label className="text-sm text-[#888] mb-2 block">Publish as</label>
+            <label className="text-xs text-[#888] mb-1.5 block">Publish as</label>
             <div className="flex gap-2">
-              <button
-                onClick={() => setPublishAs('personal')}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  publishAs === 'personal'
-                    ? 'bg-[#7ba8f0] text-[#030712]'
-                    : 'bg-[#1D202A] text-[#888] hover:text-white'
-                }`}
-              >
-                Personal
-              </button>
-              <button
-                onClick={() => setPublishAs('organization')}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  publishAs === 'organization'
-                    ? 'bg-[#7ba8f0] text-[#030712]'
-                    : 'bg-[#1D202A] text-[#888] hover:text-white'
-                }`}
-              >
-                Organization
-              </button>
+              {['personal', 'organization'].map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setPublishAs(opt)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    publishAs === opt ? 'bg-[#7ba8f0] text-[#030712]' : 'bg-[#1D202A] text-[#888] hover:text-white'
+                  }`}
+                >
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Tags */}
           <div>
-            <label className="text-sm text-[#888] mb-2 block">Tags (up to 5)</label>
-            <div className="flex flex-wrap gap-2 mb-2">
+            <label className="text-xs text-[#888] mb-1.5 block">Tags (up to 5)</label>
+            <div className="flex flex-wrap gap-1.5 mb-1.5">
               {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="flex items-center gap-1 px-3 py-1 bg-[#1D202A] rounded-full text-sm text-[#7ba8f0]"
-                >
+                <span key={tag} className="flex items-center gap-1 px-2 py-0.5 bg-[#1D202A] rounded-full text-xs text-[#7ba8f0]">
                   #{tag}
-                  <button onClick={() => removeTag(tag)} className="text-[#888] hover:text-white ml-1">
-                    <ion-icon name="close" style={{ fontSize: '12px' }} />
+                  <button onClick={() => removeTag(tag)} className="text-[#888] hover:text-white">
+                    <ion-icon name="close" style={{ fontSize: '10px' }} />
                   </button>
                 </span>
               ))}
@@ -458,43 +401,43 @@ export default function WritePage({ slug }) {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 placeholder="Add a tag..."
-                className="w-full bg-[#1D202A] text-white rounded-lg px-4 py-2 outline-none text-sm border border-[#333] focus:border-[#7ba8f0] transition-colors"
+                className="w-full bg-[#1D202A] text-white rounded-lg px-3 py-1.5 outline-none text-xs border border-[#333] focus:border-[#7ba8f0] transition-colors"
               />
             )}
           </div>
 
-          {/* SEO / Meta */}
+          {/* URL Slug */}
           <div>
-            <label className="text-sm text-[#888] mb-2 block">URL Slug</label>
+            <label className="text-xs text-[#888] mb-1.5 block">URL Slug</label>
             <div className="flex items-center bg-[#1D202A] rounded-lg border border-[#333] overflow-hidden">
-              <span className="text-[#555] text-sm px-3">/blog/</span>
+              <span className="text-[#555] text-xs px-2.5">/b/</span>
               <input
                 type="text"
                 defaultValue={slug || ''}
                 placeholder="auto-generated-from-title"
-                className="flex-1 bg-transparent text-white py-2 pr-3 outline-none text-sm"
+                className="flex-1 bg-transparent text-white py-1.5 pr-2.5 outline-none text-xs"
               />
             </div>
           </div>
 
           {/* Preview Card */}
           <div>
-            <label className="text-sm text-[#888] mb-2 block">Preview</label>
-            <div className="bg-[#1D202A] rounded-xl p-4">
+            <label className="text-xs text-[#888] mb-1.5 block">Preview</label>
+            <div className="bg-[#1D202A] rounded-xl p-3">
               {coverPreview && (
-                <img src={coverPreview} alt="Cover" className="w-full h-[120px] object-cover rounded-lg mb-3" />
+                <img src={coverPreview} alt="Cover" className="w-full h-[100px] object-cover rounded-lg mb-2" />
               )}
-              <p className="font-bold text-lg leading-tight">{title || 'Your blog title'}</p>
-              <p className="text-[#888] text-sm mt-1">{subtitle || 'Your subtitle will appear here'}</p>
-              <div className="flex items-center gap-3 mt-3 text-xs text-[#555]">
+              <p className="font-bold text-sm leading-tight">{title || 'Your blog title'}</p>
+              <p className="text-[#888] text-xs mt-0.5">{subtitle || 'Your subtitle here'}</p>
+              <div className="flex items-center gap-2 mt-2 text-[10px] text-[#555]">
                 <span>{readTime} min read</span>
                 <span>&middot;</span>
                 <span>{wordCount} words</span>
               </div>
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div className="flex flex-wrap gap-1 mt-1.5">
                   {tags.map((tag) => (
-                    <span key={tag} className="text-xs text-[#7ba8f0]">#{tag}</span>
+                    <span key={tag} className="text-[10px] text-[#7ba8f0]">#{tag}</span>
                   ))}
                 </div>
               )}
@@ -502,12 +445,11 @@ export default function WritePage({ slug }) {
           </div>
         </div>
 
-        {/* Publish Button in panel */}
-        <div className="p-5 border-t border-[#1D202A]">
+        <div className="p-4 border-t border-[#1D202A]">
           <button
             onClick={handlePublish}
             disabled={!title.trim()}
-            className="w-full py-3 bg-[#7ba8f0] text-[#030712] font-bold rounded-xl text-sm hover:bg-[#9dc0ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-[#7ba8f0] text-[#030712] font-bold rounded-xl text-xs hover:bg-[#9dc0ff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Publish now
           </button>
