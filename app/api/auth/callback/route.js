@@ -26,6 +26,7 @@ export async function GET(request) {
   const config = getOAuthConfig();
 
   // Exchange code for tokens
+  // redirect_uri must match exactly what was sent to the authorize endpoint
   const tokenRes = await fetch(config.tokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -39,6 +40,8 @@ export async function GET(request) {
   });
 
   if (!tokenRes.ok) {
+    const errorBody = await tokenRes.text();
+    console.error('Token exchange failed:', tokenRes.status, errorBody);
     return NextResponse.redirect(new URL('/sign-in?error=token_exchange_failed', request.url));
   }
 
