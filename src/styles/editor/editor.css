@@ -1,3 +1,27 @@
+/* ===== Edit page scrollbar ===== */
+
+.edit-page {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2e3a transparent;
+}
+
+.edit-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.edit-page::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.edit-page::-webkit-scrollbar-thumb {
+  background: #2a2e3a;
+  border-radius: 4px;
+}
+
+.edit-page::-webkit-scrollbar-thumb:hover {
+  background: #3a3f4f;
+}
+
 /* ===== BlogEditor (BlockNote) Dark Theme ===== */
 
 .blog-editor-wrapper .bn-editor {

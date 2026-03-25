@@ -182,7 +182,7 @@ export default function WritePage({ slug }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#030712] text-white">
+    <div className="min-h-screen bg-[#030712] text-white edit-page">
       {/* Header */}
       <header className="fixed top-0 left-0 w-full h-[60px] border-b border-[#1D202A] flex items-center justify-between px-6 bg-[#030712]/95 backdrop-blur-sm z-50">
         <div className="flex items-center gap-3 min-w-0">
