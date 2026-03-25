@@ -1,7 +1,5 @@
-'use client';
-
-import RegisterPage from '../../../src/pages/auth/register/RegisterPage';
+import { redirect } from 'next/navigation';
 
 export default function Register() {
-  return <RegisterPage />;
+  redirect('/auth/login');
 }
