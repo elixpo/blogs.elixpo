@@ -1,22 +1,17 @@
-/* ===== Align editor text with title ===== */
-
-.editor-aligned .blog-editor-wrapper {
-  margin-left: -54px;
-}
-
 /* ===== BlogEditor (BlockNote) Dark Theme ===== */
 
 .blog-editor-wrapper .bn-editor {
   background: transparent;
   color: #e4e4e7;
-  font-size: 1.125rem;
-  line-height: 1.8;
+  font-size: 1rem;
+  line-height: 1.75;
   padding-left: 0;
 }
 
 .blog-editor-wrapper .bn-container {
   background: transparent;
   border: none;
+  padding: 0;
 }
 
 .blog-editor-wrapper [class*="blockOuter"] {
@@ -24,7 +19,7 @@
 }
 
 .blog-editor-wrapper .bn-block-content {
-  font-size: 1.125rem;
+  font-size: 1rem;
 }
 
 /* Placeholder */
@@ -35,17 +30,17 @@
 
 /* Headings */
 .blog-editor-wrapper [data-content-type="heading"][data-level="1"] .bn-inline-content {
-  font-size: 2em;
+  font-size: 1.75em;
   font-weight: 800;
 }
 
 .blog-editor-wrapper [data-content-type="heading"][data-level="2"] .bn-inline-content {
-  font-size: 1.6em;
+  font-size: 1.4em;
   font-weight: 700;
 }
 
 .blog-editor-wrapper [data-content-type="heading"][data-level="3"] .bn-inline-content {
-  font-size: 1.3em;
+  font-size: 1.15em;
   font-weight: 600;
 }
 
@@ -124,10 +119,10 @@
 
 .blog-editor-wrapper [data-content-type="codeBlock"] code {
   color: #c9d1d9;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
-/* Blockquote / Alert */
+/* Lists */
 .blog-editor-wrapper [data-content-type="bulletListItem"],
 .blog-editor-wrapper [data-content-type="numberedListItem"] {
   color: #e4e4e7;
@@ -169,21 +164,21 @@
 /* ===== Preview Prose Styles ===== */
 
 .blog-preview-content h1 {
-  font-size: 2em;
+  font-size: 1.75em;
   font-weight: 800;
   margin: 1.2em 0 0.6em;
   color: #fff;
 }
 
 .blog-preview-content h2 {
-  font-size: 1.6em;
+  font-size: 1.4em;
   font-weight: 700;
   margin: 1em 0 0.5em;
   color: #fff;
 }
 
 .blog-preview-content h3 {
-  font-size: 1.3em;
+  font-size: 1.15em;
   font-weight: 600;
   margin: 0.8em 0 0.4em;
   color: #fff;
@@ -191,8 +186,8 @@
 
 .blog-preview-content p {
   color: #c9d1d9;
-  font-size: 1.125rem;
-  line-height: 1.8;
+  font-size: 1rem;
+  line-height: 1.75;
   margin-bottom: 1em;
 }
 
@@ -236,7 +231,7 @@
 
 .blog-preview-content code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #c9d1d9;
 }
 
