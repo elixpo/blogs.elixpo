@@ -7,7 +7,7 @@ import BannerUploadModal from '../components/BannerUploadModal';
 import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { user, loading, refetchUser } = useAuth();
+  const { user, loading } = useAuth();
   const [showBannerModal, setShowBannerModal] = useState(false);
   const [localBanner, setLocalBanner] = useState(null);
 
@@ -129,7 +129,7 @@ export default function ProfilePage() {
         {/* Empty state */}
         <div className="text-center py-16">
           <p className="text-[#777] text-sm">No published blogs yet.</p>
-          <Link href="/new" className="inline-block mt-4 px-5 py-2 text-[13px] font-medium text-[#030712] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors">
+          <Link href="/new-blog" className="inline-block mt-4 px-5 py-2 text-[13px] font-medium text-[#030712] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors">
             Write your first blog
           </Link>
         </div>

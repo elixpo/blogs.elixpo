@@ -109,7 +109,7 @@ export default function StoriesPage() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-white">Your Stories</h1>
           <Link
-            href="/new"
+            href="/new-blog"
             className="px-5 py-2 text-[13px] font-medium text-[#030712] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors"
           >
             Write a story
@@ -158,7 +158,7 @@ export default function StoriesPage() {
                 : 'Once you publish a story, it will appear here.'}
             </p>
             <Link
-              href="/new"
+              href="/new-blog"
               className="px-5 py-2 text-[13px] font-medium text-[#030712] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors"
             >
               Write a story

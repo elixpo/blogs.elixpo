@@ -159,12 +159,10 @@ export default function AppShell({ children }) {
             </Link>
           </div>
           <div className="flex items-center gap-2">
-            {user && (
-              <Link href="/new" className="flex items-center gap-1.5 text-[14px] text-[#b0b0b0] hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-[#ffffff08]">
-                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                Write
-              </Link>
-            )}
+            <Link href={user ? "/new-blog" : "/sign-in"} className="flex items-center gap-1.5 text-[14px] text-[#b0b0b0] hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-[#ffffff08]">
+              <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              Write
+            </Link>
             {loading ? (
               <div className="h-8 w-8 rounded-full bg-[#1a1d27] animate-pulse" />
             ) : user ? (
