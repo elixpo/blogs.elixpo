@@ -33,22 +33,22 @@ const EmojiPicker = dynamic(
 
 const STORAGE_KEY_PREFIX = 'lixblogs_draft_';
 
-function getDraftKey(slug) {
+function getDraftKey(slugid) {
   return STORAGE_KEY_PREFIX + (slug || 'new');
 }
 
-function loadDraft(slug) {
+function loadDraft(slugid) {
   try {
-    const raw = localStorage.getItem(getDraftKey(slug));
+    const raw = localStorage.getItem(getDraftKey(slugid));
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function saveDraft(slug, data) {
+function saveDraft(slugid, data) {
   try {
-    localStorage.setItem(getDraftKey(slug), JSON.stringify({
+    localStorage.setItem(getDraftKey(slugid), JSON.stringify({
       ...data,
       savedAt: Date.now(),
     }));
@@ -60,7 +60,7 @@ function truncateSlug(s, max = 18) {
   return s.length > max ? s.slice(0, max) + '...' : s;
 }
 
-export default function WritePage({ slug }) {
+export default function WritePage({ slugid }) {
   const editorRef = useRef(null);
   const autoSaveTimer = useRef(null);
   const [mode, setMode] = useState('edit');
@@ -86,7 +86,7 @@ export default function WritePage({ slug }) {
   const username = 'you';
 
   useEffect(() => {
-    const draft = loadDraft(slug);
+    const draft = loadDraft(slugid);
     if (draft) {
       if (draft.title) setTitle(draft.title);
       if (draft.subtitle) setSubtitle(draft.subtitle);
@@ -97,18 +97,18 @@ export default function WritePage({ slug }) {
       if (draft.pageEmoji) setPageEmoji(draft.pageEmoji);
       if (draft.savedAt) setLastSaved(draft.savedAt);
     }
-  }, [slug]);
+  }, [slugid]);
 
   useEffect(() => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       if (title || editorContent) {
-        saveDraft(slug, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
+        saveDraft(slugid, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
         setLastSaved(Date.now());
       }
     }, 5000);
     return () => clearTimeout(autoSaveTimer.current);
-  }, [title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, slug]);
+  }, [title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, slugid]);
 
   const handleCoverSelect = (dataUrl) => {
     setCoverPreview(dataUrl);
@@ -155,7 +155,7 @@ export default function WritePage({ slug }) {
   }, []);
 
   const handleSaveDraft = () => {
-    saveDraft(slug, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
+    saveDraft(slugid, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
     setLastSaved(Date.now());
     setShowPublishMenu(false);
   };
@@ -190,7 +190,7 @@ export default function WritePage({ slug }) {
           <p className="text-xl font-bold font-[Kanit,serif] shrink-0">LixBlogs</p>
           <span className="text-[#444] text-sm mx-0.5">/</span>
           <span className="text-[#555] text-sm truncate">
-            @{username}/{truncateSlug(slug)}
+            @{username}/{truncateSlug(slugid)}
           </span>
         </div>
 
@@ -463,10 +463,10 @@ export default function WritePage({ slug }) {
           <div>
             <label className="text-sm text-[#888] mb-2 block">URL Slug</label>
             <div className="flex items-center bg-[#1D202A] rounded-lg border border-[#333] overflow-hidden">
-              <span className="text-[#555] text-sm px-3">/b/</span>
+              <span className="text-[#555] text-sm px-3">@{username}/</span>
               <input
                 type="text"
-                defaultValue={slug || ''}
+                defaultValue={slugid || ''}
                 placeholder="auto-generated-from-title"
                 className="flex-1 bg-transparent text-white py-2 pr-3 outline-none text-sm"
               />
