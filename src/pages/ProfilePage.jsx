@@ -1,11 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AppShell from '../components/AppShell';
+import BannerUploadModal from '../components/BannerUploadModal';
 import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refetchUser } = useAuth();
+  const [showBannerModal, setShowBannerModal] = useState(false);
+  const [localBanner, setLocalBanner] = useState(null);
 
   if (loading) {
     return (
@@ -34,15 +38,51 @@ export default function ProfilePage() {
     );
   }
 
+  const bannerSrc = localBanner || (user.banner_r2_key ? `/api/media/${user.banner_r2_key}` : null);
+
+  async function handleBannerSave(blob) {
+    if (!blob) {
+      // Remove banner
+      setLocalBanner(null);
+      // TODO: API call to remove banner
+      setShowBannerModal(false);
+      return;
+    }
+
+    // Show local preview immediately
+    const previewUrl = URL.createObjectURL(blob);
+    setLocalBanner(previewUrl);
+    setShowBannerModal(false);
+
+    // TODO: Upload blob to /api/users/me/banner
+    // const formData = new FormData();
+    // formData.append('banner', blob, 'banner.webp');
+    // await fetch('/api/users/me/banner', { method: 'POST', body: formData });
+    // refetchUser();
+  }
+
   return (
     <AppShell>
       <div className="max-w-3xl mx-auto px-6 py-8">
         {/* Banner + Avatar */}
         <div className="relative mb-16">
-          <div className="w-full h-48 rounded-xl bg-[#1a1d27] overflow-hidden">
-            {user.banner_r2_key && (
-              <img src={`/api/media/${user.banner_r2_key}`} alt="" className="w-full h-full object-cover" />
+          <div className="group w-full h-48 rounded-xl bg-[#1a1d27] overflow-hidden relative">
+            {bannerSrc && (
+              <img src={bannerSrc} alt="" className="w-full h-full object-cover" />
             )}
+            {/* Edit banner overlay */}
+            <button
+              onClick={() => setShowBannerModal(true)}
+              className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors cursor-pointer"
+            >
+              <span className="flex items-center gap-2 px-4 py-2 bg-black/60 rounded-lg text-[13px] text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {bannerSrc ? 'Change Banner' : 'Add Banner'}
+              </span>
+            </button>
           </div>
           <div className="absolute -bottom-12 left-6">
             {user.avatar_url ? (
@@ -94,6 +134,15 @@ export default function ProfilePage() {
           </Link>
         </div>
       </div>
+
+      {/* Banner Upload Modal */}
+      {showBannerModal && (
+        <BannerUploadModal
+          onSave={handleBannerSave}
+          onClose={() => setShowBannerModal(false)}
+          currentBanner={bannerSrc}
+        />
+      )}
     </AppShell>
   );
 }
