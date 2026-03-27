@@ -9,6 +9,7 @@ import 'katex/dist/katex.min.css';
 import { useCallback, useMemo, forwardRef, useImperativeHandle, useState, useRef, useEffect } from 'react';
 import AICommandMenu from './AICommandMenu';
 import AISelectionToolbar from './AISelectionToolbar';
+import MentionMenu from './MentionMenu';
 import { parseMarkdownToBlocks } from './markdownToBlocks';
 
 // Custom blocks
@@ -24,6 +25,7 @@ import { InlineEquation } from './blocks/InlineEquation';
 import { DateInline } from './blocks/DateInline';
 import { MentionInline } from './blocks/MentionInline';
 import { BlogMentionInline } from './blocks/BlogMentionInline';
+import { OrgMentionInline } from './blocks/OrgMentionInline';
 
 // ── Schema ──
 
@@ -44,6 +46,7 @@ const schema = BlockNoteSchema.create({
     dateInline: DateInline,
     mention: MentionInline,
     blogMention: BlogMentionInline,
+    orgMention: OrgMentionInline,
   },
 });
 
@@ -219,6 +222,10 @@ function isCurrentBlockEmpty(editor) {
 // ── BlogEditor ──
 
 const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, ref) {
+  const [showMentionMenu, setShowMentionMenu] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionPos, setMentionPos] = useState({ top: 0, left: 0 });
+  const mentionStartRef = useRef(null);
   const [showAIMenu, setShowAIMenu] = useState(false);
   const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -345,6 +352,66 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
       return () => editorEl.removeEventListener('keydown', handleKeyDown);
     }
   }, [editor]);
+
+  // @ mention trigger
+  useEffect(() => {
+    const editorEl = wrapperRef.current?.querySelector('.bn-editor');
+    if (!editorEl) return;
+
+    function handleInput() {
+      try {
+        const cursor = editor.getTextCursorPosition();
+        if (!cursor?.block) return;
+        const block = cursor.block;
+        if (!block.content || !Array.isArray(block.content)) return;
+
+        // Get full text of current block up to cursor
+        const fullText = block.content.map((c) => c.text || '').join('');
+
+        // Find the last @ that starts a mention query
+        const lastAt = fullText.lastIndexOf('@');
+        if (lastAt === -1) {
+          if (showMentionMenu) setShowMentionMenu(false);
+          return;
+        }
+
+        // Text after @ should not contain spaces (it's the query)
+        const afterAt = fullText.slice(lastAt + 1);
+        if (afterAt.includes(' ') || afterAt.length > 30) {
+          if (showMentionMenu) setShowMentionMenu(false);
+          return;
+        }
+
+        // Position menu at cursor
+        const domSel = window.getSelection();
+        if (domSel && domSel.rangeCount > 0) {
+          const range = domSel.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          const wrapperRect = wrapperRef.current?.getBoundingClientRect();
+          if (wrapperRect && rect.height > 0) {
+            setMentionPos({
+              top: rect.bottom - wrapperRect.top + 6,
+              left: rect.left - wrapperRect.left,
+            });
+          }
+        }
+
+        setMentionQuery(afterAt);
+        setShowMentionMenu(true);
+        mentionStartRef.current = lastAt;
+      } catch { /* editor not ready */ }
+    }
+
+    editorEl.addEventListener('input', handleInput);
+    return () => editorEl.removeEventListener('input', handleInput);
+  }, [editor, showMentionMenu]);
+
+  // Close mention menu and remove the @query text when a mention is inserted
+  const handleMentionClose = useCallback(() => {
+    setShowMentionMenu(false);
+    setMentionQuery('');
+    mentionStartRef.current = null;
+  }, []);
 
   const handleAIStop = useCallback(() => {
     if (aiAbortRef.current) {
@@ -581,6 +648,20 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
           getItems={getItems}
         />
       </BlockNoteView>
+
+      {/* @ Mention menu */}
+      {showMentionMenu && mentionQuery && (
+        <div
+          className="absolute z-[60]"
+          style={{ top: mentionPos.top, left: mentionPos.left }}
+        >
+          <MentionMenu
+            editor={editor}
+            query={mentionQuery}
+            onClose={handleMentionClose}
+          />
+        </div>
+      )}
 
       {showAIMenu && (
         <AICommandMenu
