@@ -2,55 +2,17 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const AI_COMMANDS = [
-  {
-    group: 'Write',
-    items: [
-      { id: 'write', label: 'Write anything...', icon: 'create-outline', description: 'Let AI write content for you' },
-    ],
-  },
-  {
-    group: 'Think, ask, chat',
-    items: [
-      { id: 'brainstorm', label: 'Brainstorm ideas...', icon: 'bulb-outline', description: 'Generate creative ideas' },
-      { id: 'help-code', label: 'Get help with code...', icon: 'code-slash-outline', description: 'Get coding assistance' },
-    ],
-  },
-  {
-    group: 'Find, search',
-    items: [
-      { id: 'ask', label: 'Ask a question...', icon: 'search-outline', description: 'Search or ask anything' },
-    ],
-  },
-];
-
-export default function AICommandMenu({ position, onSelect, onClose }) {
-  const [activeIndex, setActiveIndex] = useState(0);
+export default function AICommandMenu({ position, onSubmit, onClose }) {
+  const [query, setQuery] = useState('');
+  const inputRef = useRef(null);
   const menuRef = useRef(null);
 
-  const allItems = AI_COMMANDS.flatMap((g) => g.items);
-
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((i) => (i + 1) % allItems.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((i) => (i - 1 + allItems.length) % allItems.length);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      onSelect(allItems[activeIndex]);
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onClose();
-    }
-  }, [activeIndex, allItems, onSelect, onClose]);
-
+  // Auto-focus input on mount
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, []);
 
+  // Click outside to close
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -61,40 +23,62 @@ export default function AICommandMenu({ position, onSelect, onClose }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  let flatIndex = 0;
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose();
+    } else if (e.key === 'Enter' && query.trim()) {
+      e.preventDefault();
+      onSubmit(query.trim());
+    }
+  };
 
   return (
     <div
       ref={menuRef}
-      className="ai-command-menu"
       style={{
         position: 'absolute',
         top: position?.top ?? 0,
-        left: position?.left ?? 0,
+        left: 0,
+        right: 0,
         zIndex: 100,
       }}
     >
-      {AI_COMMANDS.map((group) => (
-        <div key={group.group} className="ai-command-group">
-          <div className="ai-command-group-label">{group.group}</div>
-          {group.items.map((item) => {
-            const idx = flatIndex++;
-            return (
-              <button
-                key={item.id}
-                className={`ai-command-item ${idx === activeIndex ? 'ai-command-item-active' : ''}`}
-                onMouseEnter={() => setActiveIndex(idx)}
-                onClick={() => onSelect(item)}
-              >
-                <div className="ai-command-icon">
-                  <ion-icon name={item.icon} style={{ fontSize: '16px' }} />
-                </div>
-                <span className="ai-command-label">{item.label}</span>
-              </button>
-            );
-          })}
+      <div className="mx-auto w-full max-w-[600px] bg-[#0d1117] border border-[#1a1d27] rounded-xl shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3">
+          {/* AI icon */}
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#9b7bf714] flex items-center justify-center">
+            <svg className="w-[18px] h-[18px] text-[#9b7bf7]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
+            </svg>
+          </div>
+
+          {/* Input */}
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask AI anything..."
+            className="flex-1 bg-transparent text-[14px] text-[#e0e0e0] placeholder-[#555] outline-none"
+            autoComplete="off"
+            spellCheck="false"
+          />
+
+          {/* Submit button */}
+          <button
+            onClick={() => query.trim() && onSubmit(query.trim())}
+            disabled={!query.trim()}
+            className="flex-shrink-0 w-7 h-7 rounded-full bg-[#e8e8e8] disabled:bg-[#1a1d27] flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+          >
+            <svg className="w-3.5 h-3.5 text-[#030712]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="5 12 12 5 19 12" />
+            </svg>
+          </button>
         </div>
-      ))}
+      </div>
     </div>
   );
 }

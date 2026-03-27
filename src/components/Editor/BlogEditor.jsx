@@ -285,17 +285,18 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     }
   }, [editor]);
 
-  const handleAISelect = useCallback((item) => {
+  const handleAISubmit = useCallback((prompt) => {
     setShowAIMenu(false);
-    const promptText = window.prompt(`${item.label.replace('...', '')} — describe what you need:`);
-    if (promptText) {
-      // TODO: call AI backend
+    // Insert a placeholder block while AI generates
+    const cursor = editor.getTextCursorPosition();
+    if (cursor?.block) {
       editor.insertBlocks(
-        [{ type: 'paragraph', content: [{ type: 'text', text: `✨ [AI ${item.id}: "${promptText}"] — generating...`, styles: { italic: true } }] }],
-        editor.getTextCursorPosition().block,
+        [{ type: 'paragraph', content: [{ type: 'text', text: `Generating: "${prompt}"...`, styles: { italic: true, textColor: '#9b7bf7' } }] }],
+        cursor.block,
         'after'
       );
     }
+    // TODO: call AI backend API and replace placeholder with actual content
   }, [editor]);
 
   return (
@@ -315,7 +316,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
       {showAIMenu && (
         <AICommandMenu
           position={aiMenuPos}
-          onSelect={handleAISelect}
+          onSubmit={handleAISubmit}
           onClose={() => setShowAIMenu(false)}
         />
       )}
