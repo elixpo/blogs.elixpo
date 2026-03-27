@@ -24,15 +24,16 @@ import { BlogMentionInline } from './blocks/BlogMentionInline';
 
 // ── Schema ──
 
+// Block specs from createReactBlockSpec are factories — call them to get the spec
 const schema = BlockNoteSchema.create({
   blockSpecs: {
     ...defaultBlockSpecs,
-    tableOfContents: TableOfContents,
-    blockEquation: BlockEquation,
-    buttonBlock: ButtonBlock,
-    breadcrumbs: Breadcrumbs,
-    tabsBlock: TabsBlock,
-    aiBlock: AIBlock,
+    tableOfContents: TableOfContents({}),
+    blockEquation: BlockEquation({}),
+    buttonBlock: ButtonBlock({}),
+    breadcrumbs: Breadcrumbs({}),
+    tabsBlock: TabsBlock({}),
+    aiBlock: AIBlock({}),
   },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
