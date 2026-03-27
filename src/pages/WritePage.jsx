@@ -57,9 +57,16 @@ function saveDraft(slugid, data) {
   } catch { /* storage full */ }
 }
 
+function generateBlogId() {
+  // Short 8-char alphanumeric ID
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  for (let i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
 function truncateSlug(s, max = 18) {
-  if (!s) return 'untitled';
-  return s.length > max ? s.slice(0, max) + '...' : s;
+  return s && s.length > max ? s.slice(0, max) + '...' : s;
 }
 
 // ── Profile Dropdown (header) ──

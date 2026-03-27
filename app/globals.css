@@ -2,17 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Color tokens as CSS custom properties for consistency */
+/* Color tokens — soothing dark theme for reading */
 :root {
   --bg-base: #0c1017;
   --bg-surface: #141a26;
   --bg-elevated: #1c2333;
   --border-default: #232d3f;
   --border-hover: #2e3b50;
-  --text-primary: #f0f0f0;
-  --text-secondary: #a0aec0;
-  --text-muted: #6b7a8d;
-  --text-faint: #4a5568;
+  --text-primary: #e8edf5;
+  --text-secondary: #b0bdd0;
+  --text-body: #cbd5e1;
+  --text-muted: #7b8da4;
+  --text-faint: #566479;
   --accent: #9b7bf7;
   --accent-hover: #b69aff;
   --accent-subtle: rgba(155, 123, 247, 0.08);
