@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { streamAI } from '../../ai/stream';
 import { EDIT_SYSTEM_PROMPT, WRITE_SYSTEM_PROMPT } from '../../ai/prompts';
+import { parseMarkdownToBlocks } from './markdownToBlocks';
 
 /**
  * AI toolbar that appears when text is selected.
@@ -143,41 +144,7 @@ export default function AISelectionToolbar({ editor }) {
     if (!aiResult || !editor) return;
 
     try {
-      // Replace the selected blocks with AI-generated content
-      // Parse the markdown into blocks
-      const lines = aiResult.split('\n');
-      const newBlocks = lines
-        .filter((line) => line.trim() !== '')
-        .map((line) => {
-          // Detect heading
-          const headingMatch = line.match(/^(#{1,3})\s+(.+)/);
-          if (headingMatch) {
-            return {
-              type: 'heading',
-              props: { level: headingMatch[1].length.toString() },
-              content: [{ type: 'text', text: headingMatch[2] }],
-            };
-          }
-          // Detect list item
-          if (line.match(/^[-*]\s+/)) {
-            return {
-              type: 'bulletListItem',
-              content: [{ type: 'text', text: line.replace(/^[-*]\s+/, '') }],
-            };
-          }
-          if (line.match(/^\d+\.\s+/)) {
-            return {
-              type: 'numberedListItem',
-              content: [{ type: 'text', text: line.replace(/^\d+\.\s+/, '') }],
-            };
-          }
-          // Default paragraph
-          return {
-            type: 'paragraph',
-            content: [{ type: 'text', text: line }],
-          };
-        });
-
+      const newBlocks = parseMarkdownToBlocks(aiResult);
       if (selectedBlockIds.length > 0 && newBlocks.length > 0) {
         editor.replaceBlocks(selectedBlockIds, newBlocks);
       }
