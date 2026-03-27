@@ -230,6 +230,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
   const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiGeneratingBlockId, setAiGeneratingBlockId] = useState(null);
+  const [aiPhase, setAiPhase] = useState('idle'); // idle | thinking | typing
   const [aiErrorToast, setAiErrorToast] = useState(null);
   const [aiBlockIds, setAiBlockIds] = useState(new Set());
   const [showAIActions, setShowAIActions] = useState(false);
@@ -600,6 +601,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     aiBlockIdsRef.current = new Set(currentIds);
 
     setAiGenerating(true);
+    setAiPhase('thinking');
     setAiGeneratingBlockId(insertedBlock.id);
     const abortController = new AbortController();
     aiAbortRef.current = abortController;
@@ -626,6 +628,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
         userPrompt: finalPrompt,
         signal: abortController.signal,
         onChunk: (chunk, fullText) => {
+          setAiPhase('typing');
           const newBlocks = parseMarkdownToBlocks(fullText);
           const oldIds = getAiBlockIds();
 
