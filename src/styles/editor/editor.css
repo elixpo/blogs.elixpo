@@ -335,6 +335,33 @@
   color: #9b7bf7 !important;
 }
 
+/* ===== KaTeX overrides ===== */
+
+.blog-editor-wrapper .katex {
+  color: #e0e0e0;
+  font-size: 1.1em;
+}
+
+.blog-editor-wrapper .katex-display {
+  margin: 0;
+}
+
+/* ===== Custom block styles ===== */
+
+.blog-editor-wrapper .toc-block a {
+  color: #9b7bf7;
+  text-decoration: none;
+}
+
+.blog-editor-wrapper .toc-block a:hover {
+  color: #b69aff;
+}
+
+/* Inline equation */
+.blog-editor-wrapper .inline-equation .katex {
+  font-size: 1em;
+}
+
 /* ===== Preview Prose Styles ===== */
 
 .blog-preview-content h1 {
