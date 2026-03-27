@@ -132,12 +132,7 @@
   font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
 }
 
-/* Map BlockNote data-text-color attribute to actual inline color */
-.blog-editor-wrapper [data-text-color]:not([data-text-color="default"]) {
-  color: attr(data-text-color) !important;
-}
-
-/* Explicit color mappings for data-text-color hex values (attr() color fallback) */
+/* Map BlockNote block-level text color (data-text-color on block containers) */
 .blog-editor-wrapper [data-text-color="#ffffff"] { color: #ffffff !important; }
 .blog-editor-wrapper [data-text-color="#9ca3af"] { color: #9ca3af !important; }
 .blog-editor-wrapper [data-text-color="#f87171"] { color: #f87171 !important; }
@@ -148,7 +143,18 @@
 .blog-editor-wrapper [data-text-color="#a78bfa"] { color: #a78bfa !important; }
 .blog-editor-wrapper [data-text-color="#f472b6"] { color: #f472b6 !important; }
 
-/* Map BlockNote data-background-color attribute to actual inline background */
+/* Map BlockNote inline text color marks (data-style-type="textColor" with data-value) */
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#ffffff"] { color: #ffffff !important; }
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#9ca3af"] { color: #9ca3af !important; }
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#f87171"] { color: #f87171 !important; }
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#fb923c"] { color: #fb923c !important; }
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#fbbf24"] { color: #fbbf24 !important; }
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#4ade80"] { color: #4ade80 !important; }
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#60a5fa"] { color: #60a5fa !important; }
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#a78bfa"] { color: #a78bfa !important; }
+.blog-editor-wrapper [data-style-type="textColor"][data-value="#f472b6"] { color: #f472b6 !important; }
+
+/* Map BlockNote block-level background color */
 .blog-editor-wrapper [data-background-color="rgba(156,163,175,0.25)"] { background-color: rgba(156,163,175,0.25) !important; }
 .blog-editor-wrapper [data-background-color="rgba(248,113,113,0.25)"] { background-color: rgba(248,113,113,0.25) !important; }
 .blog-editor-wrapper [data-background-color="rgba(251,146,60,0.25)"] { background-color: rgba(251,146,60,0.25) !important; }
@@ -157,6 +163,16 @@
 .blog-editor-wrapper [data-background-color="rgba(96,165,250,0.25)"] { background-color: rgba(96,165,250,0.25) !important; }
 .blog-editor-wrapper [data-background-color="rgba(167,139,250,0.25)"] { background-color: rgba(167,139,250,0.25) !important; }
 .blog-editor-wrapper [data-background-color="rgba(244,114,182,0.25)"] { background-color: rgba(244,114,182,0.25) !important; }
+
+/* Map BlockNote inline background color marks */
+.blog-editor-wrapper [data-style-type="backgroundColor"][data-value="rgba(156,163,175,0.25)"] { background-color: rgba(156,163,175,0.25) !important; }
+.blog-editor-wrapper [data-style-type="backgroundColor"][data-value="rgba(248,113,113,0.25)"] { background-color: rgba(248,113,113,0.25) !important; }
+.blog-editor-wrapper [data-style-type="backgroundColor"][data-value="rgba(251,146,60,0.25)"] { background-color: rgba(251,146,60,0.25) !important; }
+.blog-editor-wrapper [data-style-type="backgroundColor"][data-value="rgba(251,191,36,0.25)"] { background-color: rgba(251,191,36,0.25) !important; }
+.blog-editor-wrapper [data-style-type="backgroundColor"][data-value="rgba(74,222,128,0.25)"] { background-color: rgba(74,222,128,0.25) !important; }
+.blog-editor-wrapper [data-style-type="backgroundColor"][data-value="rgba(96,165,250,0.25)"] { background-color: rgba(96,165,250,0.25) !important; }
+.blog-editor-wrapper [data-style-type="backgroundColor"][data-value="rgba(167,139,250,0.25)"] { background-color: rgba(167,139,250,0.25) !important; }
+.blog-editor-wrapper [data-style-type="backgroundColor"][data-value="rgba(244,114,182,0.25)"] { background-color: rgba(244,114,182,0.25) !important; }
 
 /* Cover gradient blur placeholder */
 .cover-gradient-blur {

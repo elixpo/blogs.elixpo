@@ -78,6 +78,53 @@
   padding: 0 2px;
 }
 
+/* ===== Inline AI Edit Diff — original blocks (strikethrough) ===== */
+
+.ai-edit-original-block {
+  position: relative;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.ai-edit-original-block .bn-inline-content,
+.ai-edit-original-block .bn-inline-content *,
+.ai-edit-original-block p,
+.ai-edit-original-block span,
+.ai-edit-original-block strong,
+.ai-edit-original-block em,
+.ai-edit-original-block code,
+.ai-edit-original-block a,
+.ai-edit-original-block li {
+  text-decoration: line-through !important;
+  text-decoration-color: rgba(196, 181, 253, 0.6) !important;
+  color: rgba(196, 181, 253, 0.45) !important;
+}
+
+/* ===== Inline AI Edit Diff — new AI blocks (lavender) ===== */
+
+.ai-edit-new-block {
+  background: rgba(196, 181, 253, 0.08) !important;
+  border-left: 3px solid rgba(196, 181, 253, 0.5) !important;
+  border-radius: 0 6px 6px 0;
+  margin-left: -3px;
+  animation: aiBlockFadeIn 0.3s ease-out;
+}
+
+.ai-edit-new-block,
+.ai-edit-new-block *,
+.ai-edit-new-block .bn-inline-content,
+.ai-edit-new-block .bn-inline-content *,
+.ai-edit-new-block p,
+.ai-edit-new-block span,
+.ai-edit-new-block strong,
+.ai-edit-new-block em,
+.ai-edit-new-block code,
+.ai-edit-new-block a,
+.ai-edit-new-block li {
+  color: #c4b5fd !important;
+  caret-color: #c4b5fd !important;
+}
+
 .ai-streaming-cursor::after {
   content: '|';
   color: #c4b5fd;
