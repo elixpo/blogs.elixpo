@@ -221,7 +221,7 @@ function isCurrentBlockEmpty(editor) {
 
 // ── BlogEditor ──
 
-const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, ref) {
+const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, onReady }, ref) {
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionPos, setMentionPos] = useState({ top: 0, left: 0 });
@@ -290,10 +290,13 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     requestAnimationFrame(patchCodeBlocks);
   }, [onChange, editor, patchCodeBlocks]);
 
-  // Patch code blocks on initial mount
+  // Patch code blocks on initial mount + signal ready
   useEffect(() => {
-    requestAnimationFrame(patchCodeBlocks);
-  }, [patchCodeBlocks]);
+    requestAnimationFrame(() => {
+      patchCodeBlocks();
+      onReady?.();
+    });
+  }, [patchCodeBlocks, onReady]);
 
   // AI sparkle star — fixed position, follows the last AI block's text end
   const sparkleRef = useRef(null);
@@ -318,32 +321,37 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     const blockEl = wrapperRef.current?.querySelector(`[data-id="${lastId}"]`);
     if (!blockEl) { star.style.display = 'none'; return; }
 
-    // Find the last text node in the block to position at end of text
     const inlineEl = blockEl.querySelector('.bn-inline-content') || blockEl.querySelector('p') || blockEl;
-    const range = document.createRange();
-    const textNodes = [];
-    const walker = document.createTreeWalker(inlineEl, NodeFilter.SHOW_TEXT);
-    let node;
-    while ((node = walker.nextNode())) textNodes.push(node);
 
-    if (textNodes.length > 0) {
-      const lastText = textNodes[textNodes.length - 1];
-      range.setStart(lastText, lastText.length);
-      range.setEnd(lastText, lastText.length);
-      const rect = range.getBoundingClientRect();
-      if (rect.top > 0) {
-        star.style.left = (rect.right + 4) + 'px';
-        star.style.top = (rect.top + rect.height / 2 - 15) + 'px';
-        star.style.display = 'block';
-        return;
+    // Try to find the last text node and position at its end
+    try {
+      const textNodes = [];
+      const walker = document.createTreeWalker(inlineEl, NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = walker.nextNode())) textNodes.push(n);
+
+      if (textNodes.length > 0) {
+        const lastText = textNodes[textNodes.length - 1];
+        const range = document.createRange();
+        range.setStart(lastText, lastText.length);
+        range.collapse(true);
+        const rect = range.getBoundingClientRect();
+        if (rect.width !== undefined && rect.height > 0) {
+          star.style.left = (rect.left + 4) + 'px';
+          star.style.top = (rect.top - 5) + 'px';
+          star.style.display = 'block';
+          return;
+        }
       }
-    }
+    } catch {}
 
-    // Fallback: position at end of block
-    const blockRect = inlineEl.getBoundingClientRect();
-    star.style.left = (blockRect.right + 4) + 'px';
-    star.style.top = (blockRect.top + blockRect.height / 2 - 15) + 'px';
-    star.style.display = 'block';
+    // Fallback: position at the left edge of the block (for empty blocks)
+    const blockRect = blockEl.getBoundingClientRect();
+    if (blockRect.height > 0) {
+      star.style.left = (blockRect.left + 4) + 'px';
+      star.style.top = (blockRect.top + 2) + 'px';
+      star.style.display = 'block';
+    }
   }, []);
 
   const hideSparkle = useCallback(() => {
@@ -490,12 +498,24 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
 
   // Highlight AI blocks in the DOM with lavender class + position sparkle
   const highlightAiBlocks = useCallback((ids, showCursor = true) => {
+    // Remove old highlights and restore inline colors
     wrapperRef.current?.querySelectorAll('.ai-generated-highlight').forEach((el) => {
       el.classList.remove('ai-generated-highlight');
+      el.querySelectorAll('[data-ai-color-override]').forEach((child) => {
+        child.style.removeProperty('color');
+        child.removeAttribute('data-ai-color-override');
+      });
     });
     for (const id of ids) {
       const el = wrapperRef.current?.querySelector(`[data-id="${id}"]`);
-      if (el) el.classList.add('ai-generated-highlight');
+      if (el) {
+        el.classList.add('ai-generated-highlight');
+        // Force lavender on elements that have inline style color (BlockNote sets these)
+        el.querySelectorAll('[style*="color"]').forEach((child) => {
+          child.style.setProperty('color', '#c4b5fd', 'important');
+          child.setAttribute('data-ai-color-override', 'true');
+        });
+      }
     }
     if (showCursor) {
       moveSparkleToLastAiBlock();
@@ -516,9 +536,13 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
   }, [editor]);
 
   const handleAIKeep = useCallback(() => {
-    // Remove highlights, hide sparkle, keep the text
+    // Remove highlights, restore inline colors, hide sparkle, keep the text
     wrapperRef.current?.querySelectorAll('.ai-generated-highlight').forEach((el) => {
       el.classList.remove('ai-generated-highlight');
+      el.querySelectorAll('[data-ai-color-override]').forEach((child) => {
+        child.style.removeProperty('color');
+        child.removeAttribute('data-ai-color-override');
+      });
     });
     hideSparkle();
     setAiBlockIds(new Set());
@@ -568,27 +592,45 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     return () => wrapper?.removeEventListener('click', handleClick);
   }, [aiBlockIds]);
 
+  // Helper: extract full blog text from editor document
+  const getFullBlogContext = useCallback(() => {
+    try {
+      const doc = editor.document;
+      return doc.map((b) => {
+        const text = (b.content || []).map((c) => c.text || '').join('');
+        if (b.type === 'heading') return `${'#'.repeat(b.props?.level || 1)} ${text}`;
+        if (b.type === 'bulletListItem') return `- ${text}`;
+        if (b.type === 'numberedListItem') return `1. ${text}`;
+        if (b.type === 'codeBlock') return `\`\`\`\n${text}\n\`\`\``;
+        return text;
+      }).filter(Boolean).join('\n');
+    } catch { return ''; }
+  }, [editor]);
+
   const handleAISubmit = useCallback(async (userPrompt) => {
     setShowAIMenu(false);
     setShowAIActions(false);
     const cursor = editor.getTextCursorPosition();
     if (!cursor?.block) return;
 
-    // Detect if cursor is between text (edit mode) — gather surrounding context
+    // Get full blog context
+    const fullBlogText = getFullBlogContext();
+
+    // Detect if cursor is between text (edit mode)
     const cursorBlock = cursor.block;
     const blockText = (cursorBlock.content || []).map((c) => c.text || '').join('');
     const isEditMode = blockText.trim().length > 0;
 
-    // Gather surrounding context for edit mode
+    // Gather nearby context for edit mode (5 blocks before/after for better locality)
     let contextBefore = '';
     let contextAfter = '';
     if (isEditMode) {
       const doc = editor.document;
       const blockIdx = doc.findIndex((b) => b.id === cursorBlock.id);
-      const before = doc.slice(Math.max(0, blockIdx - 3), blockIdx);
-      const after = doc.slice(blockIdx + 1, blockIdx + 4);
-      contextBefore = before.map((b) => (b.content || []).map((c) => c.text || '').join('')).join('\n');
-      contextAfter = after.map((b) => (b.content || []).map((c) => c.text || '').join('')).join('\n');
+      const before = doc.slice(Math.max(0, blockIdx - 5), blockIdx);
+      const after = doc.slice(blockIdx + 1, blockIdx + 6);
+      contextBefore = before.map((b) => (b.content || []).map((c) => c.text || '').join('')).filter(Boolean).join('\n');
+      contextAfter = after.map((b) => (b.content || []).map((c) => c.text || '').join('')).filter(Boolean).join('\n');
     }
 
     const anchorBlockId = cursorBlock.id;
@@ -623,10 +665,15 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
       const { streamAI } = await import('../../ai/stream');
       const { WRITE_SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT } = await import('../../ai/prompts');
 
-      // Build prompt with context for edit mode
-      const finalPrompt = isEditMode
-        ? `Context before:\n${contextBefore}\n\nCurrent block:\n${blockText}\n\nContext after:\n${contextAfter}\n\nInstruction: ${userPrompt}`
-        : userPrompt;
+      // Build prompt with full blog context
+      let finalPrompt;
+      if (isEditMode) {
+        finalPrompt = `## Full blog content (for context):\n${fullBlogText}\n\n---\n\n## Nearby context:\nBefore:\n${contextBefore}\n\nCurrent block (cursor is here):\n${blockText}\n\nAfter:\n${contextAfter}\n\n---\n\nInstruction: ${userPrompt}`;
+      } else {
+        finalPrompt = fullBlogText
+          ? `## Full blog content so far (for context):\n${fullBlogText}\n\n---\n\nContinue/add the following: ${userPrompt}`
+          : userPrompt;
+      }
 
       await streamAI({
         systemPrompt: isEditMode ? EDIT_SYSTEM_PROMPT : WRITE_SYSTEM_PROMPT,
@@ -731,7 +778,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
       setShowAIActions(false);
       setAiErrorToast(err.message || 'AI generation failed');
     }
-  }, [editor, getAiBlockIds, highlightAiBlocks]);
+  }, [editor, getAiBlockIds, highlightAiBlocks, getFullBlogContext]);
 
   return (
     <div className="blog-editor-wrapper" ref={wrapperRef} style={{ position: 'relative' }}>

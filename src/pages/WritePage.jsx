@@ -225,6 +225,7 @@ export default function WritePage({ slugid }) {
   const [wordCount, setWordCount] = useState(0);
   const [lastSaved, setLastSaved] = useState(null);
   const [draftLoading, setDraftLoading] = useState(true);
+  const [editorReady, setEditorReady] = useState(false);
   const [coverZoom, setCoverZoom] = useState(1);
   const [coverPos, setCoverPos] = useState({ x: 50, y: 50 });
   const [isDraggingCover, setIsDraggingCover] = useState(false);
@@ -438,7 +439,8 @@ export default function WritePage({ slugid }) {
           {/* === EDIT MODE === */}
           {mode === 'edit' && (
             <>
-              {draftLoading ? (
+              {/* Skeleton — visible until editor is ready */}
+              {(draftLoading || !editorReady) && (
                 <div className="animate-pulse space-y-4">
                   <div className="w-full h-[200px] bg-[#1a2030] rounded-xl" />
                   <div className="h-10 bg-[#1a2030] rounded-lg w-3/4" />
@@ -454,7 +456,11 @@ export default function WritePage({ slugid }) {
                     <div className="h-4 bg-[#1a2030] rounded w-3/4" />
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {/* Editor — rendered hidden until ready, then shown */}
+              {!draftLoading && (
+                <div style={{ display: editorReady ? 'block' : 'none' }}>
                 <>
                   {/* Cover banner with emoji overlay */}
                   <div className="relative mb-2">
@@ -709,10 +715,16 @@ export default function WritePage({ slugid }) {
                     </div>
                   </div>
 
-                  <div className="min-h-[80vh] pb-[40vh]">
-                    <BlockNoteEditor ref={editorRef} onChange={handleEditorChange} initialContent={editorContent} />
+                  <div className="min-h-[60vh] pb-[100px]">
+                    <BlockNoteEditor
+                      ref={editorRef}
+                      onChange={handleEditorChange}
+                      initialContent={editorContent}
+                      onReady={() => setEditorReady(true)}
+                    />
                   </div>
                 </>
+                </div>
               )}
             </>
           )}

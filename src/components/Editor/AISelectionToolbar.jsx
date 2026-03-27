@@ -117,8 +117,19 @@ export default function AISelectionToolbar({ editor }) {
 
     const isEdit = selectedText.length > 0;
     const systemPrompt = isEdit ? EDIT_SYSTEM_PROMPT : WRITE_SYSTEM_PROMPT;
+
+    // Gather full blog context
+    let fullBlogText = '';
+    try {
+      fullBlogText = editor.document.map((b) => {
+        const text = (b.content || []).map((c) => c.text || '').join('');
+        if (b.type === 'heading') return `${'#'.repeat(b.props?.level || 1)} ${text}`;
+        return text;
+      }).filter(Boolean).join('\n');
+    } catch {}
+
     const userPrompt = isEdit
-      ? `Selected text:\n\`\`\`\n${selectedText}\n\`\`\`\n\nInstruction: ${prompt}`
+      ? `## Full blog (for context):\n${fullBlogText}\n\n---\n\nSelected text to edit:\n\`\`\`\n${selectedText}\n\`\`\`\n\nInstruction: ${prompt}`
       : prompt;
 
     try {
