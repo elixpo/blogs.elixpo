@@ -479,7 +479,7 @@ export default function WritePage({ slugid }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Blog title..."
-                className="w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[#232d3f] mb-1 leading-tight"
+                className="w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[#4a5568] mb-1 leading-tight"
               />
 
               <input
@@ -487,7 +487,7 @@ export default function WritePage({ slugid }) {
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
                 placeholder="Add a subtitle..."
-                className="w-full bg-transparent text-base text-[#888] outline-none placeholder-[#232d3f] mb-6"
+                className="w-full bg-transparent text-base text-[#b0bdd0] outline-none placeholder-[#4a5568] mb-6"
               />
 
               <div className="min-h-[500px]">
