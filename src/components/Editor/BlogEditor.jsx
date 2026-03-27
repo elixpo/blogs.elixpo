@@ -483,6 +483,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     setAiGenerating(false);
       setAiPhase('idle');
     setAiGeneratingBlockId(null);
+    hideSparkle();
 
     // Scroll to the AI-generated content and show keep/discard
     const ids = aiBlockIdsRef.current;
@@ -735,10 +736,10 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           setAiGeneratingBlockId(null);
           aiAbortRef.current = null;
 
-          // Keep highlight + glob, show keep/discard
+          // Keep highlight, hide glob cursor, show keep/discard
           setShowAIActions(true);
           requestAnimationFrame(() => {
-            highlightAiBlocks(currentIds, true);
+            highlightAiBlocks(currentIds, false);
           });
         },
         onError: (err) => {
