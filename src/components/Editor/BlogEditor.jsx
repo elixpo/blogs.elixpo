@@ -523,7 +523,24 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     const cursor = editor.getTextCursorPosition();
     if (!cursor?.block) return;
 
-    const anchorBlockId = cursor.block.id;
+    // Detect if cursor is between text (edit mode) — gather surrounding context
+    const cursorBlock = cursor.block;
+    const blockText = (cursorBlock.content || []).map((c) => c.text || '').join('');
+    const isEditMode = blockText.trim().length > 0;
+
+    // Gather surrounding context for edit mode
+    let contextBefore = '';
+    let contextAfter = '';
+    if (isEditMode) {
+      const doc = editor.document;
+      const blockIdx = doc.findIndex((b) => b.id === cursorBlock.id);
+      const before = doc.slice(Math.max(0, blockIdx - 3), blockIdx);
+      const after = doc.slice(blockIdx + 1, blockIdx + 4);
+      contextBefore = before.map((b) => (b.content || []).map((c) => c.text || '').join('')).join('\n');
+      contextAfter = after.map((b) => (b.content || []).map((c) => c.text || '').join('')).join('\n');
+    }
+
+    const anchorBlockId = cursorBlock.id;
     aiAnchorIdRef.current = anchorBlockId;
 
     // Insert initial placeholder
@@ -542,8 +559,13 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     const abortController = new AbortController();
     aiAbortRef.current = abortController;
 
-    // Apply initial highlight
-    requestAnimationFrame(() => highlightAiBlocks(currentIds));
+    // Apply initial highlight + glob cursor immediately
+    requestAnimationFrame(() => {
+      highlightAiBlocks(currentIds, true);
+      // Scroll to the placeholder
+      const el = wrapperRef.current?.querySelector(`[data-id="${insertedBlock.id}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
 
     try {
       const { streamAI } = await import('../../ai/stream');
@@ -607,10 +629,10 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
           setAiGeneratingBlockId(null);
           aiAbortRef.current = null;
 
-          // Highlight without cursor and show keep/discard
+          // Keep highlight + glob, show keep/discard
           setShowAIActions(true);
           requestAnimationFrame(() => {
-            highlightAiBlocks(currentIds, false);
+            highlightAiBlocks(currentIds, true);
           });
         },
         onError: (err) => {

@@ -706,7 +706,7 @@ export default function WritePage({ slugid }) {
                     </div>
                   </div>
 
-                  <div className="min-h-[500px]">
+                  <div className="min-h-[80vh] pb-[40vh]">
                     <BlockNoteEditor ref={editorRef} onChange={handleEditorChange} initialContent={editorContent} />
                   </div>
                 </>
