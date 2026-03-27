@@ -60,6 +60,7 @@ export default function AISelectionToolbar({ editor }) {
         { label: 'Pink', value: '#f472b6' },
       ];
 
+      colorBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
       colorBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -81,7 +82,7 @@ export default function AISelectionToolbar({ editor }) {
           const color = swatch.dataset.color;
           try {
             if (color === 'default') {
-              editor.removeStyles({ textColor: '' });
+              editor.addStyles({ textColor: 'default' });
             } else {
               editor.addStyles({ textColor: color });
             }
@@ -113,6 +114,7 @@ export default function AISelectionToolbar({ editor }) {
         { label: 'Pink', value: 'rgba(244,114,182,0.25)' },
       ];
 
+      highlightBtn.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
       highlightBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -133,7 +135,7 @@ export default function AISelectionToolbar({ editor }) {
           const color = swatch.dataset.color;
           try {
             if (color === 'default') {
-              editor.removeStyles({ backgroundColor: '' });
+              editor.addStyles({ backgroundColor: 'default' });
             } else {
               editor.addStyles({ backgroundColor: color });
             }

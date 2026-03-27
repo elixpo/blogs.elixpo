@@ -511,8 +511,9 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       const el = wrapperRef.current?.querySelector(`[data-id="${id}"]`);
       if (el) {
         el.classList.add('ai-generated-highlight');
-        // Force lavender on elements that have inline style color (BlockNote sets these)
-        el.querySelectorAll('[style*="color"]').forEach((child) => {
+        // Force lavender on all elements inside AI blocks
+        el.style.setProperty('color', '#c4b5fd', 'important');
+        el.querySelectorAll('*').forEach((child) => {
           child.style.setProperty('color', '#c4b5fd', 'important');
           child.setAttribute('data-ai-color-override', 'true');
         });
