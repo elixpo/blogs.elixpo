@@ -14,8 +14,16 @@
 }
 
 .ai-generated-highlight .bn-inline-content,
+.ai-generated-highlight .bn-inline-content *,
 .ai-generated-highlight p,
-.ai-generated-highlight span {
+.ai-generated-highlight span,
+.ai-generated-highlight h1,
+.ai-generated-highlight h2,
+.ai-generated-highlight h3,
+.ai-generated-highlight li,
+.ai-generated-highlight code,
+.ai-generated-highlight strong,
+.ai-generated-highlight em {
   color: #c4b5fd !important;
 }
 
@@ -49,69 +57,80 @@
   51%, 100% { opacity: 0; }
 }
 
-/* ===== AI Glob Cursor (inline, follows text) ===== */
+/* ===== AI Sparkle Star Cursor (inline, follows text) ===== */
 
 .ai-glob-cursor {
   display: inline-block;
   position: relative;
-  width: 10px;
-  height: 10px;
-  margin-left: 3px;
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
   vertical-align: middle;
   pointer-events: none;
 }
 
-/* Main glowing orb */
+/* Sparkle star — main rotating star */
 .ai-glob-cursor::after {
-  content: '';
+  content: '✦';
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ddd6fe 0%, #c4b5fd 30%, rgba(167, 139, 250, 0.6) 60%, transparent 80%);
-  box-shadow:
-    0 0 8px 3px rgba(196, 181, 253, 0.5),
-    0 0 20px 8px rgba(167, 139, 250, 0.2);
-  animation: aiGlobPulse 1.4s ease-in-out infinite;
+  font-size: 16px;
+  line-height: 1;
+  color: #c4b5fd;
+  text-shadow:
+    0 0 6px rgba(196, 181, 253, 0.8),
+    0 0 14px rgba(167, 139, 250, 0.5),
+    0 0 24px rgba(167, 139, 250, 0.2);
+  animation: aiStarSpin 3s linear infinite, aiStarPulse 1.4s ease-in-out infinite;
+  transform-origin: center center;
 }
 
-/* Outer aura glow */
+/* Smaller trailing sparkle */
 .ai-glob-cursor::before {
-  content: '';
+  content: '✦';
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(196, 181, 253, 0.2) 0%, rgba(167, 139, 250, 0.05) 50%, transparent 75%);
-  animation: aiGlobAura 2s ease-in-out infinite;
+  font-size: 9px;
+  line-height: 1;
+  color: #ddd6fe;
+  text-shadow:
+    0 0 4px rgba(196, 181, 253, 0.6),
+    0 0 10px rgba(167, 139, 250, 0.3);
+  animation: aiStarSpinReverse 2.2s linear infinite, aiStarTrail 1.8s ease-in-out infinite;
+  transform-origin: center center;
 }
 
-@keyframes aiGlobPulse {
+@keyframes aiStarSpin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes aiStarSpinReverse {
+  0% { transform: translate(-20%, -80%) rotate(0deg); }
+  100% { transform: translate(-20%, -80%) rotate(-360deg); }
+}
+
+@keyframes aiStarPulse {
   0%, 100% {
     opacity: 0.7;
-    transform: translate(-50%, -50%) scale(0.85);
-    box-shadow:
-      0 0 6px 2px rgba(196, 181, 253, 0.35),
-      0 0 14px 4px rgba(167, 139, 250, 0.12);
+    text-shadow:
+      0 0 4px rgba(196, 181, 253, 0.5),
+      0 0 10px rgba(167, 139, 250, 0.3);
   }
   50% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.15);
-    box-shadow:
-      0 0 12px 5px rgba(196, 181, 253, 0.55),
-      0 0 28px 10px rgba(167, 139, 250, 0.25);
+    text-shadow:
+      0 0 8px rgba(196, 181, 253, 0.9),
+      0 0 18px rgba(167, 139, 250, 0.6),
+      0 0 30px rgba(167, 139, 250, 0.25);
   }
 }
 
-@keyframes aiGlobAura {
-  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.8); }
-  50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.4); }
+@keyframes aiStarTrail {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
 }
 
 /* ===== Elixpo Typing Bar (fixed bottom, glassmorphism) ===== */

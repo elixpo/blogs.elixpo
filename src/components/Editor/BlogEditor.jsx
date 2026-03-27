@@ -294,6 +294,41 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     requestAnimationFrame(patchCodeBlocks);
   }, [patchCodeBlocks]);
 
+  // DEBUG: show sparkle cursor wherever the caret is
+  useEffect(() => {
+    const editorEl = wrapperRef.current?.querySelector('.bn-editor');
+    if (!editorEl) return;
+
+    function placeSparkle() {
+      // Remove old sparkle
+      wrapperRef.current?.querySelectorAll('.ai-glob-cursor-debug').forEach((el) => el.remove());
+
+      try {
+        const cursor = editor.getTextCursorPosition();
+        if (!cursor?.block) return;
+        const blockEl = wrapperRef.current?.querySelector(`[data-id="${cursor.block.id}"]`);
+        if (!blockEl) return;
+        const inlineEl = blockEl.querySelector('.bn-inline-content') || blockEl;
+        const star = document.createElement('span');
+        star.className = 'ai-glob-cursor ai-glob-cursor-debug';
+        star.setAttribute('contenteditable', 'false');
+        inlineEl.appendChild(star);
+      } catch {}
+    }
+
+    // Place on every cursor move / keystroke
+    editorEl.addEventListener('keyup', placeSparkle);
+    editorEl.addEventListener('click', placeSparkle);
+    // Initial placement
+    setTimeout(placeSparkle, 500);
+
+    return () => {
+      editorEl.removeEventListener('keyup', placeSparkle);
+      editorEl.removeEventListener('click', placeSparkle);
+      wrapperRef.current?.querySelectorAll('.ai-glob-cursor-debug').forEach((el) => el.remove());
+    };
+  }, [editor]);
+
   const getItems = useMemo(
     () => async (query) => filterItems(getCustomSlashMenuItems(editor), query),
     [editor]
@@ -569,11 +604,16 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
 
     try {
       const { streamAI } = await import('../../ai/stream');
-      const { WRITE_SYSTEM_PROMPT } = await import('../../ai/prompts');
+      const { WRITE_SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT } = await import('../../ai/prompts');
+
+      // Build prompt with context for edit mode
+      const finalPrompt = isEditMode
+        ? `Context before:\n${contextBefore}\n\nCurrent block:\n${blockText}\n\nContext after:\n${contextAfter}\n\nInstruction: ${userPrompt}`
+        : userPrompt;
 
       await streamAI({
-        systemPrompt: WRITE_SYSTEM_PROMPT,
-        userPrompt,
+        systemPrompt: isEditMode ? EDIT_SYSTEM_PROMPT : WRITE_SYSTEM_PROMPT,
+        userPrompt: finalPrompt,
         signal: abortController.signal,
         onChunk: (chunk, fullText) => {
           const newBlocks = parseMarkdownToBlocks(fullText);
@@ -602,10 +642,15 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
             }
             requestAnimationFrame(() => {
               highlightAiBlocks(currentIds);
-              // Auto-scroll to follow AI typing
-              const lastId = currentIds[currentIds.length - 1];
-              const lastEl = wrapperRef.current?.querySelector(`[data-id="${lastId}"]`);
-              if (lastEl) lastEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              // Auto-scroll to follow the glob cursor
+              const globEl = wrapperRef.current?.querySelector('.ai-glob-cursor');
+              if (globEl) {
+                globEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              } else {
+                const lastId = currentIds[currentIds.length - 1];
+                const lastEl = wrapperRef.current?.querySelector(`[data-id="${lastId}"]`);
+                if (lastEl) lastEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
             });
           } catch { /* block may have been removed */ }
         },
