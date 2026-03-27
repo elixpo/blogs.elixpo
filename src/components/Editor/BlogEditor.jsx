@@ -251,50 +251,46 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     getMarkdown: async () => await editor.blocksToMarkdownLossy(editor.document),
   }), [editor]);
 
+  // Disable spellcheck on code blocks + inject copy buttons
+  const patchCodeBlocks = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    wrapper.querySelectorAll('[data-content-type="codeBlock"]').forEach((block) => {
+      const editable = block.querySelector('[contenteditable]');
+      if (editable) editable.spellcheck = false;
+      if (!block.querySelector('.code-copy-btn')) {
+        const btn = document.createElement('button');
+        btn.className = 'code-copy-btn';
+        btn.title = 'Copy code';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        btn.onclick = () => {
+          const code = block.querySelector('[contenteditable]')?.textContent || '';
+          navigator.clipboard.writeText(code);
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+          setTimeout(() => {
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+          }, 1500);
+        };
+        block.style.position = 'relative';
+        block.appendChild(btn);
+      }
+    });
+  }, []);
+
   const handleChange = useCallback(() => {
     if (onChange) onChange(editor.document);
-  }, [onChange, editor]);
+    requestAnimationFrame(patchCodeBlocks);
+  }, [onChange, editor, patchCodeBlocks]);
+
+  // Patch code blocks on initial mount
+  useEffect(() => {
+    requestAnimationFrame(patchCodeBlocks);
+  }, [patchCodeBlocks]);
 
   const getItems = useMemo(
     () => async (query) => filterItems(getCustomSlashMenuItems(editor), query),
     [editor]
   );
-
-  // Disable spellcheck on code blocks + inject copy buttons
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-
-    const observer = new MutationObserver(() => {
-      wrapper.querySelectorAll('[data-content-type="codeBlock"]').forEach((block) => {
-        // Disable spellcheck
-        const editable = block.querySelector('[contenteditable]');
-        if (editable && editable.getAttribute('spellcheck') !== 'false') {
-          editable.setAttribute('spellcheck', 'false');
-        }
-        // Inject copy button if not present
-        if (!block.querySelector('.code-copy-btn')) {
-          const btn = document.createElement('button');
-          btn.className = 'code-copy-btn';
-          btn.title = 'Copy code';
-          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-          btn.onclick = () => {
-            const code = block.querySelector('[contenteditable]')?.textContent || '';
-            navigator.clipboard.writeText(code);
-            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-            setTimeout(() => {
-              btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-            }, 1500);
-          };
-          block.style.position = 'relative';
-          block.appendChild(btn);
-        }
-      });
-    });
-
-    observer.observe(wrapper, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, []);
 
   // Space trigger for AI menu on empty blocks
   useEffect(() => {
