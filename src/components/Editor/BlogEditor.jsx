@@ -294,40 +294,17 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     requestAnimationFrame(patchCodeBlocks);
   }, [patchCodeBlocks]);
 
-  // DEBUG: show sparkle cursor wherever the caret is
+  // DEBUG: show sparkle star at top-left of editor
   useEffect(() => {
-    const editorEl = wrapperRef.current?.querySelector('.bn-editor');
-    if (!editorEl) return;
-
-    function placeSparkle() {
-      // Remove old sparkle
-      wrapperRef.current?.querySelectorAll('.ai-glob-cursor-debug').forEach((el) => el.remove());
-
-      try {
-        const cursor = editor.getTextCursorPosition();
-        if (!cursor?.block) return;
-        const blockEl = wrapperRef.current?.querySelector(`[data-id="${cursor.block.id}"]`);
-        if (!blockEl) return;
-        const inlineEl = blockEl.querySelector('.bn-inline-content') || blockEl;
-        const star = document.createElement('span');
-        star.className = 'ai-glob-cursor ai-glob-cursor-debug';
-        star.setAttribute('contenteditable', 'false');
-        inlineEl.appendChild(star);
-      } catch {}
-    }
-
-    // Place on every cursor move / keystroke
-    editorEl.addEventListener('keyup', placeSparkle);
-    editorEl.addEventListener('click', placeSparkle);
-    // Initial placement
-    setTimeout(placeSparkle, 500);
-
-    return () => {
-      editorEl.removeEventListener('keyup', placeSparkle);
-      editorEl.removeEventListener('click', placeSparkle);
-      wrapperRef.current?.querySelectorAll('.ai-glob-cursor-debug').forEach((el) => el.remove());
-    };
-  }, [editor]);
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    wrapper.style.position = 'relative';
+    const star = document.createElement('div');
+    star.className = 'ai-glob-cursor';
+    star.style.cssText = 'position:absolute;top:10px;left:10px;z-index:9999;pointer-events:none;';
+    wrapper.appendChild(star);
+    return () => star.remove();
+  }, []);
 
   const getItems = useMemo(
     () => async (query) => filterItems(getCustomSlashMenuItems(editor), query),
