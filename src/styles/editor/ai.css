@@ -1,22 +1,22 @@
 /* ===== AI Generated Block Highlight ===== */
 
 .ai-generated-highlight {
-  background: rgba(167, 139, 250, 0.10) !important;
-  border-left: 3px solid rgba(167, 139, 250, 0.5) !important;
-  border-radius: 0 4px 4px 0;
+  background: rgba(167, 139, 250, 0.12) !important;
+  border-left: 3px solid rgba(167, 139, 250, 0.55) !important;
+  border-radius: 0 6px 6px 0;
   margin-left: -3px;
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .ai-generated-highlight .bn-block-content {
-  background: rgba(167, 139, 250, 0.04);
+  background: rgba(167, 139, 250, 0.06);
   border-radius: 4px;
 }
 
 .ai-generated-highlight .bn-inline-content,
 .ai-generated-highlight p,
 .ai-generated-highlight span {
-  color: #ddd6fe !important;
+  color: #c4b5fd !important;
 }
 
 /* ===== AI Edit Diff Styles (lavender theme) ===== */
@@ -49,30 +49,69 @@
   51%, 100% { opacity: 0; }
 }
 
-/* ===== AI Typing Cursor Dot ===== */
+/* ===== AI Glob Cursor (inline, follows text) ===== */
 
-.ai-typing-cursor {
-  position: relative;
-}
-
-.ai-typing-cursor::after {
-  content: '';
+.ai-glob-cursor {
   display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #c4b5fd;
-  margin-left: 4px;
+  position: relative;
+  width: 10px;
+  height: 10px;
+  margin-left: 3px;
   vertical-align: middle;
-  animation: aiDotPulse 1s ease-in-out infinite;
-  position: absolute;
-  bottom: 12px;
-  right: -14px;
+  pointer-events: none;
 }
 
-@keyframes aiDotPulse {
-  0%, 100% { opacity: 0.4; transform: scale(0.7); }
-  50% { opacity: 1; transform: scale(1); }
+/* Main glowing orb */
+.ai-glob-cursor::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ddd6fe 0%, #c4b5fd 30%, rgba(167, 139, 250, 0.6) 60%, transparent 80%);
+  box-shadow:
+    0 0 8px 3px rgba(196, 181, 253, 0.5),
+    0 0 20px 8px rgba(167, 139, 250, 0.2);
+  animation: aiGlobPulse 1.4s ease-in-out infinite;
+}
+
+/* Outer aura glow */
+.ai-glob-cursor::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(196, 181, 253, 0.2) 0%, rgba(167, 139, 250, 0.05) 50%, transparent 75%);
+  animation: aiGlobAura 2s ease-in-out infinite;
+}
+
+@keyframes aiGlobPulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.85);
+    box-shadow:
+      0 0 6px 2px rgba(196, 181, 253, 0.35),
+      0 0 14px 4px rgba(167, 139, 250, 0.12);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+    box-shadow:
+      0 0 12px 5px rgba(196, 181, 253, 0.55),
+      0 0 28px 10px rgba(167, 139, 250, 0.25);
+  }
+}
+
+@keyframes aiGlobAura {
+  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.8); }
+  50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.4); }
 }
 
 /* ===== Elixpo Typing Bar (fixed bottom, glassmorphism) ===== */

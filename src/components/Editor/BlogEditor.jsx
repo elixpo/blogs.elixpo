@@ -427,16 +427,28 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     }
   }, []);
 
-  // Highlight AI blocks in the DOM with lavender class + optional typing cursor on last block
+  // Highlight AI blocks in the DOM with lavender class + animated glob cursor
   const highlightAiBlocks = useCallback((ids, showCursor = true) => {
-    wrapperRef.current?.querySelectorAll('.ai-generated-highlight, .ai-typing-cursor').forEach((el) => {
-      el.classList.remove('ai-generated-highlight', 'ai-typing-cursor');
+    // Clean up previous highlights and glob
+    wrapperRef.current?.querySelectorAll('.ai-generated-highlight').forEach((el) => {
+      el.classList.remove('ai-generated-highlight');
     });
+    wrapperRef.current?.querySelectorAll('.ai-glob-cursor').forEach((el) => el.remove());
+
     for (let i = 0; i < ids.length; i++) {
       const el = wrapperRef.current?.querySelector(`[data-id="${ids[i]}"]`);
       if (el) {
         el.classList.add('ai-generated-highlight');
-        if (showCursor && i === ids.length - 1) el.classList.add('ai-typing-cursor');
+        // Inject glob cursor at end of the last block's text
+        if (showCursor && i === ids.length - 1) {
+          const inlineEl = el.querySelector('.bn-inline-content') || el.querySelector('p') || el;
+          // Remove any existing glob in this element
+          inlineEl.querySelectorAll('.ai-glob-cursor').forEach((g) => g.remove());
+          const glob = document.createElement('span');
+          glob.className = 'ai-glob-cursor';
+          glob.setAttribute('contenteditable', 'false');
+          inlineEl.appendChild(glob);
+        }
       }
     }
   }, []);
@@ -453,10 +465,11 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
   }, [editor]);
 
   const handleAIKeep = useCallback(() => {
-    // Remove highlights, keep the text
+    // Remove highlights and glob cursor, keep the text
     wrapperRef.current?.querySelectorAll('.ai-generated-highlight').forEach((el) => {
       el.classList.remove('ai-generated-highlight');
     });
+    wrapperRef.current?.querySelectorAll('.ai-glob-cursor').forEach((el) => el.remove());
     setAiBlockIds(new Set());
     aiBlockIdsRef.current = new Set();
     aiBlockCountRef.current = 0;
@@ -465,7 +478,8 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
   }, []);
 
   const handleAIDiscard = useCallback(() => {
-    // Remove AI-generated blocks
+    // Remove glob cursor and AI-generated blocks
+    wrapperRef.current?.querySelectorAll('.ai-glob-cursor').forEach((el) => el.remove());
     const ids = getAiBlockIds();
     if (ids.length > 0) {
       try { editor.removeBlocks(ids); } catch {}
