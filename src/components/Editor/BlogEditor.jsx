@@ -8,6 +8,7 @@ import '@blocknote/mantine/style.css';
 import 'katex/dist/katex.min.css';
 import { useCallback, useMemo, forwardRef, useImperativeHandle, useState, useRef, useEffect } from 'react';
 import AICommandMenu from './AICommandMenu';
+import AISelectionToolbar from './AISelectionToolbar';
 
 // Custom blocks
 import { TableOfContents } from './blocks/TableOfContents';
@@ -332,6 +333,9 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
           onClose={() => setShowAIMenu(false)}
         />
       )}
+
+      {/* AI selection toolbar — appears on text selection */}
+      <AISelectionToolbar editor={editor} />
     </div>
   );
 });
