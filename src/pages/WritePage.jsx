@@ -154,7 +154,7 @@ function HamburgerMenu({ onShareDraft, onChangeCover, onChangeTitle, onChangeTop
     { label: 'Share draft link', action: onShareDraft, icon: 'share-outline' },
     { label: 'Share to X', action: () => {}, icon: 'logo-twitter' },
     { label: 'Change featured image', action: onChangeCover, icon: 'image-outline' },
-    { label: 'Change display title / subtitle', action: onChangeTitle, icon: 'text-outline' },
+    { label: 'Change display title', action: onChangeTitle, icon: 'text-outline' },
     { label: 'Change topics', action: onChangeTopics, icon: 'pricetags-outline' },
     { label: 'See revision history', action: onRevisionHistory, icon: 'time-outline' },
     { label: 'More settings', action: onMoreSettings, icon: 'options-outline' },
@@ -482,15 +482,7 @@ export default function WritePage({ slugid }) {
                 className="w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[#4a5568] mb-1 leading-tight"
               />
 
-              <input
-                type="text"
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="Add a subtitle..."
-                className="w-full bg-transparent text-base text-[#b0bdd0] outline-none placeholder-[#4a5568] mb-6"
-              />
-
-              <div className="min-h-[500px]">
+              <div className="min-h-[500px] mt-4">
                 <BlockNoteEditor ref={editorRef} onChange={handleEditorChange} initialContent={editorContent} />
               </div>
             </>
@@ -598,7 +590,7 @@ export default function WritePage({ slugid }) {
                 <img src={coverPreview} alt="Cover" className="w-full h-[100px] object-cover rounded-lg mb-3" />
               )}
               <p className="font-bold text-[15px] leading-tight text-[#e0e0e0]">{title || 'Your blog title'}</p>
-              <p className="text-[#9ca3af] text-[13px] mt-1">{subtitle || 'Your subtitle here'}</p>
+              {subtitle && <p className="text-[#9ca3af] text-[13px] mt-1">{subtitle}</p>}
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {tags.map((tag) => (

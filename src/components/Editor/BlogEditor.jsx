@@ -195,30 +195,7 @@ function getCustomSlashMenuItems(editor) {
     },
   ];
 
-  // Media items
-  const mediaItems = [
-    {
-      title: 'Image',
-      subtext: 'Upload an image',
-      group: 'Media',
-      aliases: ['image', 'photo', 'picture', 'img'],
-      icon: <Icon d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" d2="M8.5 8.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM21 15l-5-5L5 21" />,
-      onItemClick: () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          const url = URL.createObjectURL(file);
-          editor.insertBlocks([{ type: 'image', props: { url } }], editor.getTextCursorPosition().block, 'after');
-        };
-        input.click();
-      },
-    },
-  ];
-
-  return [...defaults, ...customBlocks, ...inlineItems, ...mediaItems];
+  return [...defaults, ...customBlocks, ...inlineItems];
 }
 
 // ── Check if block is empty ──
