@@ -358,31 +358,21 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
     const editorEl = wrapperRef.current?.querySelector('.bn-editor');
     if (!editorEl) return;
 
-    function handleInput() {
+    function checkMention() {
       try {
         const cursor = editor.getTextCursorPosition();
-        if (!cursor?.block) return;
+        if (!cursor?.block) { setShowMentionMenu(false); return; }
         const block = cursor.block;
-        if (!block.content || !Array.isArray(block.content)) return;
+        if (!block.content || !Array.isArray(block.content)) { setShowMentionMenu(false); return; }
 
-        // Get full text of current block up to cursor
         const fullText = block.content.map((c) => c.text || '').join('');
-
-        // Find the last @ that starts a mention query
         const lastAt = fullText.lastIndexOf('@');
-        if (lastAt === -1) {
-          if (showMentionMenu) setShowMentionMenu(false);
-          return;
-        }
 
-        // Text after @ should not contain spaces (it's the query)
+        if (lastAt === -1) { setShowMentionMenu(false); return; }
+
         const afterAt = fullText.slice(lastAt + 1);
-        if (afterAt.includes(' ') || afterAt.length > 30) {
-          if (showMentionMenu) setShowMentionMenu(false);
-          return;
-        }
+        if (afterAt.includes(' ') || afterAt.length > 30) { setShowMentionMenu(false); return; }
 
-        // Position menu at cursor
         const domSel = window.getSelection();
         if (domSel && domSel.rangeCount > 0) {
           const range = domSel.getRangeAt(0);
@@ -399,12 +389,16 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
         setMentionQuery(afterAt);
         setShowMentionMenu(true);
         mentionStartRef.current = lastAt;
-      } catch { /* editor not ready */ }
+      } catch { setShowMentionMenu(false); }
     }
 
-    editorEl.addEventListener('input', handleInput);
-    return () => editorEl.removeEventListener('input', handleInput);
-  }, [editor, showMentionMenu]);
+    editorEl.addEventListener('input', checkMention);
+    editorEl.addEventListener('keyup', checkMention);
+    return () => {
+      editorEl.removeEventListener('input', checkMention);
+      editorEl.removeEventListener('keyup', checkMention);
+    };
+  }, [editor]);
 
   // Close mention menu and remove the @query text when a mention is inserted
   const handleMentionClose = useCallback(() => {

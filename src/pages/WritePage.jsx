@@ -435,11 +435,8 @@ export default function WritePage({ slugid }) {
             <>
               {draftLoading ? (
                 <div className="animate-pulse space-y-4">
-                  {/* Cover skeleton */}
-                  <div className="w-full h-[180px] bg-[#1a2030] rounded-xl" />
-                  {/* Title skeleton */}
+                  <div className="w-full h-[200px] bg-[#1a2030] rounded-xl" />
                   <div className="h-10 bg-[#1a2030] rounded-lg w-3/4" />
-                  {/* Editor body skeleton lines */}
                   <div className="space-y-3 mt-6">
                     <div className="h-4 bg-[#1a2030] rounded w-full" />
                     <div className="h-4 bg-[#1a2030] rounded w-5/6" />
@@ -450,91 +447,105 @@ export default function WritePage({ slugid }) {
                     <div className="h-4 bg-[#1a2030] rounded w-4/5" />
                     <div className="h-4 bg-[#1a2030] rounded w-full" />
                     <div className="h-4 bg-[#1a2030] rounded w-3/4" />
-                    <div className="h-4 bg-[#1a2030] rounded w-5/6" />
-                    <div className="h-6 bg-[#1a2030] rounded w-2/5 mt-5" />
-                    <div className="h-4 bg-[#1a2030] rounded w-full" />
-                    <div className="h-4 bg-[#1a2030] rounded w-2/3" />
                   </div>
                 </div>
               ) : (
                 <>
-                  {/* Cover banner */}
-                  {coverPreview ? (
-                    <div className="relative mb-6 rounded-xl overflow-hidden group" style={{ aspectRatio: '3/1' }}>
-                      <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <button onClick={() => setShowCoverModal(true)} className="px-3 py-1.5 bg-white/20 backdrop-blur rounded-lg text-xs hover:bg-[#b69aff]/30 transition-colors">Change</button>
-                        <button onClick={removeCover} className="px-3 py-1.5 bg-red-500/60 backdrop-blur rounded-lg text-xs hover:bg-red-500/80 transition-colors">Remove</button>
+                  {/* Cover banner with emoji overlay */}
+                  <div className="relative mb-2">
+                    {coverPreview ? (
+                      <div className="relative rounded-xl overflow-hidden group cover-banner-enter" style={{ height: '220px' }}>
+                        <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                          <button onClick={() => setShowCoverModal(true)} className="px-3 py-1.5 bg-white/20 backdrop-blur rounded-lg text-xs hover:bg-[#b69aff]/30 transition-colors">Change</button>
+                          <button onClick={removeCover} className="px-3 py-1.5 bg-red-500/60 backdrop-blur rounded-lg text-xs hover:bg-red-500/80 transition-colors">Remove</button>
+                        </div>
                       </div>
-                    </div>
-                  ) : showCoverModal ? (
-                    /* Blurred RGB gradient placeholder with upload options */
-                    <div className="relative mb-6 rounded-xl overflow-hidden" style={{ aspectRatio: '3/1' }}>
-                      <div className="absolute inset-0 cover-gradient-blur" />
-                      <div className="absolute inset-0 flex items-center justify-center gap-6 z-10">
-                        <label className="flex flex-col items-center gap-2 cursor-pointer group/upload">
-                          <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover/upload:bg-white/20 transition-colors">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                              <polyline points="17 8 12 3 7 8" />
-                              <line x1="12" y1="3" x2="12" y2="15" />
-                            </svg>
-                          </div>
-                          <span className="text-xs text-white/70 font-medium">From device</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setCoverImage(file);
-                                setCoverPreview(URL.createObjectURL(file));
+                    ) : showCoverModal ? (
+                      <div className="relative rounded-xl overflow-hidden cover-banner-enter" style={{ height: '220px' }}>
+                        <div className="absolute inset-0 cover-gradient-blur" />
+                        <div className="absolute inset-0 flex items-center justify-center gap-6 z-10">
+                          <label className="flex flex-col items-center gap-2 cursor-pointer group/upload">
+                            <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover/upload:bg-white/20 transition-colors">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                              </svg>
+                            </div>
+                            <span className="text-xs text-white/70 font-medium">From device</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setCoverImage(file);
+                                  setCoverPreview(URL.createObjectURL(file));
+                                  setShowCoverModal(false);
+                                }
+                              }}
+                            />
+                          </label>
+                          <button
+                            onClick={() => {
+                              const url = prompt('Paste image URL:');
+                              if (url?.trim()) {
+                                setCoverPreview(url.trim());
                                 setShowCoverModal(false);
                               }
                             }}
-                          />
-                        </label>
+                            className="flex flex-col items-center gap-2 group/url"
+                          >
+                            <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover/url:bg-white/20 transition-colors">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                              </svg>
+                            </div>
+                            <span className="text-xs text-white/70 font-medium">From URL</span>
+                          </button>
+                        </div>
                         <button
-                          onClick={() => {
-                            const url = prompt('Paste image URL:');
-                            if (url?.trim()) {
-                              setCoverPreview(url.trim());
-                              setShowCoverModal(false);
-                            }
-                          }}
-                          className="flex flex-col items-center gap-2 group/url"
+                          onClick={() => setShowCoverModal(false)}
+                          className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/30 backdrop-blur flex items-center justify-center text-white/60 hover:text-white transition-colors"
                         >
-                          <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center group-hover/url:bg-white/20 transition-colors">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-                              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-                            </svg>
-                          </div>
-                          <span className="text-xs text-white/70 font-medium">From URL</span>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
                         </button>
                       </div>
-                      {/* Close button */}
-                      <button
-                        onClick={() => setShowCoverModal(false)}
-                        className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/30 backdrop-blur flex items-center justify-center text-white/60 hover:text-white transition-colors"
+                    ) : null}
+
+                    {/* Emoji overlapping banner bottom-left */}
+                    {pageEmoji && (
+                      <div
+                        className="absolute group"
+                        style={{
+                          bottom: coverPreview || showCoverModal ? '-24px' : 'auto',
+                          left: '16px',
+                          position: coverPreview || showCoverModal ? 'absolute' : 'relative',
+                          zIndex: 10,
+                        }}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                      </button>
-                    </div>
-                  ) : null}
+                        <span
+                          className="text-5xl cursor-pointer select-none drop-shadow-lg block"
+                          onClick={() => setShowEmojiPicker(true)}
+                        >
+                          {pageEmoji}
+                        </span>
+                        <button onClick={() => setPageEmoji(null)} className="absolute -top-1 -right-3 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-full bg-[#232d3f] border border-[#333] flex items-center justify-center text-[#888] hover:text-white transition-all text-[10px]">&times;</button>
+                      </div>
+                    )}
+                  </div>
 
-                  {pageEmoji && (
-                    <div className="relative group w-fit mb-2">
-                      <span className="text-5xl cursor-pointer select-none" onClick={() => setShowEmojiPicker(true)}>{pageEmoji}</span>
-                      <button onClick={() => setPageEmoji(null)} className="absolute -top-1 -right-3 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-full bg-[#232d3f] border border-[#333] flex items-center justify-center text-[#888] hover:text-white transition-all text-[10px]">&times;</button>
-                    </div>
-                  )}
+                  {/* Spacer when emoji overlaps banner */}
+                  {pageEmoji && (coverPreview || showCoverModal) && <div className="h-8" />}
 
+                  {/* Add cover / Add emoji buttons */}
                   {(!coverPreview || !pageEmoji) && !showCoverModal && (
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-4 mt-2">
                       {!coverPreview && (
                         <button onClick={() => setShowCoverModal(true)} className="inline-flex items-center gap-1.5 text-[#7c8a9e] hover:text-[#9b7bf7] transition-colors text-xs">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -550,12 +561,17 @@ export default function WritePage({ slugid }) {
                     </div>
                   )}
 
+                  {/* Emoji picker — absolute positioned, glassmorphic */}
                   {showEmojiPicker && (
-                    <EmojiPicker
-                      onSelect={(emoji) => { setPageEmoji(emoji); setShowEmojiPicker(false); }}
-                      onRemove={() => { setPageEmoji(null); setShowEmojiPicker(false); }}
-                      onClose={() => setShowEmojiPicker(false)}
-                    />
+                    <div className="relative">
+                      <div className="absolute left-0 top-0 z-50 emoji-picker-glass">
+                        <EmojiPicker
+                          onSelect={(emoji) => { setPageEmoji(emoji); setShowEmojiPicker(false); }}
+                          onRemove={() => { setPageEmoji(null); setShowEmojiPicker(false); }}
+                          onClose={() => setShowEmojiPicker(false)}
+                        />
+                      </div>
+                    </div>
                   )}
 
                   <textarea
