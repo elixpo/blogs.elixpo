@@ -37,7 +37,7 @@ export const BlockEquation = createReactBlockSpec(
 
       if (editing) {
         return (
-          <div className="border border-[#1a1d27] rounded-xl bg-[#0d1117] p-4 my-2">
+          <div className="border border-[#232d3f] rounded-xl bg-[#141a26] p-4 my-2">
             <p className="text-[11px] text-[#666] mb-2 font-medium">LaTeX Equation</p>
             <textarea
               ref={inputRef}
@@ -46,11 +46,11 @@ export const BlockEquation = createReactBlockSpec(
               onKeyDown={(e) => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); save(); } }}
               placeholder="E = mc^2"
               rows={3}
-              className="w-full bg-[#030712] border border-[#1a1d27] rounded-lg p-3 text-[13px] text-[#e0e0e0] font-mono resize-none outline-none focus:border-[#333] transition-colors placeholder-[#444]"
+              className="w-full bg-[#0c1017] border border-[#232d3f] rounded-lg p-3 text-[13px] text-[#e0e0e0] font-mono resize-none outline-none focus:border-[#333] transition-colors placeholder-[#444]"
             />
             <div className="flex justify-end gap-2 mt-2">
               <button onClick={() => setEditing(false)} className="px-3 py-1 text-[12px] text-[#888] hover:text-white transition-colors">Cancel</button>
-              <button onClick={save} className="px-3 py-1 text-[12px] bg-[#e8e8e8] text-[#030712] rounded-md font-medium hover:bg-white transition-colors">Done</button>
+              <button onClick={save} className="px-3 py-1 text-[12px] bg-[#e8e8e8] text-[#0c1017] rounded-md font-medium hover:bg-white transition-colors">Done</button>
             </div>
           </div>
         );
@@ -61,7 +61,7 @@ export const BlockEquation = createReactBlockSpec(
         return (
           <div
             onClick={() => setEditing(true)}
-            className="border border-dashed border-[#1a1d27] rounded-xl bg-[#0d111780] px-5 py-6 my-2 text-center cursor-pointer hover:border-[#333] transition-colors"
+            className="border border-dashed border-[#232d3f] rounded-xl bg-[#141a2680] px-5 py-6 my-2 text-center cursor-pointer hover:border-[#333] transition-colors"
           >
             <p className="text-[13px] text-[#555]">Click to add a block equation</p>
           </div>
@@ -71,7 +71,7 @@ export const BlockEquation = createReactBlockSpec(
       return (
         <div
           onClick={() => setEditing(true)}
-          className="border border-[#1a1d27] rounded-xl bg-[#0d1117] px-5 py-4 my-2 cursor-pointer hover:border-[#333] transition-colors text-center overflow-x-auto"
+          className="border border-[#232d3f] rounded-xl bg-[#141a26] px-5 py-4 my-2 cursor-pointer hover:border-[#333] transition-colors text-center overflow-x-auto"
           dangerouslySetInnerHTML={{ __html: renderKaTeX(latex) }}
         />
       );

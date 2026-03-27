@@ -80,7 +80,7 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
     canvas.height = CANVAS_HEIGHT;
 
     ctx.filter = `brightness(${filters.brightness}%) contrast(${filters.contrast}%)`;
-    ctx.fillStyle = '#0d1117';
+    ctx.fillStyle = '#141a26';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     const fitScale = Math.max(CANVAS_WIDTH / img.naturalWidth, CANVAS_HEIGHT / img.naturalHeight);
@@ -191,11 +191,11 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={onClose}>
       <div
-        className="bg-[#0d1117] border border-[#1a1d27] rounded-2xl w-full max-w-[720px] shadow-2xl"
+        className="bg-[#141a26] border border-[#232d3f] rounded-2xl w-full max-w-[720px] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1a1d27]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#232d3f]">
           <h3 className="text-[15px] font-semibold text-white">Edit Banner</h3>
           <button onClick={onClose} className="text-[#666] hover:text-white transition-colors p-1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -206,7 +206,7 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
 
         {/* Tabs — only show when no image loaded */}
         {!imageSrc && (
-          <div className="flex border-b border-[#1a1d27]">
+          <div className="flex border-b border-[#232d3f]">
             {[
               { key: 'upload', label: 'Upload', icon: 'cloud-upload-outline' },
               { key: 'url', label: 'From URL', icon: 'link-outline' },
@@ -234,7 +234,7 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
-              className="border-2 border-dashed border-[#1a1d27] rounded-xl h-[180px] flex flex-col items-center justify-center cursor-pointer hover:border-[#333] transition-colors group"
+              className="border-2 border-dashed border-[#232d3f] rounded-xl h-[180px] flex flex-col items-center justify-center cursor-pointer hover:border-[#333] transition-colors group"
             >
               <svg className="w-8 h-8 text-[#333] group-hover:text-[#555] transition-colors mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -255,11 +255,11 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
                   onChange={(e) => { setUrlInput(e.target.value); setUrlError(''); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleUrlSubmit()}
                   placeholder="https://example.com/banner.jpg"
-                  className="flex-1 bg-[#030712] text-[#e0e0e0] rounded-lg px-4 py-2.5 outline-none text-[13px] border border-[#1a1d27] focus:border-[#333] transition-colors placeholder-[#444]"
+                  className="flex-1 bg-[#0c1017] text-[#e0e0e0] rounded-lg px-4 py-2.5 outline-none text-[13px] border border-[#232d3f] focus:border-[#333] transition-colors placeholder-[#444]"
                 />
                 <button
                   onClick={handleUrlSubmit}
-                  className="px-5 py-2.5 bg-[#e8e8e8] text-[#030712] font-semibold rounded-lg text-[13px] hover:bg-white transition-colors"
+                  className="px-5 py-2.5 bg-[#e8e8e8] text-[#0c1017] font-semibold rounded-lg text-[13px] hover:bg-white transition-colors"
                 >
                   Load
                 </button>
@@ -274,7 +274,7 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
               {/* Canvas preview */}
               <div
                 ref={containerRef}
-                className="relative rounded-xl overflow-hidden border border-[#1a1d27] cursor-grab active:cursor-grabbing mx-auto select-none"
+                className="relative rounded-xl overflow-hidden border border-[#232d3f] cursor-grab active:cursor-grabbing mx-auto select-none"
                 style={{ width: '100%', aspectRatio: `${ASPECT_RATIO}` }}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleTouchStart}
@@ -301,7 +301,7 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
                       step="0.05"
                       value={crop.scale}
                       onChange={(e) => setCrop((prev) => ({ ...prev, scale: parseFloat(e.target.value) }))}
-                      className="flex-1 accent-white h-1 bg-[#1a1d27] rounded-full appearance-none cursor-pointer"
+                      className="flex-1 accent-white h-1 bg-[#232d3f] rounded-full appearance-none cursor-pointer"
                     />
                     <span className="text-[11px] text-[#777] w-8 text-right">{Math.round(crop.scale * 100)}%</span>
                   </div>
@@ -319,7 +319,7 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
                       step="1"
                       value={filters.brightness}
                       onChange={(e) => setFilters((prev) => ({ ...prev, brightness: parseInt(e.target.value) }))}
-                      className="flex-1 accent-white h-1 bg-[#1a1d27] rounded-full appearance-none cursor-pointer"
+                      className="flex-1 accent-white h-1 bg-[#232d3f] rounded-full appearance-none cursor-pointer"
                     />
                     <span className="text-[11px] text-[#777] w-8 text-right">{filters.brightness}%</span>
                   </div>
@@ -337,7 +337,7 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
                       step="1"
                       value={filters.contrast}
                       onChange={(e) => setFilters((prev) => ({ ...prev, contrast: parseInt(e.target.value) }))}
-                      className="flex-1 accent-white h-1 bg-[#1a1d27] rounded-full appearance-none cursor-pointer"
+                      className="flex-1 accent-white h-1 bg-[#232d3f] rounded-full appearance-none cursor-pointer"
                     />
                     <span className="text-[11px] text-[#777] w-8 text-right">{filters.contrast}%</span>
                   </div>
@@ -349,14 +349,14 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
                 <div className="flex gap-2">
                   <button
                     onClick={resetState}
-                    className="px-4 py-2 text-[13px] text-[#888] hover:text-white bg-[#1a1d27] rounded-lg transition-colors"
+                    className="px-4 py-2 text-[13px] text-[#888] hover:text-white bg-[#232d3f] rounded-lg transition-colors"
                   >
                     Change Image
                   </button>
                   {currentBanner && (
                     <button
                       onClick={handleRemove}
-                      className="px-4 py-2 text-[13px] text-red-400 hover:text-red-300 bg-[#1a1d27] rounded-lg transition-colors"
+                      className="px-4 py-2 text-[13px] text-red-400 hover:text-red-300 bg-[#232d3f] rounded-lg transition-colors"
                     >
                       Remove Banner
                     </button>
@@ -365,10 +365,10 @@ export default function BannerUploadModal({ onSave, onClose, currentBanner }) {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-6 py-2 bg-[#e8e8e8] text-[#030712] font-semibold rounded-lg text-[13px] hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-2 bg-[#e8e8e8] text-[#0c1017] font-semibold rounded-lg text-[13px] hover:bg-white transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {saving ? (
-                    <div className="h-4 w-4 border-2 border-[#030712] border-t-transparent rounded-full animate-spin" />
+                    <div className="h-4 w-4 border-2 border-[#0c1017] border-t-transparent rounded-full animate-spin" />
                   ) : (
                     'Save Banner'
                   )}

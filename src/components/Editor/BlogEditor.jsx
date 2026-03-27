@@ -1,7 +1,8 @@
 'use client';
 
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs } from '@blocknote/core';
-import { useCreateBlockNote, BlockNoteView, SuggestionMenuController, getDefaultReactSlashMenuItems } from '@blocknote/react';
+import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from '@blocknote/react';
+import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import 'katex/dist/katex.min.css';
@@ -274,19 +275,41 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent }, 
         if (isCurrentBlockEmpty(editor)) {
           e.preventDefault();
 
-          // Get cursor position relative to the wrapper
-          const sel = window.getSelection();
-          if (sel && sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
-            const rect = range.getBoundingClientRect();
-            const wrapperRect = wrapperRef.current?.getBoundingClientRect();
-            if (wrapperRect) {
-              setAiMenuPos({
-                top: rect.bottom - wrapperRect.top + 8,
-                left: 0,
-              });
+          const wrapperRect = wrapperRef.current?.getBoundingClientRect();
+          if (!wrapperRect) return;
+
+          // Try to get position from the focused block element directly
+          // The cursor block DOM element is more reliable than selection range on empty blocks
+          let top = 0;
+          const cursor = editor.getTextCursorPosition();
+          if (cursor?.block?.id) {
+            const blockEl = wrapperRef.current?.querySelector(`[data-id="${cursor.block.id}"]`);
+            if (blockEl) {
+              const blockRect = blockEl.getBoundingClientRect();
+              top = blockRect.bottom - wrapperRect.top + 6;
             }
           }
+
+          // Fallback: use selection range
+          if (top === 0) {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+              const range = sel.getRangeAt(0);
+              const rect = range.getBoundingClientRect();
+              if (rect.height > 0) {
+                top = rect.bottom - wrapperRect.top + 6;
+              } else {
+                // Zero rect — use the focused element
+                const activeEl = document.activeElement;
+                if (activeEl) {
+                  const activeRect = activeEl.getBoundingClientRect();
+                  top = activeRect.bottom - wrapperRect.top + 6;
+                }
+              }
+            }
+          }
+
+          setAiMenuPos({ top, left: 0 });
           setShowAIMenu(true);
         }
       }

@@ -44,7 +44,7 @@ export default function AICommandMenu({ position, onSubmit, onClose }) {
         zIndex: 100,
       }}
     >
-      <div className="mx-auto w-full max-w-[600px] bg-[#0d1117] border border-[#1a1d27] rounded-xl shadow-2xl overflow-hidden">
+      <div className="mx-auto w-full max-w-[600px] bg-[#141a26] border border-[#232d3f] rounded-xl shadow-2xl overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3">
           {/* AI logo */}
           <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
@@ -68,9 +68,13 @@ export default function AICommandMenu({ position, onSubmit, onClose }) {
           <button
             onClick={() => query.trim() && onSubmit(query.trim())}
             disabled={!query.trim()}
-            className="flex-shrink-0 w-7 h-7 rounded-full bg-[#e8e8e8] disabled:bg-[#1a1d27] flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+            className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+              query.trim()
+                ? 'bg-[#9b7bf7] hover:bg-[#b69aff] cursor-pointer'
+                : 'bg-[#232d3f] cursor-not-allowed'
+            }`}
           >
-            <svg className="w-3.5 h-3.5 text-[#030712]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg className={`w-3.5 h-3.5 ${query.trim() ? 'text-white' : 'text-[#4a5568]'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="19" x2="12" y2="5" />
               <polyline points="5 12 12 5 19 12" />
             </svg>

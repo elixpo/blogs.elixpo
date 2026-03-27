@@ -33,7 +33,7 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030712] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#0c1017] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
           <div className="h-14 w-14 mx-auto rounded-full bg-[url('/logo.png')] bg-cover mb-4" />
@@ -41,7 +41,7 @@ function SignInContent() {
           <p className="text-[#777] text-sm mt-1.5">Sign in to your LixBlogs account</p>
         </div>
 
-        <div className="bg-[#0d1117] border border-[#1a1d27] rounded-2xl p-6">
+        <div className="bg-[#141a26] border border-[#232d3f] rounded-2xl p-6">
           {error && (
             <div className="mb-5 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-[13px] text-center">
               {errorMessages[error] || 'An error occurred. Please try again.'}
@@ -50,7 +50,7 @@ function SignInContent() {
 
           <button
             onClick={handleLogin}
-            className="w-full py-2.5 bg-[#e8e8e8] text-[#030712] font-semibold rounded-xl text-[14px] hover:bg-white transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[#e8e8e8] text-[#0c1017] font-semibold rounded-xl text-[14px] hover:bg-white transition-colors flex items-center justify-center gap-2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
@@ -80,7 +80,7 @@ function SignInContent() {
 
 export default function SignIn() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#030712]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#0c1017]" />}>
       <SignInContent />
     </Suspense>
   );

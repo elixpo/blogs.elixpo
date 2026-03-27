@@ -85,7 +85,7 @@ const RECOMMENDED_TOPICS = [
 
 function FeedCard({ post }) {
   return (
-    <article className="group py-7 border-b border-[#1a1d27] last:border-b-0 cursor-pointer">
+    <article className="group py-7 border-b border-[#232d3f] last:border-b-0 cursor-pointer">
       <div className="flex items-center gap-2 mb-3">
         <div className="h-6 w-6 rounded-full bg-[#2a2d3a] flex-shrink-0" />
         <span className="text-[13px] text-[#b0b0b0]">
@@ -122,7 +122,7 @@ function FeedCard({ post }) {
             </span>
           </div>
         </div>
-        <div className="w-[120px] h-[120px] bg-[#1a1d27] rounded-md flex-shrink-0 hidden sm:block" />
+        <div className="w-[120px] h-[120px] bg-[#232d3f] rounded-md flex-shrink-0 hidden sm:block" />
       </div>
     </article>
   );
@@ -153,9 +153,9 @@ export default function App() {
     <AppShell>
       <div className="flex">
         {/* Center Feed */}
-        <div className="flex-1 min-w-0 border-r border-[#1a1d27]">
+        <div className="flex-1 min-w-0 border-r border-[#232d3f]">
           {/* Topic Tabs */}
-          <div className="sticky top-14 z-40 bg-[#030712]/95 backdrop-blur-md border-b border-[#1a1d27]">
+          <div className="sticky top-14 z-40 bg-[#0c1017]/95 backdrop-blur-md border-b border-[#232d3f]">
             <div className="flex items-center gap-0 px-6 overflow-x-auto scrollbar-none">
               {TOPICS.map((topic, i) => (
                 <button
@@ -187,7 +187,7 @@ export default function App() {
           {/* Staff Picks */}
           <div className="mb-8">
             <h3 className="text-[14px] font-bold text-[#e0e0e0] mb-1 tracking-wide">Staff Picks</h3>
-            <div className="divide-y divide-[#1a1d27]">
+            <div className="divide-y divide-[#232d3f]">
               {STAFF_PICKS.map((pick) => (
                 <StaffPickCard key={pick.id} pick={pick} />
               ))}
@@ -204,7 +204,7 @@ export default function App() {
               {RECOMMENDED_TOPICS.map((topic) => (
                 <button
                   key={topic}
-                  className="px-3.5 py-1.5 rounded-full text-[13px] text-[#b0b0b0] bg-[#0d1117] border border-[#1a1d27] hover:border-[#333] hover:text-white transition-colors"
+                  className="px-3.5 py-1.5 rounded-full text-[13px] text-[#b0b0b0] bg-[#141a26] border border-[#232d3f] hover:border-[#333] hover:text-white transition-colors"
                 >
                   {topic}
                 </button>
@@ -213,7 +213,7 @@ export default function App() {
           </div>
 
           {/* Writing Prompt */}
-          <div className="bg-[#0d1117] border border-[#1a1d27] rounded-xl p-5">
+          <div className="bg-[#141a26] border border-[#232d3f] rounded-xl p-5">
             <h3 className="text-[14px] font-bold text-[#e0e0e0] mb-1">Writing on LixBlogs</h3>
             <ul className="text-[13px] text-[#888] space-y-1.5 mt-3">
               <li className="hover:text-[#b0b0b0] cursor-pointer transition-colors">New to LixBlogs? Start here</li>
@@ -222,7 +222,7 @@ export default function App() {
             </ul>
             <button
               onClick={() => window.location.href = '/new-blog'}
-              className="inline-block mt-4 px-5 py-2 text-[13px] font-medium text-[#030712] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors"
+              className="inline-block mt-4 px-5 py-2 text-[13px] font-medium text-[#0c1017] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors"
             >
               Start writing
             </button>

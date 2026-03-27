@@ -89,7 +89,7 @@ function HeaderProfileDropdown({ user, logout }) {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[240px] bg-[#0d1117] border border-[#1a1d27] rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-[240px] bg-[#141a26] border border-[#232d3f] rounded-xl shadow-2xl z-50 overflow-hidden">
           <Link href="/profile" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-[#ffffff06] transition-colors">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover flex-shrink-0" />
@@ -101,7 +101,7 @@ function HeaderProfileDropdown({ user, logout }) {
               <p className="text-[11px] text-[#9b7bf7]">View profile</p>
             </div>
           </Link>
-          <div className="h-px bg-[#1a1d27]" />
+          <div className="h-px bg-[#232d3f]" />
           <div className="py-1">
             <Link href="/stories" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-2 text-[13px] text-[#c8c8c8] hover:text-white hover:bg-[#ffffff06] transition-colors">
               <ion-icon name="book-outline" style={{ fontSize: '16px', color: '#888' }} />
@@ -116,7 +116,7 @@ function HeaderProfileDropdown({ user, logout }) {
               Settings
             </Link>
           </div>
-          <div className="h-px bg-[#1a1d27]" />
+          <div className="h-px bg-[#232d3f]" />
           <div className="py-1">
             <button onClick={() => { setOpen(false); logout(); }} className="flex items-center gap-3 w-full px-4 py-2 text-[13px] text-[#c8c8c8] hover:text-white hover:bg-[#ffffff06] transition-colors">
               <ion-icon name="log-out-outline" style={{ fontSize: '16px', color: '#888' }} />
@@ -157,14 +157,14 @@ function HamburgerMenu({ onShareDraft, onChangeCover, onChangeTitle, onChangeTop
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="h-8 w-8 rounded-lg bg-[#0d1117] border border-[#1a1d27] flex items-center justify-center hover:border-[#333] transition-colors"
+        className="h-8 w-8 rounded-lg bg-[#141a26] border border-[#232d3f] flex items-center justify-center hover:border-[#333] transition-colors"
       >
         <ion-icon name="ellipsis-horizontal" style={{ color: '#888', fontSize: '16px' }} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[260px] bg-[#0d1117] border border-[#1a1d27] rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-[260px] bg-[#141a26] border border-[#232d3f] rounded-xl shadow-2xl z-50 overflow-hidden">
           {/* Menu caret */}
-          <div className="absolute -top-[6px] right-3 w-3 h-3 bg-[#0d1117] border-l border-t border-[#1a1d27] rotate-45" />
+          <div className="absolute -top-[6px] right-3 w-3 h-3 bg-[#141a26] border-l border-t border-[#232d3f] rotate-45" />
           <div className="py-1.5 relative">
             {items.map((item) => (
               <button
@@ -177,7 +177,7 @@ function HamburgerMenu({ onShareDraft, onChangeCover, onChangeTitle, onChangeTop
               </button>
             ))}
           </div>
-          <div className="h-px bg-[#1a1d27]" />
+          <div className="h-px bg-[#232d3f]" />
           <div className="py-1.5">
             <button
               onClick={() => setOpen(false)}
@@ -315,9 +315,9 @@ export default function WritePage({ slugid }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#030712] text-white edit-page">
+    <div className="min-h-screen bg-[#0c1017] text-white edit-page">
       {/* Header */}
-      <header className="fixed top-0 left-0 w-full h-14 border-b border-[#1a1d27] flex items-center justify-between px-5 bg-[#030712]/95 backdrop-blur-md z-50">
+      <header className="fixed top-0 left-0 w-full h-14 border-b border-[#232d3f] flex items-center justify-between px-5 bg-[#0c1017]/95 backdrop-blur-md z-50">
         {/* Left: Logo + breadcrumb */}
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
@@ -335,20 +335,20 @@ export default function WritePage({ slugid }) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2.5">
-          <span className="text-[#555] text-[11px] px-2 py-0.5 rounded-md bg-[#0d1117] border border-[#1a1d27]">Draft</span>
+          <span className="text-[#555] text-[11px] px-2 py-0.5 rounded-md bg-[#141a26] border border-[#232d3f]">Draft</span>
 
           {/* Publish split button */}
           <div className="relative">
             <div className="flex items-center">
               <button
                 onClick={() => setShowPublishPanel(!showPublishPanel)}
-                className="px-4 py-1.5 bg-[#e8e8e8] text-[#030712] font-semibold rounded-l-full text-[13px] hover:bg-white transition-colors"
+                className="px-4 py-1.5 bg-[#e8e8e8] text-[#0c1017] font-semibold rounded-l-full text-[13px] hover:bg-white transition-colors"
               >
                 Publish
               </button>
               <button
                 onClick={() => setShowPublishMenu(!showPublishMenu)}
-                className="px-2 py-1.5 bg-[#e8e8e8] text-[#030712] rounded-r-full border-l border-[#030712]/10 hover:bg-white transition-colors"
+                className="px-2 py-1.5 bg-[#e8e8e8] text-[#0c1017] rounded-r-full border-l border-[#0c1017]/10 hover:bg-white transition-colors"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6 9 12 15 18 9" />
@@ -359,7 +359,7 @@ export default function WritePage({ slugid }) {
             {showPublishMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowPublishMenu(false)} />
-                <div className="absolute right-0 top-full mt-2 w-44 bg-[#0d1117] border border-[#1a1d27] rounded-xl shadow-2xl z-50 overflow-hidden py-1">
+                <div className="absolute right-0 top-full mt-2 w-44 bg-[#141a26] border border-[#232d3f] rounded-xl shadow-2xl z-50 overflow-hidden py-1">
                   <button onClick={handleSaveDraft} className="w-full px-4 py-2.5 text-left text-[13px] text-[#c8c8c8] hover:text-white hover:bg-[#ffffff06] flex items-center gap-2.5 transition-colors">
                     <ion-icon name="save-outline" style={{ fontSize: '15px', color: '#888' }} />
                     Save Draft
@@ -408,8 +408,8 @@ export default function WritePage({ slugid }) {
                 onClick={() => switchMode(tab.key)}
                 className={`p-1.5 rounded-md transition-all ${
                   mode === tab.key
-                    ? 'bg-[#0d1117] text-white border border-[#1a1d27]'
-                    : 'text-[#444] hover:text-[#888] hover:bg-[#0d1117]/50'
+                    ? 'bg-[#141a26] text-white border border-[#232d3f]'
+                    : 'text-[#444] hover:text-[#888] hover:bg-[#141a26]/50'
                 }`}
                 title={tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}
               >
@@ -434,7 +434,7 @@ export default function WritePage({ slugid }) {
               {pageEmoji && (
                 <div className="relative group w-fit mb-2">
                   <span className="text-5xl cursor-pointer select-none" onClick={() => setShowEmojiPicker(true)}>{pageEmoji}</span>
-                  <button onClick={() => setPageEmoji(null)} className="absolute -top-1 -right-3 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-full bg-[#1a1d27] border border-[#333] flex items-center justify-center text-[#888] hover:text-white transition-all text-[10px]">&times;</button>
+                  <button onClick={() => setPageEmoji(null)} className="absolute -top-1 -right-3 opacity-0 group-hover:opacity-100 h-5 w-5 rounded-full bg-[#232d3f] border border-[#333] flex items-center justify-center text-[#888] hover:text-white transition-all text-[10px]">&times;</button>
                 </div>
               )}
 
@@ -472,7 +472,7 @@ export default function WritePage({ slugid }) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Blog title..."
-                className="w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[#1a1d27] mb-1 leading-tight"
+                className="w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[#232d3f] mb-1 leading-tight"
               />
 
               <input
@@ -480,7 +480,7 @@ export default function WritePage({ slugid }) {
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
                 placeholder="Add a subtitle..."
-                className="w-full bg-transparent text-base text-[#888] outline-none placeholder-[#1a1d27] mb-6"
+                className="w-full bg-transparent text-base text-[#888] outline-none placeholder-[#232d3f] mb-6"
               />
 
               <div className="min-h-[500px]">
@@ -501,11 +501,11 @@ export default function WritePage({ slugid }) {
 
       {/* Publish Side Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-[400px] bg-[#0d1117] border-l border-[#1a1d27] z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
+        className={`fixed top-0 right-0 h-full w-[400px] bg-[#141a26] border-l border-[#232d3f] z-50 flex flex-col shadow-2xl transition-transform duration-300 ${
           showPublishPanel ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between p-5 border-b border-[#1a1d27]">
+        <div className="flex items-center justify-between p-5 border-b border-[#232d3f]">
           <h2 className="text-[15px] font-bold text-white">Publish Settings</h2>
           <button onClick={() => setShowPublishPanel(false)} className="text-[#666] hover:text-white transition-colors p-1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -516,7 +516,7 @@ export default function WritePage({ slugid }) {
 
         <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin">
           {/* Blog Properties */}
-          <div className="flex items-center gap-4 text-[13px] text-[#777] bg-[#030712] border border-[#1a1d27] rounded-lg px-4 py-3">
+          <div className="flex items-center gap-4 text-[13px] text-[#777] bg-[#0c1017] border border-[#232d3f] rounded-lg px-4 py-3">
             <span className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
               {wordCount} words
@@ -537,7 +537,7 @@ export default function WritePage({ slugid }) {
                   key={opt}
                   onClick={() => setPublishAs(opt)}
                   className={`flex-1 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-                    publishAs === opt ? 'bg-white text-[#030712]' : 'bg-[#030712] border border-[#1a1d27] text-[#777] hover:text-white hover:border-[#333]'
+                    publishAs === opt ? 'bg-white text-[#0c1017]' : 'bg-[#0c1017] border border-[#232d3f] text-[#777] hover:text-white hover:border-[#333]'
                   }`}
                 >
                   {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -564,7 +564,7 @@ export default function WritePage({ slugid }) {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 placeholder="Add a tag..."
-                className="w-full bg-[#030712] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#1a1d27] focus:border-[#333] transition-colors placeholder-[#444]"
+                className="w-full bg-[#0c1017] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#232d3f] focus:border-[#333] transition-colors placeholder-[#444]"
               />
             )}
           </div>
@@ -572,7 +572,7 @@ export default function WritePage({ slugid }) {
           {/* URL Slug */}
           <div>
             <label className="text-[12px] text-[#777] mb-2 block font-medium">URL Slug</label>
-            <div className="flex items-center bg-[#030712] rounded-lg border border-[#1a1d27] overflow-hidden">
+            <div className="flex items-center bg-[#0c1017] rounded-lg border border-[#232d3f] overflow-hidden">
               <span className="text-[#555] text-[13px] px-3">@{username}/</span>
               <input
                 type="text"
@@ -586,7 +586,7 @@ export default function WritePage({ slugid }) {
           {/* Preview Card */}
           <div>
             <label className="text-[12px] text-[#777] mb-2 block font-medium">Preview</label>
-            <div className="bg-[#030712] border border-[#1a1d27] rounded-xl p-4">
+            <div className="bg-[#0c1017] border border-[#232d3f] rounded-xl p-4">
               {coverPreview && (
                 <img src={coverPreview} alt="Cover" className="w-full h-[100px] object-cover rounded-lg mb-3" />
               )}
@@ -603,11 +603,11 @@ export default function WritePage({ slugid }) {
           </div>
         </div>
 
-        <div className="p-5 border-t border-[#1a1d27]">
+        <div className="p-5 border-t border-[#232d3f]">
           <button
             onClick={handlePublish}
             disabled={!title.trim()}
-            className="w-full py-2.5 bg-[#e8e8e8] text-[#030712] font-bold rounded-xl text-[13px] hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-[#e8e8e8] text-[#0c1017] font-bold rounded-xl text-[13px] hover:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Publish now
           </button>

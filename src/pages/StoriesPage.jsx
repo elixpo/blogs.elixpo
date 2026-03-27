@@ -10,7 +10,7 @@ const TABS = ['Drafts', 'Published'];
 function StoryCard({ story }) {
   const isDraft = story.status === 'draft';
   return (
-    <article className="flex gap-5 py-6 border-b border-[#1a1d27] last:border-b-0">
+    <article className="flex gap-5 py-6 border-b border-[#232d3f] last:border-b-0">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-2">
           {isDraft && (
@@ -59,7 +59,7 @@ function StoryCard({ story }) {
         </div>
       </div>
       {story.cover_image_r2_key && (
-        <div className="w-[100px] h-[80px] bg-[#1a1d27] rounded-md flex-shrink-0" />
+        <div className="w-[100px] h-[80px] bg-[#232d3f] rounded-md flex-shrink-0" />
       )}
     </article>
   );
@@ -77,9 +77,9 @@ export default function StoriesPage() {
     return (
       <AppShell>
         <div className="max-w-3xl mx-auto px-6 py-10">
-          <div className="h-10 w-32 bg-[#1a1d27] animate-pulse rounded mb-8" />
+          <div className="h-10 w-32 bg-[#232d3f] animate-pulse rounded mb-8" />
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-24 bg-[#1a1d27] animate-pulse rounded mb-4" />
+            <div key={i} className="h-24 bg-[#232d3f] animate-pulse rounded mb-4" />
           ))}
         </div>
       </AppShell>
@@ -93,7 +93,7 @@ export default function StoriesPage() {
           <svg className="w-12 h-12 text-[#2a2d3a] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
           <h2 className="text-xl font-bold text-white mb-2">Sign in to see your stories</h2>
           <p className="text-[#777] text-sm mb-6">Your drafts and published posts will appear here.</p>
-          <Link href="/sign-in" className="px-6 py-2.5 bg-[#e8e8e8] text-[#030712] font-semibold rounded-full text-sm hover:bg-white transition-colors">
+          <Link href="/sign-in" className="px-6 py-2.5 bg-[#e8e8e8] text-[#0c1017] font-semibold rounded-full text-sm hover:bg-white transition-colors">
             Sign In
           </Link>
         </div>
@@ -110,14 +110,14 @@ export default function StoriesPage() {
           <h1 className="text-3xl font-bold text-white">Your Stories</h1>
           <Link
             href="/new-blog"
-            className="px-5 py-2 text-[13px] font-medium text-[#030712] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors"
+            className="px-5 py-2 text-[13px] font-medium text-[#0c1017] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors"
           >
             Write a story
           </Link>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-6 border-b border-[#1a1d27] mb-6">
+        <div className="flex gap-6 border-b border-[#232d3f] mb-6">
           {TABS.map((tab, i) => (
             <button
               key={tab}
@@ -142,7 +142,7 @@ export default function StoriesPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20">
-            <svg className="w-16 h-16 text-[#1a1d27] mb-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-16 h-16 text-[#232d3f] mb-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {activeTab === 0 ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               ) : (
@@ -159,7 +159,7 @@ export default function StoriesPage() {
             </p>
             <Link
               href="/new-blog"
-              className="px-5 py-2 text-[13px] font-medium text-[#030712] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors"
+              className="px-5 py-2 text-[13px] font-medium text-[#0c1017] bg-[#e8e8e8] hover:bg-white rounded-full transition-colors"
             >
               Write a story
             </Link>

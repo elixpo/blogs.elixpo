@@ -34,7 +34,7 @@ export const TabsBlock = createReactBlockSpec(
 
       if (editing) {
         return (
-          <div className="border border-[#1a1d27] rounded-xl bg-[#0d1117] p-4 my-2">
+          <div className="border border-[#232d3f] rounded-xl bg-[#141a26] p-4 my-2">
             <p className="text-[11px] text-[#666] font-medium mb-1">Tabs Block</p>
             <p className="text-[10px] text-[#444] mb-2">Separate tabs with --- on its own line. First line of each tab is the title.</p>
             <textarea
@@ -42,19 +42,19 @@ export const TabsBlock = createReactBlockSpec(
               onChange={(e) => setText(e.target.value)}
               placeholder={"Getting Started\nContent for first tab\n---\nAdvanced\nContent for second tab"}
               rows={8}
-              className="w-full bg-[#030712] border border-[#1a1d27] rounded-lg p-3 text-[13px] text-[#e0e0e0] font-mono resize-none outline-none focus:border-[#333] placeholder-[#444]"
+              className="w-full bg-[#0c1017] border border-[#232d3f] rounded-lg p-3 text-[13px] text-[#e0e0e0] font-mono resize-none outline-none focus:border-[#333] placeholder-[#444]"
             />
             <div className="flex justify-end gap-2 mt-2">
               <button onClick={() => setEditing(false)} className="px-3 py-1 text-[12px] text-[#888]">Cancel</button>
-              <button onClick={save} className="px-3 py-1 text-[12px] bg-[#e8e8e8] text-[#030712] rounded-md font-medium hover:bg-white transition-colors">Done</button>
+              <button onClick={save} className="px-3 py-1 text-[12px] bg-[#e8e8e8] text-[#0c1017] rounded-md font-medium hover:bg-white transition-colors">Done</button>
             </div>
           </div>
         );
       }
 
       return (
-        <div className="border border-[#1a1d27] rounded-xl bg-[#0d1117] my-2 overflow-hidden" onDoubleClick={() => setEditing(true)}>
-          <div className="flex border-b border-[#1a1d27]">
+        <div className="border border-[#232d3f] rounded-xl bg-[#141a26] my-2 overflow-hidden" onDoubleClick={() => setEditing(true)}>
+          <div className="flex border-b border-[#232d3f]">
             {tabs.map((tab, i) => (
               <button
                 key={i}

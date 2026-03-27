@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Color tokens as CSS custom properties for consistency */
+:root {
+  --bg-base: #0c1017;
+  --bg-surface: #141a26;
+  --bg-elevated: #1c2333;
+  --border-default: #232d3f;
+  --border-hover: #2e3b50;
+  --text-primary: #f0f0f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #6b7a8d;
+  --text-faint: #4a5568;
+  --accent: #9b7bf7;
+  --accent-hover: #b69aff;
+  --accent-subtle: rgba(155, 123, 247, 0.08);
+}
+
 /* Base typography */
 * {
   -webkit-font-smoothing: antialiased;
@@ -18,12 +34,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1a1d27;
+  background: var(--border-default);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a2d3a;
+  background: var(--border-hover);
 }
 
 /* Hide scrollbar utility */
@@ -40,7 +56,7 @@
   width: 4px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #1a1d27;
+  background: var(--border-default);
   border-radius: 2px;
 }
 

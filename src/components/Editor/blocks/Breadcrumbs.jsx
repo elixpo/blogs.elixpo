@@ -30,18 +30,18 @@ export const Breadcrumbs = createReactBlockSpec(
 
       if (editing) {
         return (
-          <div className="border border-[#1a1d27] rounded-xl bg-[#0d1117] p-4 my-2">
+          <div className="border border-[#232d3f] rounded-xl bg-[#141a26] p-4 my-2">
             <p className="text-[11px] text-[#666] font-medium mb-2">Breadcrumbs (one per line: label|url)</p>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={"Home|/\nBlog|/blog\nCurrent Page"}
               rows={4}
-              className="w-full bg-[#030712] border border-[#1a1d27] rounded-lg p-3 text-[13px] text-[#e0e0e0] font-mono resize-none outline-none focus:border-[#333] placeholder-[#444]"
+              className="w-full bg-[#0c1017] border border-[#232d3f] rounded-lg p-3 text-[13px] text-[#e0e0e0] font-mono resize-none outline-none focus:border-[#333] placeholder-[#444]"
             />
             <div className="flex justify-end gap-2 mt-2">
               <button onClick={() => setEditing(false)} className="px-3 py-1 text-[12px] text-[#888]">Cancel</button>
-              <button onClick={save} className="px-3 py-1 text-[12px] bg-[#e8e8e8] text-[#030712] rounded-md font-medium hover:bg-white transition-colors">Done</button>
+              <button onClick={save} className="px-3 py-1 text-[12px] bg-[#e8e8e8] text-[#0c1017] rounded-md font-medium hover:bg-white transition-colors">Done</button>
             </div>
           </div>
         );
