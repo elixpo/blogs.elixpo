@@ -197,7 +197,7 @@ function BlogImageRenderer({ block, editor }) {
     // If this is an AI-generated placeholder, show only the skeleton loading
     if (isAiPlaceholder || mode === 'generating') {
       return (
-        <div ref={blockRef} className="blog-img-empty blog-img-empty--generating" tabIndex={0}>
+        <div ref={blockRef} className="blog-img-empty blog-img-empty--generating" tabIndex={-1} style={{ pointerEvents: 'none', userSelect: 'none' }}>
           <div className="blog-img-generating">
             <div className="blog-img-gen-shimmer" />
             <div className="blog-img-gen-label">
