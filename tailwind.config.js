@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['lixFancy', 'sans-serif'],
+        sans: ['lixFont', 'sans-serif'],
         code: ['lixCode', 'monospace'],
       },
       animation: {

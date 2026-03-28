@@ -77,7 +77,7 @@
 .blog-editor-wrapper .bn-editor {
   background: transparent;
   color: #e4e4e7;
-  font-family: 'lixFancy', sans-serif;
+  font-family: 'lixFont', sans-serif;
   font-size: 1em;
   line-height: 1.75;
   padding-left: 0;
@@ -106,21 +106,21 @@
 /* Headings — override BlockNote's --level custom property */
 .blog-editor-wrapper [data-content-type="heading"][data-level="1"] {
   --level: 1.75em !important;
-  font-family: 'lixFancy', sans-serif;
+  font-family: 'lixFont', sans-serif;
   font-weight: 700 !important;
   color: #e4e4e7;
 }
 
 .blog-editor-wrapper [data-content-type="heading"][data-level="2"] {
   --level: 1.35em !important;
-  font-family: 'lixFancy', sans-serif;
+  font-family: 'lixFont', sans-serif;
   font-weight: 650 !important;
   color: #e4e4e7;
 }
 
 .blog-editor-wrapper [data-content-type="heading"][data-level="3"] {
   --level: 1.15em !important;
-  font-family: 'lixFancy', sans-serif;
+  font-family: 'lixFont', sans-serif;
   font-weight: 600 !important;
   color: #e4e4e7;
 }
