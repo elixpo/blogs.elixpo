@@ -880,7 +880,9 @@ export default function WritePage({ slugid }) {
           )}
 
           {mode === 'preview' && (
-            <BlogPreview title={title} subtitle={subtitle} coverPreview={coverPreview} coverZoom={coverZoom} coverPos={coverPos} pageEmoji={pageEmoji} tags={tags} html={previewHtml} user={user} wordCount={wordCount} />
+            <div className="blog-preview-fullwidth">
+              <BlogPreview title={title} subtitle={subtitle} coverPreview={coverPreview} coverZoom={coverZoom} coverPos={coverPos} pageEmoji={pageEmoji} tags={tags} html={previewHtml} user={user} wordCount={wordCount} />
+            </div>
           )}
 
           {mode === 'code' && (

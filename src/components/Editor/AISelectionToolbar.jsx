@@ -88,6 +88,8 @@ export default function AISelectionToolbar({ editor, onTitleChange }) {
             } else {
               editor.addStyles({ textColor: color });
             }
+            // Deselect so user can see the applied color
+            setTimeout(() => { window.getSelection()?.removeAllRanges(); }, 50);
           } catch (err) { console.error('Failed to apply text color:', err); }
           pop.remove();
         });
@@ -142,6 +144,8 @@ export default function AISelectionToolbar({ editor, onTitleChange }) {
             } else {
               editor.addStyles({ backgroundColor: color });
             }
+            // Deselect so user can see the applied highlight
+            setTimeout(() => { window.getSelection()?.removeAllRanges(); }, 50);
           } catch (err) { console.error('Failed to apply highlight:', err); }
           pop.remove();
         });
@@ -318,17 +322,16 @@ export default function AISelectionToolbar({ editor, onTitleChange }) {
     });
   }, []);
 
-  // Add skeleton loading to nearby lines
+  // Add skeleton loading to nearby lines below selection
   const addSkeletonLoading = useCallback((blockIds) => {
     const wrapper = document.querySelector('.blog-editor-wrapper');
     if (!wrapper) return;
     const lastId = blockIds[blockIds.length - 1];
     const lastEl = wrapper.querySelector(`[data-id="${lastId}"]`);
     if (!lastEl) return;
-    // Add skeleton to next 2-3 sibling blocks
     let sibling = lastEl.nextElementSibling;
     let count = 0;
-    while (sibling && count < 3) {
+    while (sibling && count < 2) {
       sibling.classList.add('ai-skeleton-nearby');
       sibling = sibling.nextElementSibling;
       count++;
@@ -349,14 +352,10 @@ export default function AISelectionToolbar({ editor, onTitleChange }) {
     hideToolbar();
     lockEditor();
 
-    // Mark selected blocks with lavender highlight (pre-edit indicator)
+    // Mark selected blocks with shimmer skeleton (thinking phase)
     markSelectedLavender(selectedBlockIds);
-
-    // Add skeleton loading to nearby lines
     addSkeletonLoading(selectedBlockIds);
 
-    // Mark original blocks with strikethrough
-    markOriginalBlocks(selectedBlockIds);
     originalBlockIdsRef.current = [...selectedBlockIds];
     setOriginalBlockIds([...selectedBlockIds]);
 
@@ -404,9 +403,10 @@ export default function AISelectionToolbar({ editor, onTitleChange }) {
         userPrompt,
         signal: controller.signal,
         onChunk: (_chunk, fullText) => {
-          // Remove skeleton and selected highlight once AI starts writing
+          // First chunk: transition from skeleton to strikethrough originals
           removeSkeletonLoading();
           clearSelectedLavender();
+          markOriginalBlocks(originalBlockIdsRef.current);
 
           // Handle TITLE: prefix — update blog title
           let contentText = fullText;
@@ -549,8 +549,8 @@ export default function AISelectionToolbar({ editor, onTitleChange }) {
     aiBlockCountRef.current = 0;
     // Clean up leftover DOM classes
     const wrapper = document.querySelector('.blog-editor-wrapper');
-    wrapper?.querySelectorAll('.ai-edit-original-block, .ai-edit-new-block, .ai-edit-selected-block').forEach((el) => {
-      el.classList.remove('ai-edit-original-block', 'ai-edit-new-block', 'ai-edit-selected-block');
+    wrapper?.querySelectorAll('.ai-edit-original-block, .ai-edit-new-block, .ai-edit-selected-block, .ai-skeleton-nearby').forEach((el) => {
+      el.classList.remove('ai-edit-original-block', 'ai-edit-new-block', 'ai-edit-selected-block', 'ai-skeleton-nearby');
     });
   }
 

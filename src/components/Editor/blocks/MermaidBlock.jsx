@@ -13,14 +13,37 @@ async function renderMermaid(code, container) {
       startOnLoad: false,
       theme: 'dark',
       themeVariables: {
-        primaryColor: '#1e1e2e',
-        primaryTextColor: '#c4b5fd',
-        primaryBorderColor: '#333',
-        lineColor: '#555',
-        secondaryColor: '#232d3f',
+        primaryColor: '#232d3f',
+        primaryTextColor: '#e4e4e7',
+        primaryBorderColor: '#c4b5fd',
+        lineColor: '#8b8fa3',
+        secondaryColor: '#1e1e2e',
         tertiaryColor: '#141a26',
-        fontFamily: 'inherit',
-        fontSize: '14px',
+        fontFamily: "'lixFont', sans-serif",
+        fontSize: '16px',
+        nodeTextColor: '#e4e4e7',
+        nodeBorder: '#c4b5fd',
+        mainBkg: '#232d3f',
+        clusterBkg: '#1a1f2e',
+        clusterBorder: '#333',
+        titleColor: '#c4b5fd',
+        edgeLabelBackground: '#141a26',
+        nodePadding: 15,
+      },
+      flowchart: {
+        padding: 20,
+        nodeSpacing: 50,
+        rankSpacing: 60,
+        curve: 'basis',
+        htmlLabels: true,
+        useMaxWidth: false,
+      },
+      sequence: {
+        useMaxWidth: false,
+        boxMargin: 10,
+        noteMargin: 10,
+        messageMargin: 35,
+        mirrorActors: false,
       },
     });
     mermaidInitialized = true;
@@ -29,15 +52,132 @@ async function renderMermaid(code, container) {
   try {
     const { svg } = await mermaid.render(id, code.trim());
     container.innerHTML = svg;
-    // Style the rendered SVG
     const svgEl = container.querySelector('svg');
     if (svgEl) {
-      svgEl.style.maxWidth = '100%';
-      svgEl.style.height = 'auto';
+      // Remove fixed dimensions so it scales naturally
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+      svgEl.style.width = '';
+      svgEl.style.height = '';
+      svgEl.style.maxWidth = 'none';
+      svgEl.style.minWidth = 'fit-content';
     }
   } catch (err) {
     container.innerHTML = `<pre style="color:#f87171;font-size:12px;white-space:pre-wrap;margin:0;">${err.message || 'Invalid diagram syntax'}</pre>`;
   }
+}
+
+function MermaidViewer({ svgContainerRef, diagram, onEdit }) {
+  const viewportRef = useRef(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const panStart = useRef({ x: 0, y: 0 });
+
+  // Render diagram
+  useEffect(() => {
+    if (diagram && svgContainerRef.current) {
+      renderMermaid(diagram, svgContainerRef.current).then(() => {
+        // Reset pan/zoom on new render
+        setZoom(1);
+        setPan({ x: 0, y: 0 });
+      });
+    }
+  }, [diagram, svgContainerRef]);
+
+  // Mouse wheel zoom
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setZoom((z) => {
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      return Math.min(3, Math.max(0.3, z + delta));
+    });
+  }, []);
+
+  // Pan via drag
+  const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    dragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    panStart.current = { ...pan };
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    setPan({ x: panStart.current.x + dx, y: panStart.current.y + dy });
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    dragging.current = false;
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  const resetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  return (
+    <div
+      ref={viewportRef}
+      className="mermaid-viewport"
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+    >
+      <div
+        ref={svgContainerRef}
+        className="mermaid-block-svg"
+        style={{
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: 'center center',
+        }}
+      />
+      {/* Zoom controls */}
+      <div className="mermaid-zoom-controls">
+        <button
+          onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(3, z + 0.2)); }}
+          className="mermaid-zoom-btn"
+          title="Zoom in"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        <span className="mermaid-zoom-label">{Math.round(zoom * 100)}%</span>
+        <button
+          onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.max(0.3, z - 0.2)); }}
+          className="mermaid-zoom-btn"
+          title="Zoom out"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); resetView(); }}
+          className="mermaid-zoom-btn"
+          title="Reset view"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><polyline points="1 4 1 10 7 10"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export const MermaidBlock = createReactBlockSpec(
@@ -58,13 +198,6 @@ export const MermaidBlock = createReactBlockSpec(
       useEffect(() => {
         if (editing && inputRef.current) inputRef.current.focus();
       }, [editing]);
-
-      // Render diagram when not editing
-      useEffect(() => {
-        if (!editing && block.props.diagram && renderRef.current) {
-          renderMermaid(block.props.diagram, renderRef.current);
-        }
-      }, [editing, block.props.diagram]);
 
       const save = useCallback(() => {
         editor.updateBlock(block, { props: { diagram: value } });
@@ -122,8 +255,8 @@ export const MermaidBlock = createReactBlockSpec(
       }
 
       return (
-        <div className="mermaid-block mermaid-block--rendered group" onDoubleClick={() => setEditing(true)}>
-          <div ref={renderRef} className="mermaid-block-svg" />
+        <div className="mermaid-block mermaid-block--rendered group">
+          <MermaidViewer svgContainerRef={renderRef} diagram={block.props.diagram} onEdit={() => setEditing(true)} />
           <div className="mermaid-block-hover">
             <button onClick={() => setEditing(true)} className="mermaid-hover-btn" title="Edit">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

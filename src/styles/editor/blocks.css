@@ -222,19 +222,93 @@
 
 .mermaid-block--rendered {
   position: relative;
-  padding: 16px;
-  cursor: pointer;
+  padding: 0;
+  cursor: default;
+  min-height: 280px;
+}
+
+.mermaid-viewport {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  overflow: hidden;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.mermaid-viewport:active {
+  cursor: grabbing;
 }
 
 .mermaid-block-svg {
   display: flex;
   justify-content: center;
-  overflow-x: auto;
+  align-items: center;
+  transition: transform 0.05s linear;
+  will-change: transform;
+  padding: 24px;
 }
 
 .mermaid-block-svg svg {
-  max-width: 100%;
-  height: auto;
+  max-width: none !important;
+  height: auto !important;
+}
+
+/* Make text inside mermaid SVG bigger and more readable */
+.mermaid-block-svg svg text {
+  font-size: 15px !important;
+}
+
+.mermaid-block-svg svg .nodeLabel,
+.mermaid-block-svg svg .edgeLabel {
+  font-size: 15px !important;
+}
+
+/* Zoom controls */
+.mermaid-zoom-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(14, 18, 27, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid #232d3f;
+  border-radius: 8px;
+  padding: 4px 6px;
+  z-index: 5;
+}
+
+.mermaid-zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: #8896a8;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.mermaid-zoom-btn:hover {
+  color: #c4b5fd;
+  background: rgba(196, 181, 253, 0.1);
+}
+
+.mermaid-zoom-label {
+  font-size: 11px;
+  color: #6b7a8d;
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }
 
 .mermaid-block-hover {

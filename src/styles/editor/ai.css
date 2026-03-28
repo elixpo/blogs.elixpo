@@ -366,25 +366,65 @@
 .ai-editor-locked .bn-editor [contenteditable] {
   pointer-events: none !important;
   user-select: none !important;
-  opacity: 0.85;
+  cursor: not-allowed !important;
+}
+
+.ai-editor-locked .bn-editor {
+  position: relative;
+}
+
+.ai-editor-locked .bn-editor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 22, 0.15);
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 8px;
+  animation: aiLockFadeIn 0.3s ease-out;
+}
+
+@keyframes aiLockFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .ai-editor-locked .bn-toolbar {
   display: none !important;
 }
 
-/* ===== AI Selected Block — lavender highlight before AI starts editing ===== */
+/* ===== AI Selected Block — shimmer skeleton while AI is thinking ===== */
 
 .ai-edit-selected-block {
-  background: rgba(196, 181, 253, 0.15) !important;
+  position: relative;
+  background: rgba(196, 181, 253, 0.10) !important;
   border-left: 3px solid rgba(196, 181, 253, 0.4) !important;
   border-radius: 0 6px 6px 0;
   margin-left: -3px;
-  transition: background 0.3s ease;
+  overflow: hidden;
+}
+
+.ai-edit-selected-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 25%,
+    rgba(196, 181, 253, 0.13) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: aiSkeletonShimmer 1.8s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 0 6px 6px 0;
 }
 
 .ai-edit-selected-block .bn-inline-content,
 .ai-edit-selected-block .bn-inline-content *,
+.ai-edit-selected-block [contenteditable="true"],
+.ai-edit-selected-block [contenteditable="true"] *,
 .ai-edit-selected-block p,
 .ai-edit-selected-block span,
 .ai-edit-selected-block strong,
@@ -392,7 +432,8 @@
 .ai-edit-selected-block code,
 .ai-edit-selected-block a,
 .ai-edit-selected-block li {
-  color: #c4b5fd !important;
+  color: rgba(196, 181, 253, 0.6) !important;
+  -webkit-text-fill-color: rgba(196, 181, 253, 0.6) !important;
 }
 
 /* ===== AI Skeleton Loading — shimmer on nearby lines during thinking ===== */
