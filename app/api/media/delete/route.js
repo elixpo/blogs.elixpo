@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '../../../../lib/auth';
+import { deleteFromCloudinary } from '../../../../lib/cloudinary';
 
 export async function POST(request) {
   const session = await getSession();
@@ -12,21 +13,20 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Missing mediaId' }, { status: 400 });
   }
 
-  const { getDB, getR2 } = await import('../../../../lib/cloudflare');
+  const { getDB } = await import('../../../../lib/cloudflare');
   const db = getDB();
-  const r2 = getR2();
 
   // Only allow deleting own media
   const media = await db.prepare(
-    'SELECT id, r2_key, size_bytes FROM media_uploads WHERE id = ? AND user_id = ?'
+    'SELECT id, cloudinary_public_id, size_bytes FROM media_uploads WHERE id = ? AND user_id = ?'
   ).bind(mediaId, session.userId).first();
 
   if (!media) {
     return NextResponse.json({ error: 'Media not found' }, { status: 404 });
   }
 
-  // Delete from R2
-  await r2.delete(media.r2_key);
+  // Delete from Cloudinary
+  await deleteFromCloudinary(media.cloudinary_public_id);
 
   // Remove record and update storage
   await db.batch([
