@@ -43,6 +43,8 @@
   background: transparent;
   padding: 0;
   min-height: 200px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .blog-img-empty[data-drag-over="true"] {
@@ -366,6 +368,15 @@
   color: #c4b5fd;
 }
 
+.blog-img-caption--empty {
+  color: rgba(107, 122, 141, 0.45);
+  font-style: italic;
+}
+
+.blog-img-caption--empty:hover {
+  color: rgba(196, 181, 253, 0.5);
+}
+
 .blog-img-caption-input {
   display: block;
   width: 100%;
@@ -386,4 +397,41 @@
 
 .blog-img-caption-input::placeholder {
   color: #4a5568;
+}
+
+/* ===== Fail Toast ===== */
+
+.blog-img-fail-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(14, 18, 27, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: 10px;
+  padding: 10px 18px;
+  color: #f87171;
+  font-size: 13px;
+  z-index: 9999;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  animation: blogImgToastIn 0.25s ease;
+  white-space: nowrap;
+}
+
+.blog-img-fail-toast--out {
+  animation: blogImgToastOut 0.35s ease forwards;
+}
+
+@keyframes blogImgToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes blogImgToastOut {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }

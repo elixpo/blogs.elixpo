@@ -81,8 +81,8 @@ function BlogImageRenderer({ block, editor }) {
       setMode('idle');
     } catch (err) {
       console.error('Upload failed:', err);
-      setUploadStatus('Failed. Click to retry.');
-      setTimeout(() => setMode('idle'), 2000);
+      showFailToast('Image upload failed');
+      setMode('idle');
     }
   }, [editor, block.id]);
 
@@ -157,9 +157,23 @@ function BlogImageRenderer({ block, editor }) {
       setAiPrompt('');
     } catch (err) {
       console.error('AI image generation failed:', err);
-      setMode('idle');
+      showFailToast(err.message || 'Image generation failed');
+      // Replace image block with empty paragraph
+      try {
+        editor.updateBlock(block.id, { type: 'paragraph', props: {}, content: [] });
+      } catch { /* block may already be gone */ }
     }
   }, [aiPrompt, editor, block.id]);
+
+  // Toast on failure — inject a temporary toast element
+  const showFailToast = useCallback((msg) => {
+    const toast = document.createElement('div');
+    toast.className = 'blog-img-fail-toast';
+    toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><circle cx="8" cy="8" r="7" stroke="#f87171" stroke-width="1.5"/><path d="M8 4.5v4" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11" r=".75" fill="#f87171"/></svg><span>${msg}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.classList.add('blog-img-fail-toast--out'); }, 3200);
+    setTimeout(() => { toast.remove(); }, 3600);
+  }, []);
 
   const handleDelete = useCallback(() => {
     try { editor.removeBlocks([block.id]); } catch {}
@@ -344,15 +358,20 @@ function BlogImageRenderer({ block, editor }) {
           type="text"
           value={captionText}
           onChange={(e) => setCaptionText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') handleCaptionSave(); if (e.key === 'Escape') setEditingCaption(false); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleCaptionSave(); if (e.key === 'Escape') { setEditingCaption(false); setCaptionText(caption || ''); } }}
           onBlur={handleCaptionSave}
           placeholder="Add a caption..."
           className="blog-img-caption-input"
           autoFocus
         />
-      ) : caption ? (
-        <p className="blog-img-caption" onClick={() => { setCaptionText(caption); setEditingCaption(true); }}>{caption}</p>
-      ) : null}
+      ) : (
+        <p
+          className={`blog-img-caption ${caption ? '' : 'blog-img-caption--empty'}`}
+          onClick={() => { setCaptionText(caption || ''); setEditingCaption(true); }}
+        >
+          {caption || 'Add a caption...'}
+        </p>
+      )}
     </div>
   );
 }
