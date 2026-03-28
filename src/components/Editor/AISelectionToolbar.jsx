@@ -10,7 +10,7 @@ import { parseMarkdownToBlocks } from './markdownToBlocks';
  * Star icon click → toolbar hides, inline AI prompt appears below selection →
  * AI edits inline with diff (strikethrough original, lavender new) → keep/undo.
  */
-export default function AISelectionToolbar({ editor }) {
+export default function AISelectionToolbar({ editor, onTitleChange }) {
   const [mode, setMode] = useState('idle'); // idle | prompting | streaming | done
   const [prompt, setPrompt] = useState('');
   const [selectedText, setSelectedText] = useState('');
@@ -425,7 +425,18 @@ export default function AISelectionToolbar({ editor }) {
           removeSkeletonLoading();
           clearSelectedLavender();
 
-          const newBlocks = parseMarkdownToBlocks(fullText);
+          // Handle TITLE: prefix — update blog title
+          let contentText = fullText;
+          if (contentText.trim().startsWith('TITLE:')) {
+            const lines = contentText.trim().split('\n');
+            const titleLine = lines.shift();
+            const newTitle = titleLine.replace(/^TITLE:\s*/, '').trim();
+            if (onTitleChange && newTitle) onTitleChange(newTitle);
+            contentText = lines.join('\n').trim();
+            if (!contentText) return;
+          }
+
+          const newBlocks = parseMarkdownToBlocks(contentText);
           const oldAiIds = getAiBlockIdsFromDoc();
           if (oldAiIds.length === 0) return;
 
@@ -460,15 +471,31 @@ export default function AISelectionToolbar({ editor }) {
           } catch { /* block may have been removed */ }
         },
         onDone: (fullText) => {
-          const newBlocks = parseMarkdownToBlocks(fullText);
-          const oldAiIds = getAiBlockIdsFromDoc();
+          let contentText = fullText;
+          if (contentText.trim().startsWith('TITLE:')) {
+            const lines = contentText.trim().split('\n');
+            const titleLine = lines.shift();
+            const newTitle = titleLine.replace(/^TITLE:\s*/, '').trim();
+            if (onTitleChange && newTitle) onTitleChange(newTitle);
+            contentText = lines.join('\n').trim();
+          }
 
-          try {
-            if (oldAiIds.length > 0) {
-              editor.replaceBlocks(oldAiIds, newBlocks);
-              aiBlockCountRef.current = newBlocks.length;
-            }
-          } catch {}
+          if (contentText) {
+            const newBlocks = parseMarkdownToBlocks(contentText);
+            const oldAiIds = getAiBlockIdsFromDoc();
+            try {
+              if (oldAiIds.length > 0) {
+                editor.replaceBlocks(oldAiIds, newBlocks);
+                aiBlockCountRef.current = newBlocks.length;
+              }
+            } catch {}
+          } else {
+            // Title-only response — remove placeholder blocks
+            const oldAiIds = getAiBlockIdsFromDoc();
+            try { if (oldAiIds.length > 0) editor.removeBlocks(oldAiIds); } catch {}
+            // Also remove original strikethrough blocks since title was changed
+            try { if (originalBlockIds.length > 0) editor.removeBlocks(originalBlockIds); } catch {}
+          }
 
           const finalIds = getAiBlockIdsFromDoc();
           setAiBlockIds(finalIds);
@@ -476,7 +503,7 @@ export default function AISelectionToolbar({ editor }) {
           abortRef.current = null;
 
           requestAnimationFrame(() => {
-            markAiBlocks(finalIds);
+            if (finalIds.length > 0) markAiBlocks(finalIds);
           });
         },
         onError: (err) => {
@@ -494,6 +521,10 @@ export default function AISelectionToolbar({ editor }) {
 
   const handleKeep = useCallback(() => {
     stopObserver();
+    showToolbar();
+    unlockEditor();
+    removeSkeletonLoading();
+    clearSelectedLavender();
     // Remove original (strikethrough) blocks
     try {
       if (originalBlockIds.length > 0) {
@@ -508,11 +539,15 @@ export default function AISelectionToolbar({ editor }) {
       el.querySelectorAll('*').forEach((child) => child.style.removeProperty('color'));
     });
     resetState();
-  }, [editor, originalBlockIds, stopObserver]);
+  }, [editor, originalBlockIds, stopObserver, showToolbar, unlockEditor, removeSkeletonLoading, clearSelectedLavender]);
 
   const handleUndo = useCallback(() => {
     abortRef.current?.abort();
     stopObserver();
+    showToolbar();
+    unlockEditor();
+    removeSkeletonLoading();
+    clearSelectedLavender();
     // Remove AI-generated blocks
     const currentAiIds = getAiBlockIdsFromDoc();
     try {
@@ -530,7 +565,7 @@ export default function AISelectionToolbar({ editor }) {
       el.classList.remove('ai-edit-original-block');
     });
     resetState();
-  }, [editor, selectedBlocks, originalBlockIds, getAiBlockIdsFromDoc, stopObserver]);
+  }, [editor, selectedBlocks, originalBlockIds, getAiBlockIdsFromDoc, stopObserver, showToolbar, unlockEditor, removeSkeletonLoading, clearSelectedLavender]);
 
   function resetState() {
     setMode('idle');

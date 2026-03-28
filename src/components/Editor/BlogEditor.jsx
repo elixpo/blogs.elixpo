@@ -1198,7 +1198,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       )}
 
       {/* AI selection toolbar — appears on text selection */}
-      <AISelectionToolbar editor={editor} />
+      <AISelectionToolbar editor={editor} onTitleChange={onTitleChange} />
 
       {/* AI error toast */}
       {aiErrorToast && (
