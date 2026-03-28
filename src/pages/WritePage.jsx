@@ -358,12 +358,17 @@ export default function WritePage({ slugid }) {
     setWordCount(text.trim().split(/\s+/).filter(Boolean).length);
   }, []);
 
+  const [previewBlocks, setPreviewBlocks] = useState([]);
+
   const switchMode = useCallback(async (newMode) => {
     if (newMode !== 'edit' && editorRef.current) {
       try {
         const [html, md] = await Promise.all([editorRef.current.getHTML(), editorRef.current.getMarkdown()]);
         setPreviewHtml(html);
         setMarkdown(md);
+        if (editorRef.current.getBlocks) {
+          setPreviewBlocks(editorRef.current.getBlocks());
+        }
       } catch { /* not ready */ }
     }
     setMode(newMode);
@@ -881,7 +886,7 @@ export default function WritePage({ slugid }) {
 
           {mode === 'preview' && (
             <div className="blog-preview-fullwidth">
-              <BlogPreview title={title} subtitle={subtitle} coverPreview={coverPreview} coverZoom={coverZoom} coverPos={coverPos} pageEmoji={pageEmoji} tags={tags} html={previewHtml} user={user} wordCount={wordCount} />
+              <BlogPreview title={title} subtitle={subtitle} coverPreview={coverPreview} coverZoom={coverZoom} coverPos={coverPos} pageEmoji={pageEmoji} tags={tags} html={previewHtml} blocks={previewBlocks} user={user} wordCount={wordCount} />
             </div>
           )}
 

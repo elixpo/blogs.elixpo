@@ -2,9 +2,10 @@
 
 export function parseInlineContent(text) {
   const content = [];
-  // Match: \[...\] block LaTeX inline, \(...\) inline LaTeX, ***bold italic***, **bold**, ~~strikethrough~~, *italic*, `code`, $...$
+  // Match: \[...\] block LaTeX inline, \(...\) inline LaTeX, ***bold italic***, **bold**, ~~strikethrough~~, *italic*, `code`, $$..$$, $...$
   // Note: \[...\] matched first to extract block equations that appear inline in paragraphs
-  const regex = /(\\\[(.+?)\\\]|\\\((.+?)\\\)|\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|~~(.+?)~~|\*(.+?)\*|`(.+?)`|\$\$(.+?)\$\$|\$([^$]+?)\$)/g;
+  // $...$ uses [^$]+ (greedy enough to capture nested braces like \frac{}{})
+  const regex = /(\\\[(.+?)\\\]|\\\((.+?)\\\)|\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|~~(.+?)~~|\*(.+?)\*|`(.+?)`|\$\$([\s\S]+?)\$\$|\$([^$\n]+)\$)/g;
   let lastIndex = 0;
   let match;
 

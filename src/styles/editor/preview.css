@@ -177,3 +177,53 @@
   border-top: 1px solid #232d3f;
   margin: 1.5em 0;
 }
+
+/* ===== Preview Block Equations ===== */
+
+.blog-preview-content .preview-block-equation {
+  border: 1px solid #232d3f;
+  border-radius: 12px;
+  background: #141a26;
+  padding: 20px 24px;
+  margin: 0.75em 0;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.blog-preview-content .preview-block-equation .katex {
+  font-size: 1.2em;
+  color: #e0e0e0;
+}
+
+.blog-preview-content .preview-inline-equation .katex {
+  font-size: 1em;
+  color: #e0e0e0;
+}
+
+/* ===== Preview Mermaid Diagrams ===== */
+
+.blog-preview-content .preview-mermaid-block {
+  border: 1px solid #232d3f;
+  border-radius: 12px;
+  background: #141a26;
+  padding: 20px;
+  margin: 0.75em 0;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.blog-preview-content .preview-mermaid-block svg {
+  max-width: none;
+}
+
+/* ===== Preview figcaption ===== */
+
+.blog-preview-content figcaption {
+  text-align: center;
+  font-size: 0.85em;
+  color: #6b7a8d;
+  margin-top: 6px;
+}

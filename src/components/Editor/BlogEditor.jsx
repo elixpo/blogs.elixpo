@@ -278,6 +278,7 @@ function doSanitize(blocks) {
       i++; continue;
     }
 
+
     // Single-line \[...\] — may have \] at end of content
     const singleBracket = text.match(/^\\\[(.+?)\\\]$/s);
     if (singleBracket) {
@@ -405,12 +406,30 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     },
   });
 
+  // Build HTML that includes custom blocks (equations, mermaid)
+  const getCustomHTML = useCallback(async () => {
+    const baseHTML = await editor.blocksToHTMLLossy(editor.document);
+    const doc = editor.document;
+    // Collect custom block HTML to append/inject
+    const customParts = [];
+    for (const block of doc) {
+      if (block.type === 'blockEquation' && block.props?.latex) {
+        customParts.push(`<div class="preview-block-equation" data-latex="${encodeURIComponent(block.props.latex)}"></div>`);
+      } else if (block.type === 'mermaidBlock' && block.props?.diagram) {
+        customParts.push(`<div class="preview-mermaid-block" data-diagram="${encodeURIComponent(block.props.diagram)}"></div>`);
+      }
+    }
+    // Append custom blocks at the positions where empty divs were generated
+    return baseHTML + (customParts.length ? '\n' + customParts.join('\n') : '');
+  }, [editor]);
+
   useImperativeHandle(ref, () => ({
     getDocument: () => editor.document,
     getEditor: () => editor,
-    getHTML: async () => await editor.blocksToHTMLLossy(editor.document),
+    getBlocks: () => editor.document,
+    getHTML: async () => await getCustomHTML(),
     getMarkdown: async () => await editor.blocksToMarkdownLossy(editor.document),
-  }), [editor]);
+  }), [editor, getCustomHTML]);
 
   // Prevent backspace from triggering browser back navigation when editor is empty
   useEffect(() => {
