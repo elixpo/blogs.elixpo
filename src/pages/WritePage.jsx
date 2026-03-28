@@ -194,7 +194,7 @@ function HamburgerMenu({ onShareDraft, onChangeCover, onChangeTitle, onChangeTop
           <div className="h-px bg-[#232d3f]" />
           <div className="py-1.5">
             <button
-              onClick={() => setOpen(false)}
+              onClick={() => { setOpen(false); document.querySelector('[data-shortcuts-btn]')?.click(); }}
               className="flex items-center gap-3 w-full px-4 py-2.5 text-[13px] text-[#c8c8c8] hover:text-white hover:bg-[#ffffff06] transition-colors"
             >
               <ion-icon name="keyboard-outline" style={{ fontSize: '15px' }} />
@@ -473,6 +473,16 @@ export default function WritePage({ slugid }) {
               </>
             )}
           </div>
+
+          {/* Shortcuts help */}
+          <button
+            data-shortcuts-btn
+            onClick={() => setShowShortcuts(true)}
+            className="h-8 w-8 rounded-lg bg-[#141a26] border border-[#232d3f] flex items-center justify-center hover:border-[#333] transition-colors text-[#6b7a8d] hover:text-[#c4b5fd] text-sm font-bold"
+            title="Keyboard shortcuts"
+          >
+            ?
+          </button>
 
           {/* Hamburger menu */}
           <HamburgerMenu
@@ -965,6 +975,9 @@ export default function WritePage({ slugid }) {
           </button>
         </div>
       </div>
+
+      {/* Keyboard shortcuts modal */}
+      {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
 
       {/* Saved to cloud toast */}
       <AnimatePresence>
