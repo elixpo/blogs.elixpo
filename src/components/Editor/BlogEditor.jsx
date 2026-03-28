@@ -724,77 +724,25 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     }
   }, []);
 
-  // Force lavender on all children of a block element
-  const forceLavenderOnBlock = useCallback((el) => {
-    el.style.setProperty('color', '#c4b5fd', 'important');
-    el.querySelectorAll('*').forEach((child) => {
-      child.style.setProperty('color', '#c4b5fd', 'important');
-    });
-  }, []);
-
-  // MutationObserver to re-apply lavender when BlockNote re-renders AI blocks
-  const aiObserverRef = useRef(null);
-
-  const startAiObserver = useCallback(() => {
-    if (aiObserverRef.current) aiObserverRef.current.disconnect();
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-
-    const observer = new MutationObserver(() => {
-      // Pause observer while we apply styles to avoid infinite loop
-      observer.disconnect();
-
-      // Re-apply highlight class to AI blocks that lost it during re-render
-      const ids = aiBlockIdsRef.current;
-      if (ids && ids.size > 0) {
-        for (const id of ids) {
-          const el = wrapper.querySelector(`[data-id="${id}"]`);
-          if (el && !el.classList.contains('ai-generated-highlight')) {
-            el.classList.add('ai-generated-highlight');
-          }
-        }
-      }
-
-      wrapper.querySelectorAll('.ai-generated-highlight').forEach(forceLavenderOnBlock);
-      // Re-observe after styles are applied
-      observer.observe(wrapper, { childList: true, subtree: true, characterData: true });
-    });
-    observer.observe(wrapper, { childList: true, subtree: true, characterData: true });
-    aiObserverRef.current = observer;
-  }, [forceLavenderOnBlock]);
-
-  const stopAiObserver = useCallback(() => {
-    if (aiObserverRef.current) {
-      aiObserverRef.current.disconnect();
-      aiObserverRef.current = null;
-    }
-  }, []);
+  // No MutationObserver needed — CSS handles lavender via -webkit-text-fill-color
 
   // Highlight AI blocks in the DOM with lavender class + position sparkle
   const highlightAiBlocks = useCallback((ids, showCursor = true) => {
-    // Remove old highlights and restore inline colors
+    // Remove old highlights
     wrapperRef.current?.querySelectorAll('.ai-generated-highlight').forEach((el) => {
       el.classList.remove('ai-generated-highlight');
-      el.style.removeProperty('color');
-      el.querySelectorAll('*').forEach((child) => {
-        child.style.removeProperty('color');
-      });
     });
+    // Add highlight to current AI blocks — CSS handles the lavender color
     for (const id of ids) {
       const el = wrapperRef.current?.querySelector(`[data-id="${id}"]`);
-      if (el) {
-        el.classList.add('ai-generated-highlight');
-        forceLavenderOnBlock(el);
-      }
+      if (el) el.classList.add('ai-generated-highlight');
     }
-    // Start observer to keep colors enforced during streaming re-renders
-    if (ids.length > 0) startAiObserver();
     if (showCursor) {
       moveSparkleToLastAiBlock();
     } else {
       hideSparkle();
     }
-  }, [moveSparkleToLastAiBlock, hideSparkle, forceLavenderOnBlock, startAiObserver]);
+  }, [moveSparkleToLastAiBlock, hideSparkle]);
 
   // Get current AI block IDs by position relative to anchor
   const getAiBlockIds = useCallback(() => {
@@ -808,50 +756,34 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
   }, [editor]);
 
   const handleAIKeep = useCallback(() => {
-    // Stop observer, remove highlights, restore default color, hide sparkle
-    stopAiObserver();
     hideSparkle();
     wrapperRef.current?.querySelectorAll('.ai-generated-highlight').forEach((el) => {
       el.classList.remove('ai-generated-highlight');
-      el.style.removeProperty('color');
-      el.querySelectorAll('*').forEach((child) => {
-        child.style.removeProperty('color');
-      });
     });
     setAiBlockIds(new Set());
     aiBlockIdsRef.current = new Set();
     aiBlockCountRef.current = 0;
     aiAnchorIdRef.current = null;
     setShowAIActions(false);
-  }, [stopAiObserver, hideSparkle]);
+  }, [hideSparkle]);
 
   const handleAIDiscard = useCallback(() => {
-    // Stop observer, hide sparkle and remove AI-generated blocks
-    stopAiObserver();
     hideSparkle();
-    // Use stored IDs directly — more reliable than anchor+count after replaceBlocks
     const storedIds = [...aiBlockIdsRef.current];
     if (storedIds.length > 0) {
-      try { editor.removeBlocks(storedIds); } catch (e) {
-        // Fallback: try getAiBlockIds if stored IDs are stale
-        try {
-          const fallbackIds = getAiBlockIds();
-          if (fallbackIds.length > 0) editor.removeBlocks(fallbackIds);
-        } catch {}
+      try { editor.removeBlocks(storedIds); } catch {
+        try { const fb = getAiBlockIds(); if (fb.length > 0) editor.removeBlocks(fb); } catch {}
       }
     }
-    // Remove highlights from any remaining elements
     wrapperRef.current?.querySelectorAll('.ai-generated-highlight').forEach((el) => {
       el.classList.remove('ai-generated-highlight');
-      el.style.removeProperty('color');
-      el.querySelectorAll('*').forEach((child) => child.style.removeProperty('color'));
     });
     setAiBlockIds(new Set());
     aiBlockIdsRef.current = new Set();
     aiBlockCountRef.current = 0;
     aiAnchorIdRef.current = null;
     setShowAIActions(false);
-  }, [editor, getAiBlockIds, stopAiObserver, hideSparkle]);
+  }, [editor, getAiBlockIds, hideSparkle]);
 
   // Click on AI content to show keep/discard
   useEffect(() => {
@@ -1142,7 +1074,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         if (!contentText) {
           const oldIds = getAiBlockIds();
           try { if (oldIds.length > 0) editor.removeBlocks(oldIds); } catch {}
-          stopAiObserver();
+          // observer removed — CSS handles highlighting
           setAiGenerating(false);
           setAiPhase('idle');
           setAiGeneratingBlockId(null);

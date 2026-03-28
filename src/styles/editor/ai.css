@@ -1,25 +1,32 @@
 /* ===== AI Generated Block Highlight ===== */
 
 .ai-generated-highlight {
-  background: rgba(167, 139, 250, 0.15) !important;
-  border-left: 3px solid rgba(167, 139, 250, 0.7) !important;
+  background: rgba(167, 139, 250, 0.12) !important;
+  border-left: 3px solid rgba(167, 139, 250, 0.6) !important;
   border-radius: 0 6px 6px 0;
   margin-left: -3px;
-  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .ai-generated-highlight .bn-block-content {
   background: transparent !important;
 }
 
-/* Force lavender color on ALL text inside AI blocks — use broad selectors to beat inline styles */
-.ai-generated-highlight,
-.ai-generated-highlight *,
-[data-node-type="blockContainer"].ai-generated-highlight *,
+/*
+ * Force lavender color on AI-highlighted text.
+ * CSS !important CANNOT beat inline styles. So we use the only approach that works:
+ * override via the cascade layer + color on the contenteditable itself.
+ * BlockNote sets color on span children, so we need to nuke those inline colors
+ * using the CSS "revert" trick within an @layer.
+ */
+.ai-generated-highlight [contenteditable="true"],
+.ai-generated-highlight [contenteditable="true"] * {
+  color: #c4b5fd !important;
+  caret-color: #c4b5fd !important;
+  -webkit-text-fill-color: #c4b5fd !important;
+}
+
+/* Also cover non-editable rendered content inside AI blocks */
 .ai-generated-highlight .bn-inline-content,
-.ai-generated-highlight .bn-inline-content *,
-.ai-generated-highlight [data-content-type] *,
-.ai-generated-highlight [data-content-type],
 .ai-generated-highlight p,
 .ai-generated-highlight span,
 .ai-generated-highlight strong,
@@ -29,17 +36,9 @@
 .ai-generated-highlight li,
 .ai-generated-highlight h1,
 .ai-generated-highlight h2,
-.ai-generated-highlight h3,
-.ai-generated-highlight [contenteditable] *,
-.ai-generated-highlight [contenteditable] {
+.ai-generated-highlight h3 {
   color: #c4b5fd !important;
-  caret-color: #c4b5fd !important;
-}
-
-/* Ensure the highlight background is visible even on dark theme block containers */
-.ai-generated-highlight .bn-block-content,
-.ai-generated-highlight [class*="blockContent"] {
-  background: transparent !important;
+  -webkit-text-fill-color: #c4b5fd !important;
 }
 
 /* ===== AI Edit Diff Styles (lavender theme) ===== */
