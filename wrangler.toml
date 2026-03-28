@@ -11,7 +11,3 @@ database_id = "86566b22-37bb-4a62-a79c-dd19889d8c60"
 [[kv_namespaces]]
 binding = "KV"
 id = "cd4aa712b0d843e599ca667544f87813"
-
-[[r2_buckets]]
-binding = "R2"
-bucket_name = "lixblogs"
