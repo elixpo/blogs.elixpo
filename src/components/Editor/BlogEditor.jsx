@@ -19,6 +19,7 @@ import { ButtonBlock } from './blocks/ButtonBlock';
 import { Breadcrumbs } from './blocks/Breadcrumbs';
 import { TabsBlock } from './blocks/TabsBlock';
 import { AIBlock } from './blocks/AIBlock';
+import { BlogImageBlock } from './blocks/BlogImageBlock';
 
 // Custom inline content
 import { InlineEquation } from './blocks/InlineEquation';
@@ -39,6 +40,7 @@ const schema = BlockNoteSchema.create({
     breadcrumbs: Breadcrumbs({}),
     tabsBlock: TabsBlock({}),
     aiBlock: AIBlock({}),
+    blogImage: BlogImageBlock,
   },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
@@ -120,6 +122,14 @@ function getCustomSlashMenuItems(editor) {
       aliases: ['tabs', 'tabbed', 'sections', 'panels'],
       icon: <Icon d="M4 6h16M4 6v12a2 2 0 002 2h12a2 2 0 002-2V6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />,
       onItemClick: () => editor.insertBlocks([{ type: 'tabsBlock' }], editor.getTextCursorPosition().block, 'after'),
+    },
+    {
+      title: 'Image',
+      subtext: 'Upload or paste an image',
+      group: 'Media',
+      aliases: ['image', 'photo', 'picture', 'img', 'upload'],
+      icon: <Icon d="M3 3h18a2 2 0 012 2v14a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2z" d2="M8.5 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM21 15l-5-5L5 21" />,
+      onItemClick: () => editor.insertBlocks([{ type: 'blogImage' }], editor.getTextCursorPosition().block, 'after'),
     },
     {
       title: 'AI Block',
@@ -389,6 +399,75 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     getHTML: async () => await editor.blocksToHTMLLossy(editor.document),
     getMarkdown: async () => await editor.blocksToMarkdownLossy(editor.document),
   }), [editor]);
+
+  // Handle clipboard paste of images — insert a blogImage block at cursor
+  useEffect(() => {
+    const editorEl = wrapperRef.current?.querySelector('.bn-editor');
+    if (!editorEl) return;
+
+    function handlePaste(e) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const file = item.getAsFile();
+          if (!file) return;
+
+          // Insert a blogImage block at cursor position
+          const cursor = editor.getTextCursorPosition();
+          if (!cursor?.block) return;
+
+          editor.insertBlocks(
+            [{ type: 'blogImage', props: { blogId: blogId || '' } }],
+            cursor.block,
+            'after'
+          );
+
+          // Get the newly inserted block and upload the image to it
+          const doc = editor.document;
+          const cursorIdx = doc.findIndex((b) => b.id === cursor.block.id);
+          const newBlock = doc[cursorIdx + 1];
+          if (!newBlock) return;
+
+          // Upload the image asynchronously
+          (async () => {
+            try {
+              const { compressBlogImage } = await import('../../utils/compressImage');
+              const { blob } = await compressBlogImage(file);
+
+              const formData = new FormData();
+              formData.append('file', blob, `image_${Date.now()}.webp`);
+              if (blogId) formData.append('blogId', blogId);
+              formData.append('type', 'image');
+
+              const res = await fetch('/api/media/upload', {
+                method: 'POST',
+                body: formData,
+              });
+
+              if (!res.ok) throw new Error('Upload failed');
+              const data = await res.json();
+
+              editor.updateBlock(newBlock.id, {
+                props: { url: data.url, uploading: false },
+              });
+            } catch (err) {
+              console.error('Clipboard image upload failed:', err);
+            }
+          })();
+
+          return;
+        }
+      }
+    }
+
+    editorEl.addEventListener('paste', handlePaste);
+    return () => editorEl.removeEventListener('paste', handlePaste);
+  }, [editor, blogId]);
 
   // Disable spellcheck on code blocks + inject copy buttons
   const patchCodeBlocks = useCallback(() => {
