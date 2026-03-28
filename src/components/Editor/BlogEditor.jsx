@@ -19,6 +19,7 @@ import { ButtonBlock } from './blocks/ButtonBlock';
 import { Breadcrumbs } from './blocks/Breadcrumbs';
 import { TabsBlock } from './blocks/TabsBlock';
 import { AIBlock } from './blocks/AIBlock';
+import { BlogImageBlock } from './blocks/BlogImageBlock';
 // Custom inline content
 import { InlineEquation } from './blocks/InlineEquation';
 import { DateInline } from './blocks/DateInline';
@@ -32,6 +33,7 @@ import { OrgMentionInline } from './blocks/OrgMentionInline';
 const schema = BlockNoteSchema.create({
   blockSpecs: {
     ...defaultBlockSpecs,
+    image: BlogImageBlock({}),
     tableOfContents: TableOfContents({}),
     blockEquation: BlockEquation({}),
     buttonBlock: ButtonBlock({}),
