@@ -20,6 +20,7 @@ import { Breadcrumbs } from './blocks/Breadcrumbs';
 import { TabsBlock } from './blocks/TabsBlock';
 import { AIBlock } from './blocks/AIBlock';
 import { BlogImageBlock } from './blocks/BlogImageBlock';
+import { MermaidBlock } from './blocks/MermaidBlock';
 // Custom inline content
 import { InlineEquation } from './blocks/InlineEquation';
 import { DateInline } from './blocks/DateInline';
@@ -40,6 +41,7 @@ const schema = BlockNoteSchema.create({
     breadcrumbs: Breadcrumbs({}),
     tabsBlock: TabsBlock({}),
     aiBlock: AIBlock({}),
+    mermaidBlock: MermaidBlock({}),
   },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
@@ -121,6 +123,14 @@ function getCustomSlashMenuItems(editor) {
       aliases: ['tabs', 'tabbed', 'sections', 'panels'],
       icon: <Icon d="M4 6h16M4 6v12a2 2 0 002 2h12a2 2 0 002-2V6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />,
       onItemClick: () => editor.insertBlocks([{ type: 'tabsBlock' }], editor.getTextCursorPosition().block, 'after'),
+    },
+    {
+      title: 'Diagram',
+      subtext: 'Mermaid flowchart, sequence, or class diagram',
+      group: 'Custom Blocks',
+      aliases: ['mermaid', 'diagram', 'flowchart', 'sequence', 'chart', 'graph'],
+      icon: <Icon d="M3 3h7v7H3zM14 3h7v7h-7zM8.5 14h7v7h-7z" d2="M6.5 10v4M17.5 10v4" />,
+      onItemClick: () => editor.insertBlocks([{ type: 'mermaidBlock' }], editor.getTextCursorPosition().block, 'after'),
     },
     {
       title: 'AI Block',
@@ -228,7 +238,7 @@ const KNOWN_BLOCK_TYPES = new Set([
   'paragraph', 'heading', 'bulletListItem', 'numberedListItem', 'image',
   'table', 'codeBlock', 'checkListItem', 'file', 'video', 'audio',
   'tableOfContents', 'blockEquation', 'buttonBlock', 'breadcrumbs',
-  'tabsBlock', 'aiBlock',
+  'tabsBlock', 'aiBlock', 'mermaidBlock',
 ]);
 
 function sanitizeInitialContent(blocks) {

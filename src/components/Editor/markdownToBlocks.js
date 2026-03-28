@@ -71,11 +71,19 @@ export function parseMarkdownToBlocks(text) {
       }
       if (i < lines.length) i++; // skip closing ```
       const codeText = codeLines.join('\n');
-      blocks.push({
-        type: 'codeBlock',
-        props: { language: lang },
-        content: [{ type: 'text', text: codeText }],
-      });
+      // Mermaid fences → MermaidBlock instead of codeBlock
+      if (lang === 'mermaid') {
+        blocks.push({
+          type: 'mermaidBlock',
+          props: { diagram: codeText },
+        });
+      } else {
+        blocks.push({
+          type: 'codeBlock',
+          props: { language: lang },
+          content: [{ type: 'text', text: codeText }],
+        });
+      }
       continue;
     }
 
