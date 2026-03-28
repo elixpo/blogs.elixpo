@@ -1,7 +1,7 @@
 'use client';
 
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs } from '@blocknote/core';
-import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from '@blocknote/react';
+import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems, TableHandlesController } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
@@ -262,7 +262,7 @@ function doSanitize(blocks) {
   }).join('').trim();
 
   while (i < blocks.length) {
-    const block = blocks[i];
+    let block = blocks[i];
     // Recursively sanitize children
     if (block.children && block.children.length > 0) {
       block = { ...block, children: doSanitize(block.children) };
@@ -1272,6 +1272,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           triggerCharacter="/"
           getItems={getItems}
         />
+        <TableHandlesController />
       </BlockNoteView>
 
       {/* @ Mention menu */}

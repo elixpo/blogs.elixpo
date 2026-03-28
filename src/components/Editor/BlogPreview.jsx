@@ -67,15 +67,25 @@ function renderBlocksToHTML(blocks) {
         }
         break;
       case 'table': {
-        // Basic table rendering
-        const rows = block.content?.rows || [];
+        const tableContent = block.content;
+        const rows = tableContent?.rows || [];
         if (rows.length) {
+          const headerRows = tableContent?.headerRows || 0;
           let table = '<table>';
           rows.forEach((row, ri) => {
             table += '<tr>';
             (row.cells || []).forEach((cell) => {
-              const tag = ri === 0 ? 'th' : 'td';
-              const cellHTML = (cell || []).map((c) => c.text || '').join('');
+              const tag = ri < headerRows ? 'th' : 'td';
+              // cell can be InlineContent[] or TableCell { type, props, content }
+              let cellContent;
+              if (Array.isArray(cell)) {
+                cellContent = cell;
+              } else if (cell && typeof cell === 'object' && cell.content) {
+                cellContent = Array.isArray(cell.content) ? cell.content : [];
+              } else {
+                cellContent = [];
+              }
+              const cellHTML = inlineToHTML(cellContent);
               table += `<${tag}>${cellHTML}</${tag}>`;
             });
             table += '</tr>';

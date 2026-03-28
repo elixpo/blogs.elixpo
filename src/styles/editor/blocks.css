@@ -88,6 +88,52 @@
   padding: 8px 12px;
 }
 
+/* Table handles dark theme */
+.blog-editor-wrapper .bn-table-handle {
+  background: #232d3f;
+  border: 1px solid #333;
+  color: #8896a8;
+}
+
+.blog-editor-wrapper .bn-table-handle:hover {
+  background: #2a3346;
+  color: #c4b5fd;
+}
+
+/* Table handle dropdown menu */
+.blog-editor-wrapper .bn-table-handle-menu,
+.bn-table-handle-menu {
+  background: #141a26 !important;
+  border: 1px solid #232d3f !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+.blog-editor-wrapper .bn-table-handle-menu button,
+.bn-table-handle-menu button {
+  color: #e0e0e0 !important;
+}
+
+.blog-editor-wrapper .bn-table-handle-menu button:hover,
+.bn-table-handle-menu button:hover {
+  background: rgba(196, 181, 253, 0.1) !important;
+  color: #c4b5fd !important;
+}
+
+/* Table extend (add row/col) button */
+.blog-editor-wrapper .bn-extend-button {
+  background: rgba(196, 181, 253, 0.08);
+  border: 1px dashed rgba(196, 181, 253, 0.2);
+  color: #8896a8;
+  transition: all 0.15s;
+}
+
+.blog-editor-wrapper .bn-extend-button:hover {
+  background: rgba(196, 181, 253, 0.15);
+  border-color: rgba(196, 181, 253, 0.4);
+  color: #c4b5fd;
+}
+
 /* ===== KaTeX overrides ===== */
 
 .blog-editor-wrapper .katex {

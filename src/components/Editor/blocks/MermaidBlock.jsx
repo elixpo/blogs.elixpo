@@ -3,58 +3,54 @@
 import { createReactBlockSpec } from '@blocknote/react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-let mermaidInitialized = false;
+const mermaidConfig = {
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#232d3f',
+    primaryTextColor: '#e4e4e7',
+    primaryBorderColor: '#c4b5fd',
+    lineColor: '#8b8fa3',
+    secondaryColor: '#1e1e2e',
+    tertiaryColor: '#141a26',
+    fontFamily: "'lixFont', sans-serif",
+    fontSize: '16px',
+    nodeTextColor: '#e4e4e7',
+    nodeBorder: '#c4b5fd',
+    mainBkg: '#232d3f',
+    clusterBkg: '#1a1f2e',
+    clusterBorder: '#333',
+    titleColor: '#c4b5fd',
+    edgeLabelBackground: '#141a26',
+  },
+  flowchart: {
+    padding: 20,
+    nodeSpacing: 50,
+    rankSpacing: 60,
+    curve: 'basis',
+    htmlLabels: true,
+    useMaxWidth: false,
+  },
+  sequence: {
+    useMaxWidth: false,
+    boxMargin: 10,
+    noteMargin: 10,
+    messageMargin: 35,
+    mirrorActors: false,
+  },
+};
 
 async function renderMermaid(code, container) {
-  if (!code?.trim()) return;
+  if (!code?.trim() || !container) return;
   const mermaid = (await import('mermaid')).default;
-  if (!mermaidInitialized) {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'dark',
-      themeVariables: {
-        primaryColor: '#232d3f',
-        primaryTextColor: '#e4e4e7',
-        primaryBorderColor: '#c4b5fd',
-        lineColor: '#8b8fa3',
-        secondaryColor: '#1e1e2e',
-        tertiaryColor: '#141a26',
-        fontFamily: "'lixFont', sans-serif",
-        fontSize: '16px',
-        nodeTextColor: '#e4e4e7',
-        nodeBorder: '#c4b5fd',
-        mainBkg: '#232d3f',
-        clusterBkg: '#1a1f2e',
-        clusterBorder: '#333',
-        titleColor: '#c4b5fd',
-        edgeLabelBackground: '#141a26',
-        nodePadding: 15,
-      },
-      flowchart: {
-        padding: 20,
-        nodeSpacing: 50,
-        rankSpacing: 60,
-        curve: 'basis',
-        htmlLabels: true,
-        useMaxWidth: false,
-      },
-      sequence: {
-        useMaxWidth: false,
-        boxMargin: 10,
-        noteMargin: 10,
-        messageMargin: 35,
-        mirrorActors: false,
-      },
-    });
-    mermaidInitialized = true;
-  }
+  // Always reinitialize to ensure config is applied (handles HMR)
+  mermaid.initialize(mermaidConfig);
   const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   try {
     const { svg } = await mermaid.render(id, code.trim());
     container.innerHTML = svg;
     const svgEl = container.querySelector('svg');
     if (svgEl) {
-      // Remove fixed dimensions so it scales naturally
       svgEl.removeAttribute('width');
       svgEl.removeAttribute('height');
       svgEl.style.width = '';
@@ -67,8 +63,9 @@ async function renderMermaid(code, container) {
   }
 }
 
-function MermaidViewer({ svgContainerRef, diagram, onEdit }) {
+function MermaidViewer({ diagram, onEdit }) {
   const viewportRef = useRef(null);
+  const svgRef = useRef(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const dragging = useRef(false);
@@ -77,14 +74,13 @@ function MermaidViewer({ svgContainerRef, diagram, onEdit }) {
 
   // Render diagram
   useEffect(() => {
-    if (diagram && svgContainerRef.current) {
-      renderMermaid(diagram, svgContainerRef.current).then(() => {
-        // Reset pan/zoom on new render
+    if (diagram && svgRef.current) {
+      renderMermaid(diagram, svgRef.current).then(() => {
         setZoom(1);
         setPan({ x: 0, y: 0 });
       });
     }
-  }, [diagram, svgContainerRef]);
+  }, [diagram]);
 
   // Mouse wheel zoom
   const handleWheel = useCallback((e) => {
@@ -138,7 +134,7 @@ function MermaidViewer({ svgContainerRef, diagram, onEdit }) {
       onMouseDown={handleMouseDown}
     >
       <div
-        ref={svgContainerRef}
+        ref={svgRef}
         className="mermaid-block-svg"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
@@ -192,7 +188,6 @@ export const MermaidBlock = createReactBlockSpec(
     render: ({ block, editor }) => {
       const [editing, setEditing] = useState(!block.props.diagram);
       const [value, setValue] = useState(block.props.diagram || '');
-      const renderRef = useRef(null);
       const inputRef = useRef(null);
 
       useEffect(() => {
@@ -256,7 +251,7 @@ export const MermaidBlock = createReactBlockSpec(
 
       return (
         <div className="mermaid-block mermaid-block--rendered group">
-          <MermaidViewer svgContainerRef={renderRef} diagram={block.props.diagram} onEdit={() => setEditing(true)} />
+          <MermaidViewer diagram={block.props.diagram} onEdit={() => setEditing(true)} />
           <div className="mermaid-block-hover">
             <button onClick={() => setEditing(true)} className="mermaid-hover-btn" title="Edit">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
