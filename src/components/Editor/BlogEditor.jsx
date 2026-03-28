@@ -1169,10 +1169,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         try {
           const lastAiId = currentIds[currentIds.length - 1];
           if (lastAiId) {
-            const lastBlock = editor.getBlock(lastAiId);
-            if (lastBlock) {
-              editor.insertBlocks([{ type: 'paragraph', content: [] }], lastBlock, 'after');
-            }
+            editor.insertBlocks([{ type: 'paragraph', content: [] }], lastAiId, 'after');
           }
         } catch {}
 
