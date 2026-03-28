@@ -1094,7 +1094,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           },
           onImageStart: ({ id, prompt, alt }) => {
             setAiPhase('generating_image');
-            // Apply skeleton frame to the image placeholder block
+            // Apply skeleton frame to the image placeholder block and add empty line below
             requestAnimationFrame(() => {
               wrapperRef.current?.querySelectorAll('[data-content-type="image"]').forEach((imgBlock) => {
                 const img = imgBlock.querySelector('img');
@@ -1102,10 +1102,40 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
                   imgBlock.closest('[data-node-type="blockContainer"]')?.classList.add('ai-image-skeleton');
                 }
               });
+              // Insert an empty paragraph after the image block so cursor can go there
+              try {
+                const doc = editor.document;
+                for (const block of doc) {
+                  if (block.type === 'image' && block.props?._imageId === id) {
+                    // Check if next block is already an empty paragraph
+                    const idx = doc.findIndex(b => b.id === block.id);
+                    const nextBlock = doc[idx + 1];
+                    const nextIsEmpty = nextBlock?.type === 'paragraph' &&
+                      (!nextBlock.content || nextBlock.content.length === 0 ||
+                        (nextBlock.content.length === 1 && nextBlock.content[0].text === ''));
+                    if (!nextIsEmpty) {
+                      editor.insertBlocks([{ type: 'paragraph', content: [] }], block.id, 'after');
+                    }
+                    // Move cursor to the empty paragraph below the image
+                    const updatedDoc = editor.document;
+                    const newIdx = updatedDoc.findIndex(b => b.id === block.id);
+                    const targetBlock = updatedDoc[newIdx + 1];
+                    if (targetBlock) {
+                      editor.setTextCursorPosition(targetBlock.id, 'start');
+                    }
+                    break;
+                  }
+                }
+              } catch {}
             });
+          },
+          onImagePreview: ({ id, previewUrl, alt }) => {
+            // Show image immediately with blob URL before upload finishes
+            replaceImagePlaceholder(id, previewUrl, alt);
           },
           onImageDone: ({ id, url, alt }) => {
             resolvedImagesRef.current[id] = { url, alt };
+            // Replace blob URL with final Cloudinary URL
             replaceImagePlaceholder(id, url, alt);
             setAiPhase('writing');
           },
@@ -1227,7 +1257,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         if (block.type === 'image' && block.props?._imageId === imageId) {
           editor.updateBlock(block.id, {
             type: 'image',
-            props: { url, caption: alt || block.props.caption || '', previewWidth: 740 },
+            props: { url, caption: alt || block.props.caption || '', previewWidth: 740, _imageId: imageId },
           });
           // Remove skeleton class and add fade-in animation
           requestAnimationFrame(() => {

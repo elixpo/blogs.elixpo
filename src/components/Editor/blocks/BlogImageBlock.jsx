@@ -131,7 +131,7 @@ function BlogImageRenderer({ block, editor }) {
       const res = await fetch('/api/ai/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: aiPrompt.trim(), width: 1200, height: 675 }),
+        body: JSON.stringify({ prompt: aiPrompt.trim(), width: 1024, height: 576 }),
         signal: controller.signal,
       });
       clearTimeout(timeout);

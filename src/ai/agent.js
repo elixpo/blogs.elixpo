@@ -88,7 +88,8 @@ export async function streamAI({ systemPrompt, userPrompt, onChunk, onDone, onEr
  * @param {function} opts.onDone - Called with (fullText) when complete
  * @param {function} opts.onError - Called with (error)
  * @param {function} opts.onImageStart - Called with ({id, prompt, alt}) when image gen starts
- * @param {function} opts.onImageDone - Called with ({id, url, alt}) when image is ready
+ * @param {function} opts.onImagePreview - Called with ({id, previewUrl, alt}) when image is generated but before upload
+ * @param {function} opts.onImageDone - Called with ({id, url, alt}) when image is uploaded
  * @param {function} opts.onImageError - Called with ({id, error}) on image gen failure
  * @param {function} opts.onPhase - Called with phase string: 'thinking' | 'writing' | 'generating_image' | 'uploading'
  * @param {string} opts.blogId - Blog ID for Cloudinary upload path
@@ -102,6 +103,7 @@ export async function streamAgent({
   onDone,
   onError,
   onImageStart,
+  onImagePreview,
   onImageDone,
   onImageError,
   onPhase,
@@ -197,14 +199,16 @@ export async function streamAgent({
                   onPhase?.('generating_image');
 
                   // Fire off image generation asynchronously
+                  // Default to 16:9 within 1024x1024 → 1024x576
                   images.push(
                     generateAndUploadImage({
                       imageId,
                       prompt: args.prompt,
                       alt: args.alt || '',
                       width: args.width || 1024,
-                      height: args.height || 768,
+                      height: args.height || 576,
                       blogId,
+                      onImagePreview,
                       onImageDone,
                       onImageError,
                       onPhase,
@@ -249,6 +253,7 @@ async function generateAndUploadImage({
   width,
   height,
   blogId,
+  onImagePreview,
   onImageDone,
   onImageError,
   onPhase,
@@ -287,6 +292,10 @@ async function generateAndUploadImage({
     }
     const blob = new Blob([byteArray], { type: 'image/png' });
 
+    // Show preview immediately using a blob URL (before upload)
+    const previewUrl = URL.createObjectURL(blob);
+    onImagePreview?.({ id: imageId, previewUrl, alt });
+
     // Compress client-side before upload
     const compressed = await compressForBlog(blob);
 
@@ -309,6 +318,9 @@ async function generateAndUploadImage({
     }
 
     const uploadData = await uploadRes.json();
+
+    // Clean up the blob URL now that we have the real one
+    URL.revokeObjectURL(previewUrl);
 
     // Save to localStorage for persistence across reloads
     saveImageToLocal(imageId, uploadData.url, alt, blogId);
