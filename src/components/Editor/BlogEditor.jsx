@@ -40,7 +40,7 @@ const schema = BlockNoteSchema.create({
     breadcrumbs: Breadcrumbs({}),
     tabsBlock: TabsBlock({}),
     aiBlock: AIBlock({}),
-    blogImage: BlogImageBlock,
+    blogImage: BlogImageBlock({}),
   },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
