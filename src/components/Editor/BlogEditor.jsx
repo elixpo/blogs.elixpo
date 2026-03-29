@@ -626,38 +626,22 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           const wrapperRect = wrapperRef.current?.getBoundingClientRect();
           if (!wrapperRect) return;
 
-          // Try to get position from the focused block element directly
-          // The cursor block DOM element is more reliable than selection range on empty blocks
-          let top = 0;
-          let anchorBlockId = null;
           const cursor = editor.getTextCursorPosition();
-          if (cursor?.block?.id) {
-            anchorBlockId = cursor.block.id;
-            const blockEl = wrapperRef.current?.querySelector(`[data-id="${cursor.block.id}"]`);
-            if (blockEl) {
-              const blockRect = blockEl.getBoundingClientRect();
-              // Position AT the empty line (inline), not below it
-              top = blockRect.top - wrapperRect.top;
-            }
-          }
+          if (!cursor?.block?.id) return;
 
-          // Fallback: use selection range
-          if (top === 0) {
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0) {
-              const range = sel.getRangeAt(0);
-              const rect = range.getBoundingClientRect();
-              if (rect.height > 0) {
-                top = rect.top - wrapperRect.top;
-              } else {
-                const activeEl = document.activeElement;
-                if (activeEl) {
-                  const activeRect = activeEl.getBoundingClientRect();
-                  top = activeRect.top - wrapperRect.top;
-                }
-              }
-            }
-          }
+          const anchorBlockId = cursor.block.id;
+          const blockEl = wrapperRef.current?.querySelector(`[data-id="${anchorBlockId}"]`);
+          if (!blockEl) return;
+
+          // Hide the empty line's placeholder content — the AI input will take its place
+          blockEl.classList.add('ai-input-host');
+
+          // Insert a new empty paragraph below so the placeholder text moves there
+          editor.insertBlocks([{ type: 'paragraph', content: [] }], anchorBlockId, 'after');
+
+          // Position the AI input at the block
+          const blockRect = blockEl.getBoundingClientRect();
+          const top = blockRect.top - wrapperRect.top;
 
           setAiMenuPos({ top, left: 0, anchorBlockId });
           setShowAIMenu(true);
@@ -861,6 +845,12 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
   const handleAISubmit = useCallback(async (userPrompt) => {
     const menuPos = aiMenuPos; // capture before closing
     setShowAIMenu(false);
+
+    // Clean up the host block styling
+    if (menuPos.anchorBlockId) {
+      const hostEl = wrapperRef.current?.querySelector(`[data-id="${menuPos.anchorBlockId}"]`);
+      if (hostEl) hostEl.classList.remove('ai-input-host');
+    }
 
     // Auto-keep previous AI content if any exists
     if (aiBlockIdsRef.current.size > 0) {
@@ -1356,7 +1346,28 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         <AICommandMenu
           position={aiMenuPos}
           onSubmit={handleAISubmit}
-          onClose={() => setShowAIMenu(false)}
+          onClose={() => {
+            setShowAIMenu(false);
+            // Restore the host block and remove the inserted empty paragraph
+            if (aiMenuPos.anchorBlockId) {
+              const hostEl = wrapperRef.current?.querySelector(`[data-id="${aiMenuPos.anchorBlockId}"]`);
+              if (hostEl) hostEl.classList.remove('ai-input-host');
+              // Remove the extra paragraph we inserted below
+              try {
+                const doc = editor.document;
+                const idx = doc.findIndex((b) => b.id === aiMenuPos.anchorBlockId);
+                if (idx !== -1 && idx + 1 < doc.length) {
+                  const nextBlock = doc[idx + 1];
+                  const isEmpty = nextBlock.type === 'paragraph' &&
+                    (!nextBlock.content || nextBlock.content.length === 0 ||
+                      (nextBlock.content.length === 1 && nextBlock.content[0].text === ''));
+                  if (isEmpty) editor.removeBlocks([nextBlock.id]);
+                }
+              } catch {}
+              // Refocus the original block
+              try { editor.setTextCursorPosition(aiMenuPos.anchorBlockId, 'start'); } catch {}
+            }
+          }}
         />
       )}
 
