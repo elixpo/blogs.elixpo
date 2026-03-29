@@ -378,10 +378,14 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
   const [mentionPos, setMentionPos] = useState({ top: 0, left: 0 });
   const mentionStartRef = useRef(null);
   const [showAIMenu, setShowAIMenu] = useState(false);
-  const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0 });
+  const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0, anchorBlockId: null });
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiGeneratingBlockId, setAiGeneratingBlockId] = useState(null);
   const [aiPhase, setAiPhase] = useState('idle'); // idle | thinking | writing | generating_image | uploading
+  const [aiStatusInline, setAiStatusInline] = useState(false); // true = inline status bar, false = bottom bar
+  const [aiInlinePos, setAiInlinePos] = useState({ top: 0 }); // position for inline status bar
+  const [aiStatusText, setAiStatusText] = useState('is thinking'); // cycling status text
+  const aiStatusTimerRef = useRef(null);
   const [aiErrorToast, setAiErrorToast] = useState(null);
   const [aiBlockIds, setAiBlockIds] = useState(new Set());
   const [showAIActions, setShowAIActions] = useState(false);
@@ -625,12 +629,15 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           // Try to get position from the focused block element directly
           // The cursor block DOM element is more reliable than selection range on empty blocks
           let top = 0;
+          let anchorBlockId = null;
           const cursor = editor.getTextCursorPosition();
           if (cursor?.block?.id) {
+            anchorBlockId = cursor.block.id;
             const blockEl = wrapperRef.current?.querySelector(`[data-id="${cursor.block.id}"]`);
             if (blockEl) {
               const blockRect = blockEl.getBoundingClientRect();
-              top = blockRect.bottom - wrapperRect.top + 6;
+              // Position AT the empty line (inline), not below it
+              top = blockRect.top - wrapperRect.top;
             }
           }
 
@@ -641,19 +648,18 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
               const range = sel.getRangeAt(0);
               const rect = range.getBoundingClientRect();
               if (rect.height > 0) {
-                top = rect.bottom - wrapperRect.top + 6;
+                top = rect.top - wrapperRect.top;
               } else {
-                // Zero rect — use the focused element
                 const activeEl = document.activeElement;
                 if (activeEl) {
                   const activeRect = activeEl.getBoundingClientRect();
-                  top = activeRect.bottom - wrapperRect.top + 6;
+                  top = activeRect.top - wrapperRect.top;
                 }
               }
             }
           }
 
-          setAiMenuPos({ top, left: 0 });
+          setAiMenuPos({ top, left: 0, anchorBlockId });
           setShowAIMenu(true);
         }
       }
