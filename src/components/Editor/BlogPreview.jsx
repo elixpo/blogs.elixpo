@@ -134,10 +134,28 @@ function renderBlocksToHTML(blocks) {
     }
   }
 
+  // Build TOC HTML
+  let tocHTML = '';
+  if (headings.length >= 2) {
+    tocHTML = '<nav class="preview-toc"><p class="preview-toc-title">Table of Contents</p><ul>';
+    for (const h of headings) {
+      tocHTML += `<li style="padding-left:${(h.level - 1) * 14}px"><a href="#${h.id}">${h.text}</a></li>`;
+    }
+    tocHTML += '</ul></nav>';
+  }
+
   // Wrap consecutive bullet/numbered items in lists
   let html = parts.join('\n');
   html = html.replace(/((?:<li class="preview-bullet">.*?<\/li>\n?)+)/g, '<ul>$1</ul>');
   html = html.replace(/((?:<li class="preview-numbered">.*?<\/li>\n?)+)/g, '<ol>$1</ol>');
+
+  // Replace TOC placeholder or prepend TOC by default
+  if (html.includes('__TOC_PLACEHOLDER__')) {
+    html = html.replace('__TOC_PLACEHOLDER__', tocHTML);
+  } else if (tocHTML) {
+    html = tocHTML + html;
+  }
+
   return html;
 }
 
@@ -266,17 +284,9 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       {/* Spacer when emoji overlaps cover */}
       {pageEmoji && coverPreview && <div className="h-8" />}
 
-      {title && (
-        <h1 className="text-[2em] font-extrabold leading-tight mb-1">{title}</h1>
-      )}
-
-      {subtitle && (
-        <p className="text-xl text-[#888] mb-4">{subtitle}</p>
-      )}
-
-      {/* Author bar */}
+      {/* Author bar — above title */}
       {user && (
-        <div className="flex items-center gap-3 mt-3 mb-4">
+        <div className="flex items-center gap-3 mt-3 mb-5">
           <div className="flex -space-x-2">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-2 border-[#131922]" />
@@ -294,6 +304,14 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             <span>{wordCount || 0} {(wordCount || 0) === 1 ? 'word' : 'words'}</span>
           </div>
         </div>
+      )}
+
+      {title && (
+        <h1 className="text-[2em] font-extrabold leading-tight mb-1">{title}</h1>
+      )}
+
+      {subtitle && (
+        <p className="text-xl text-[#888] mb-4">{subtitle}</p>
       )}
 
       {tags.length > 0 && (

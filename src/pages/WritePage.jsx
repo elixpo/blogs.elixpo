@@ -960,48 +960,8 @@ export default function WritePage({ slugid }) {
                     </>
                   )}
 
-                  <div className="relative">
-                    <textarea
-                      value={title}
-                      onChange={(e) => {
-                        setTitle(e.target.value);
-                        setAiTitleKey(0);
-                        e.target.style.height = 'auto';
-                        e.target.style.height = e.target.scrollHeight + 'px';
-                      }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-                      placeholder="Blog title..."
-                      className={`w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[#4a5568] mb-1 leading-tight resize-none overflow-hidden ${aiTitleKey > 0 ? 'text-transparent' : ''}`}
-                      rows={1}
-                    />
-                    {/* AI title word animation overlay */}
-                    {aiTitleKey > 0 && title && (
-                      <div className="absolute inset-0 pointer-events-none text-[2em] font-extrabold leading-tight flex flex-wrap items-start" key={aiTitleKey}>
-                        {title.split(/(\s+)/).map((word, i) => (
-                          word.match(/^\s+$/) ? <span key={i}>&nbsp;</span> : (
-                            <motion.span
-                              key={i}
-                              initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                              transition={{ duration: 0.35, delay: i * 0.06, ease: 'easeOut' }}
-                              className="text-[#c4b5fd]"
-                              onAnimationComplete={() => {
-                                // After last word animation, switch back to normal textarea
-                                if (i === title.split(/(\s+)/).length - 1) {
-                                  setTimeout(() => setAiTitleKey(0), 800);
-                                }
-                              }}
-                            >
-                              {word}
-                            </motion.span>
-                          )
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Author bar — stacked avatars, name, read time, word count */}
-                  <div className="flex items-center gap-3 mt-3 mb-4">
+                  {/* Author bar — above title */}
+                  <div className="flex items-center gap-3 mt-2 mb-5">
                     <div className="flex -space-x-2">
                       {user?.avatar_url ? (
                         <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-2 border-[#131922]" />
@@ -1018,6 +978,45 @@ export default function WritePage({ slugid }) {
                       <span className="text-[#3a3f4f]">·</span>
                       <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
                     </div>
+                  </div>
+
+                  {/* Title */}
+                  <div className="relative">
+                    <textarea
+                      value={title}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        setAiTitleKey(0);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                      placeholder="Blog title..."
+                      className={`w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[#4a5568] mb-1 leading-tight resize-none overflow-hidden ${aiTitleKey > 0 ? 'text-transparent' : ''}`}
+                      rows={1}
+                    />
+                    {aiTitleKey > 0 && title && (
+                      <div className="absolute inset-0 pointer-events-none text-[2em] font-extrabold leading-tight flex flex-wrap items-start" key={aiTitleKey}>
+                        {title.split(/(\s+)/).map((word, i) => (
+                          word.match(/^\s+$/) ? <span key={i}>&nbsp;</span> : (
+                            <motion.span
+                              key={i}
+                              initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                              transition={{ duration: 0.35, delay: i * 0.06, ease: 'easeOut' }}
+                              className="text-[#c4b5fd]"
+                              onAnimationComplete={() => {
+                                if (i === title.split(/(\s+)/).length - 1) {
+                                  setTimeout(() => setAiTitleKey(0), 800);
+                                }
+                              }}
+                            >
+                              {word}
+                            </motion.span>
+                          )
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="min-h-[60vh] pb-[100px] relative">
