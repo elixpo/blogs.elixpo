@@ -134,14 +134,15 @@ function renderBlocksToHTML(blocks) {
     }
   }
 
-  // Build TOC HTML — same structure as editor's TableOfContents block
+  // Build TOC HTML — matches editor's TableOfContents block exactly
   let tocHTML = '';
   if (headings.length >= 2) {
-    tocHTML = '<div class="toc-block" style="border:1px solid #232d3f;border-radius:12px;background:#141a26;padding:16px 20px;margin:8px 0 24px">';
-    tocHTML += '<p style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#8896a8;font-weight:700;margin-bottom:12px">Table of Contents</p>';
-    tocHTML += '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">';
+    tocHTML = `<div class="toc-block" style="border:1px solid #232d3f;border-radius:12px;background:#141a26;padding:16px 20px;margin:8px 0 24px">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#8896a8;font-weight:700;margin-bottom:12px">Table of Contents</p>
+      <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">`;
     for (const h of headings) {
-      tocHTML += `<li><a href="#${h.id}" style="padding-left:${(h.level - 1) * 16}px;font-size:13px;display:block">${h.text}</a></li>`;
+      tocHTML += `<li><a href="#${h.id}" style="padding-left:${(h.level - 1) * 16}px;font-size:13px;color:#9b7bf7;text-decoration:none;display:block;transition:color 0.15s"
+        onmouseover="this.style.color='#b69aff'" onmouseout="this.style.color='#9b7bf7'">${h.text}</a></li>`;
     }
     tocHTML += '</ul></div>';
   }
@@ -308,25 +309,26 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
         </div>
       )}
 
+      {/* Tags — under author bar */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <span key={tag} className="px-2.5 py-0.5 bg-[#9b7bf70a] rounded-full text-[12px] text-[#9b7bf7]">
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 30px gap before title */}
+      <div style={{ height: '30px' }} />
+
       {title && (
         <h1 className="text-[2em] font-extrabold leading-tight mb-1">{title}</h1>
       )}
 
       {subtitle && (
         <p className="text-xl text-[#888] mb-4">{subtitle}</p>
-      )}
-
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-3 py-1 bg-[#1D202A] rounded-full text-sm text-[#7ba8f0]"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
       )}
 
       <div className="mt-4">

@@ -961,7 +961,7 @@ export default function WritePage({ slugid }) {
                   )}
 
                   {/* Author bar — above title */}
-                  <div className="flex items-center gap-3 mt-2 mb-5">
+                  <div className="flex items-center gap-3 mt-2 mb-2">
                     <div className="flex -space-x-2">
                       {user?.avatar_url ? (
                         <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-2 border-[#131922]" />
@@ -979,6 +979,18 @@ export default function WritePage({ slugid }) {
                       <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
                     </div>
                   </div>
+
+                  {/* Tags — shown under author bar */}
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-0">
+                      {tags.map((tag) => (
+                        <span key={tag} className="px-2.5 py-0.5 bg-[#9b7bf70a] rounded-full text-[12px] text-[#9b7bf7]">#{tag}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 30px gap before title */}
+                  <div style={{ height: '30px' }} />
 
                   {/* Title */}
                   <div className="relative">
@@ -1163,7 +1175,7 @@ export default function WritePage({ slugid }) {
 
           {/* Tags */}
           <div>
-            <label className="text-[12px] text-[#9ca3af] mb-2 block font-medium">Tags (up to 5)</label>
+            <label className="text-[12px] text-[#9ca3af] mb-2 block font-medium">Tags (up to 5) <span className="text-[#666] font-normal">— press Enter to attach</span></label>
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag) => (
                 <span key={tag} className="flex items-center gap-1 px-2.5 py-1 bg-[#9b7bf714] rounded-full text-[12px] text-[#9b7bf7]">
