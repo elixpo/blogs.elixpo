@@ -738,8 +738,8 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     setAiPhase('idle');
     setAiGeneratingBlockId(null);
     hideSparkle();
-    wrapperRef.current?.querySelectorAll('.ai-skeleton-nearby, .ai-placeholder-skeleton, .ai-edit-selected-block').forEach((el) => {
-      el.classList.remove('ai-skeleton-nearby', 'ai-placeholder-skeleton', 'ai-edit-selected-block');
+    wrapperRef.current?.querySelectorAll('.ai-skeleton-nearby, .ai-placeholder-skeleton, .ai-edit-selected-block, .ai-hide-placeholder').forEach((el) => {
+      el.classList.remove('ai-skeleton-nearby', 'ai-placeholder-skeleton', 'ai-edit-selected-block', 'ai-hide-placeholder');
     });
 
     // Scroll to the AI-generated content and show keep/discard
@@ -1008,8 +1008,8 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           }
           setAiStatusInline(false); // move to bottom bar
           // Remove skeleton from placeholder, anchor, and nearby lines
-          wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-edit-selected-block').forEach((el) => {
-            el.classList.remove('ai-placeholder-skeleton', 'ai-edit-selected-block');
+          wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-edit-selected-block, .ai-hide-placeholder').forEach((el) => {
+            el.classList.remove('ai-placeholder-skeleton', 'ai-edit-selected-block', 'ai-hide-placeholder');
           });
           // Highlight and show sparkle on AI blocks
           highlightAiBlocks(currentIds, true);
@@ -1164,8 +1164,8 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           aiStatusTimerRef.current = null;
         }
         setAiStatusInline(false);
-        wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-skeleton-nearby, .ai-edit-selected-block').forEach((el) => {
-          el.classList.remove('ai-placeholder-skeleton', 'ai-skeleton-nearby', 'ai-edit-selected-block');
+        wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-skeleton-nearby, .ai-edit-selected-block, .ai-hide-placeholder').forEach((el) => {
+          el.classList.remove('ai-placeholder-skeleton', 'ai-skeleton-nearby', 'ai-edit-selected-block', 'ai-hide-placeholder');
         });
       }
 
