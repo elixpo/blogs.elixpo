@@ -31,26 +31,18 @@ export default function MentionMenu({ editor, query, onClose }) {
     setLoading(true);
     const controller = new AbortController();
 
-    // Fetch all three in parallel
-    Promise.all([
-      fetch(`/api/search/users?q=${encodeURIComponent(q)}`, { signal: controller.signal })
-        .then((r) => r.ok ? r.json() : [])
-        .catch(() => []),
-      fetch(`/api/search/orgs?q=${encodeURIComponent(q)}`, { signal: controller.signal })
-        .then((r) => r.ok ? r.json() : [])
-        .catch(() => []),
-      fetch(`/api/search/blogs?q=${encodeURIComponent(q)}`, { signal: controller.signal })
-        .then((r) => r.ok ? r.json() : [])
-        .catch(() => []),
-    ]).then(([users, orgs, blogs]) => {
-      setResults({
-        users: (users || []).slice(0, 5),
-        orgs: (orgs || []).slice(0, 5),
-        blogs: (blogs || []).slice(0, 5),
-      });
-      setActiveIndex(0);
-      setLoading(false);
-    });
+    fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal })
+      .then((r) => r.ok ? r.json() : { users: [], orgs: [], blogs: [] })
+      .then((data) => {
+        setResults({
+          users: (data.users || []).slice(0, 5),
+          orgs: (data.orgs || []).slice(0, 5),
+          blogs: (data.blogs || []).slice(0, 5),
+        });
+        setActiveIndex(0);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
 
     return () => controller.abort();
   }, [query]);
