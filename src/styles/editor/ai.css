@@ -397,7 +397,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(10, 14, 22, 0.15);
+  background: rgba(19, 25, 34, 0.15);
   pointer-events: none;
   z-index: 5;
   border-radius: 8px;
