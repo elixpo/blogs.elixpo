@@ -154,6 +154,15 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
   // Determine which HTML to use — prefer blocks-based rendering
   const renderedHTML = blocks && blocks.length > 0 ? renderBlocksToHTML(blocks) : html;
 
+  // Extract headings for floating TOC
+  const headings = (blocks || [])
+    .filter(b => b.type === 'heading' && b.content?.length > 0)
+    .map(b => {
+      const text = b.content.map(c => c.text || '').join('');
+      return { id: `h-${text.trim().toLowerCase().replace(/[^\w]+/g, '-').slice(0, 40)}`, text: text.trim(), level: b.props?.level || 1 };
+    })
+    .filter(h => h.text);
+
   // Render KaTeX equations and mermaid diagrams after mount
   useEffect(() => {
     if (!contentRef.current) return;
@@ -236,54 +245,35 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
   }, [renderedHTML]);
 
   return (
-    <div className="blog-preview" style={{ position: 'relative' }} id="blog-preview-top">
+    <div className="blog-preview" id="blog-preview-top">
       {/* Floating TOC — top right */}
       {headings.length >= 2 && (
-        <div style={{
-          position: 'fixed', top: '80px', right: '24px', width: '200px', zIndex: 30,
-          maxHeight: 'calc(100vh - 120px)', overflowY: 'auto',
-        }} className="hidden xl:block">
-          <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#666', fontWeight: 700, marginBottom: 8 }}>
-            On this page
-          </p>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <nav className="preview-floating-toc">
+          <p className="preview-floating-toc-label">On this page</p>
+          <ul className="preview-floating-toc-list">
             {headings.map(h => (
               <li key={h.id}>
                 <a
                   href={`#${h.id}`}
+                  className="preview-floating-toc-link"
+                  style={{ paddingLeft: (h.level - 1) * 12 }}
                   onClick={(e) => {
                     e.preventDefault();
                     document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   }}
-                  style={{
-                    paddingLeft: (h.level - 1) * 12, fontSize: 12, color: '#8896a8',
-                    textDecoration: 'none', display: 'block', padding: '2px 0',
-                    paddingLeft: (h.level - 1) * 12,
-                    transition: 'color 0.15s',
-                  }}
-                  onMouseOver={e => e.target.style.color = '#c4b5fd'}
-                  onMouseOut={e => e.target.style.color = '#8896a8'}
                 >
                   {h.text}
                 </a>
               </li>
             ))}
           </ul>
-        </div>
+        </nav>
       )}
 
-      {/* Back to top button */}
+      {/* Back to top */}
       <button
+        className="preview-back-to-top"
         onClick={() => document.getElementById('blog-preview-top')?.scrollIntoView({ behavior: 'smooth' })}
-        style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 30,
-          width: 36, height: 36, borderRadius: '50%', border: '1px solid #232d3f',
-          background: '#141a26', color: '#8896a8', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'color 0.15s, border-color 0.15s',
-        }}
-        onMouseOver={e => { e.currentTarget.style.color = '#c4b5fd'; e.currentTarget.style.borderColor = '#c4b5fd40'; }}
-        onMouseOut={e => { e.currentTarget.style.color = '#8896a8'; e.currentTarget.style.borderColor = '#232d3f'; }}
         title="Back to top"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
