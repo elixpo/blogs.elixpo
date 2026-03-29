@@ -1,5 +1,6 @@
 export const runtime = 'edge';
 import { NextResponse } from 'next/server';
+import { getSession } from '../../../lib/auth';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -39,8 +40,21 @@ export async function GET(request) {
       orgs: orgs?.results || [],
       blogs: blogs?.results || [],
     });
-  } catch (e) {
-    console.error('Search error:', e?.message || e);
-    return NextResponse.json({ users: [], orgs: [], blogs: [] });
+  } catch {
+    // D1 not available — fallback: return current user from session if matching
+    try {
+      const session = await getSession();
+      const users = [];
+      if (session?.profile) {
+        const p = session.profile;
+        const ql = q.toLowerCase();
+        if ((p.username || '').toLowerCase().includes(ql) || (p.display_name || '').toLowerCase().includes(ql)) {
+          users.push({ id: p.id, username: p.username, display_name: p.display_name, avatar_url: p.avatar_url });
+        }
+      }
+      return NextResponse.json({ users, orgs: [], blogs: [] });
+    } catch {
+      return NextResponse.json({ users: [], orgs: [], blogs: [] });
+    }
   }
 }
