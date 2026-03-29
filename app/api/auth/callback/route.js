@@ -125,7 +125,7 @@ export async function GET(request) {
     },
   });
 
-  const redirectTo = isNewUser ? '/intro' : '/';
+  const redirectTo = '/';
   const response = NextResponse.redirect(new URL(redirectTo, request.url));
   response.cookies.set('lixblogs_session', session, {
     httpOnly: true,
