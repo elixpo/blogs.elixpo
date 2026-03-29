@@ -158,8 +158,7 @@ function HamburgerMenu({ onShareDraft, onChangeCover, onChangeTitle, onChangeTop
   }, [open]);
 
   const items = [
-    { label: 'Share draft link', action: onShareDraft, icon: 'share-outline' },
-    { label: 'Share to X', action: () => {}, icon: 'logo-twitter' },
+    { label: 'Copy publishable link', action: onShareDraft, icon: 'link-outline' },
     { label: 'Change featured image', action: onChangeCover, icon: 'image-outline' },
     { label: 'Change display title', action: onChangeTitle, icon: 'text-outline' },
     { label: 'Change topics', action: onChangeTopics, icon: 'pricetags-outline' },
@@ -241,6 +240,14 @@ export default function WritePage({ slugid }) {
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | local | syncing | synced
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [slug, setSlug] = useState('');
+  const [publishing, setPublishing] = useState(false);
+  const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState('');
+  const [inviteRole, setInviteRole] = useState('editor');
+  const [collaborators, setCollaborators] = useState([]);
+  const [inviteError, setInviteError] = useState('');
+  const ownerDropdownRef = useRef(null);
 
   const username = user?.username || 'you';
 
@@ -414,20 +421,107 @@ export default function WritePage({ slugid }) {
     setMode(newMode);
   }, []);
 
-  const handleSaveDraft = () => {
+  // Auto-generate slug from title
+  useEffect(() => {
+    if (!title.trim()) { setSlug(''); return; }
+    const generated = title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 60)
+      .replace(/^-|-$/g, '');
+    setSlug(generated || slugid);
+  }, [title, slugid]);
+
+  // Load collaborators
+  useEffect(() => {
+    if (!slugid) return;
+    fetch(`/api/blogs/invite?slugid=${slugid}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.collaborators) setCollaborators(d.collaborators); })
+      .catch(() => {});
+  }, [slugid]);
+
+  // Close owner dropdown on outside click
+  useEffect(() => {
+    if (!showOwnerDropdown) return;
+    function handleClick(e) {
+      if (ownerDropdownRef.current && !ownerDropdownRef.current.contains(e.target)) setShowOwnerDropdown(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showOwnerDropdown]);
+
+  const handleSaveDraft = async () => {
     saveDraft(slugid, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
     setLastSaved(Date.now());
     setShowPublishMenu(false);
+    syncToCloud({ showToast: true });
   };
 
-  const handlePublish = () => {
-    console.log('Publishing:', { title, subtitle, content: editorContent, tags, publishAs, coverImage });
+  const handlePublish = async () => {
+    if (!title.trim() || publishing) return;
+    setPublishing(true);
     setShowPublishMenu(false);
+    try {
+      const res = await fetch('/api/blogs/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, status: 'published' }),
+      });
+      if (res.ok) {
+        setShowPublishPanel(false);
+        setShowSavedToast(true);
+        setTimeout(() => setShowSavedToast(false), 3000);
+      }
+    } catch { /* silent */ }
+    setPublishing(false);
   };
 
-  const handlePublishBeta = () => {
-    console.log('Publishing beta:', { title, subtitle, content: editorContent, tags, publishAs, coverImage, status: 'unlisted' });
+  const handlePublishBeta = async () => {
+    if (!title.trim() || publishing) return;
+    setPublishing(true);
     setShowPublishMenu(false);
+    try {
+      await fetch('/api/blogs/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, status: 'unlisted' }),
+      });
+      setShowPublishPanel(false);
+    } catch { /* silent */ }
+    setPublishing(false);
+  };
+
+  const handleInvite = async () => {
+    if (!inviteUsername.trim()) return;
+    setInviteError('');
+    try {
+      const res = await fetch('/api/blogs/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugid, username: inviteUsername.trim(), role: inviteRole }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCollaborators(prev => [...prev.filter(c => c.username !== inviteUsername.trim()), { username: inviteUsername.trim(), role: inviteRole, display_name: '', avatar_url: '' }]);
+        setInviteUsername('');
+      } else {
+        setInviteError(data.error || 'Failed to invite');
+      }
+    } catch { setInviteError('Network error'); }
+  };
+
+  const handleRemoveCollab = async (userId) => {
+    try {
+      await fetch('/api/blogs/invite', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugid, userId }),
+      });
+      setCollaborators(prev => prev.filter(c => c.id !== userId));
+    } catch { /* silent */ }
   };
 
   const readTime = Math.max(1, Math.ceil(wordCount / 250));
@@ -453,7 +547,7 @@ export default function WritePage({ slugid }) {
           </Link>
           <span className="text-[#4a5568] text-sm">/</span>
           <span className="text-[#8896a8] text-[13px] truncate">
-            @{username}/{truncateSlug(slugid)}
+            @{username}/{truncateSlug(slug || slugid)}
           </span>
           {lastSaved && (
             <span className="text-[#7c8a9e] text-[11px] hidden md:block">{formatSavedTime(lastSaved)}</span>
@@ -531,7 +625,10 @@ export default function WritePage({ slugid }) {
 
           {/* Hamburger menu */}
           <HamburgerMenu
-            onShareDraft={() => {}}
+            onShareDraft={() => {
+              const url = `${window.location.origin}/@${username}/${slug || slugid}`;
+              navigator.clipboard.writeText(url).catch(() => {});
+            }}
             onChangeCover={() => setShowCoverModal(true)}
             onChangeTitle={() => document.querySelector('textarea[placeholder="Blog title..."]')?.focus()}
             onChangeTopics={() => setShowPublishPanel(true)}
@@ -970,21 +1067,50 @@ export default function WritePage({ slugid }) {
             </span>
           </div>
 
-          {/* Publish As */}
+          {/* Owner — GitHub-style dropdown */}
           <div>
-            <label className="text-[12px] text-[#9ca3af] mb-2 block font-medium">Publish as</label>
-            <div className="flex gap-2">
-              {['personal', 'organization'].map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setPublishAs(opt)}
-                  className={`flex-1 py-2 rounded-lg text-[13px] font-medium transition-colors ${
-                    publishAs === opt ? 'bg-white text-white' : 'bg-[#131922] border border-[#232d3f] text-[#9ca3af] hover:text-white hover:border-[#333]'
-                  }`}
-                >
-                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                </button>
-              ))}
+            <label className="text-[12px] text-[#9ca3af] mb-2 block font-medium">Owner</label>
+            <div className="relative" ref={ownerDropdownRef}>
+              <button
+                onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
+                className="w-full flex items-center gap-2.5 bg-[#131922] border border-[#232d3f] rounded-lg px-3 py-2.5 text-[13px] hover:border-[#444] transition-colors"
+              >
+                {user?.avatar_url ? (
+                  <img src={user.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-[#2a2d3a] flex items-center justify-center text-[10px] text-[#b0b0b0] font-bold">
+                    {(user?.display_name || username || '?')[0].toUpperCase()}
+                  </div>
+                )}
+                <span className="text-[#e0e0e0] font-medium flex-1 text-left">{publishAs === 'personal' ? username : publishAs}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {showOwnerDropdown && (
+                <div className="absolute top-full mt-1 left-0 right-0 bg-[#131922] border border-[#232d3f] rounded-lg shadow-xl z-10 overflow-hidden">
+                  <div className="px-3 py-2 text-[11px] text-[#666] font-medium uppercase tracking-wider border-b border-[#232d3f]">Choose an owner</div>
+                  {/* Personal account */}
+                  <button
+                    onClick={() => { setPublishAs('personal'); setShowOwnerDropdown(false); }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] hover:bg-[#ffffff08] transition-colors ${publishAs === 'personal' ? 'bg-[#ffffff06]' : ''}`}
+                  >
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-[#2a2d3a] flex items-center justify-center text-[10px] text-[#b0b0b0] font-bold">
+                        {(user?.display_name || username || '?')[0].toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-[#e0e0e0]">{username}</span>
+                    {publishAs === 'personal' && (
+                      <svg className="ml-auto w-4 h-4 text-[#4ade80]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    )}
+                  </button>
+                  {/* TODO: Populate user's orgs from API */}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1015,14 +1141,71 @@ export default function WritePage({ slugid }) {
           <div>
             <label className="text-[12px] text-[#9ca3af] mb-2 block font-medium">URL Slug</label>
             <div className="flex items-center bg-[#131922] rounded-lg border border-[#232d3f] overflow-hidden">
-              <span className="text-[#8896a8] text-[13px] px-3">@{username}/</span>
+              <span className="text-[#8896a8] text-[13px] px-3 flex-shrink-0">@{username}/</span>
               <input
                 type="text"
-                defaultValue={slugid || ''}
-                placeholder="auto-generated"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^\w-]/g, '-').replace(/-+/g, '-'))}
+                placeholder={slugid}
                 className="flex-1 bg-transparent text-[#e0e0e0] py-2 pr-3 outline-none text-[13px]"
               />
             </div>
+          </div>
+
+          {/* Collaborators / Invite */}
+          <div>
+            <label className="text-[12px] text-[#9ca3af] mb-2 block font-medium">Collaborators</label>
+            {/* Existing collaborators */}
+            {collaborators.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {collaborators.map((c) => (
+                  <div key={c.id || c.username} className="flex items-center gap-2.5 bg-[#131922] border border-[#232d3f] rounded-lg px-3 py-2">
+                    {c.avatar_url ? (
+                      <img src={c.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-[#2a2d3a] flex items-center justify-center text-[9px] text-[#b0b0b0] font-bold">
+                        {(c.display_name || c.username || '?')[0].toUpperCase()}
+                      </div>
+                    )}
+                    <span className="text-[13px] text-[#e0e0e0] flex-1">@{c.username}</span>
+                    <span className="text-[11px] text-[#666] bg-[#232d3f] px-2 py-0.5 rounded-full">{c.role}</span>
+                    <button onClick={() => handleRemoveCollab(c.id)} className="text-[#666] hover:text-[#f87171] transition-colors">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Invite form */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={inviteUsername}
+                onChange={(e) => { setInviteUsername(e.target.value); setInviteError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
+                placeholder="Username..."
+                className="flex-1 bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#232d3f] focus:border-[#333] transition-colors placeholder-[#6b7a8d]"
+              />
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                className="bg-[#131922] text-[#9ca3af] border border-[#232d3f] rounded-lg px-2 py-2 text-[12px] outline-none"
+              >
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+              </select>
+              <button
+                onClick={handleInvite}
+                className="px-3 py-2 bg-[#232d3f] text-[#e0e0e0] rounded-lg text-[12px] font-medium hover:bg-[#2a3548] transition-colors"
+              >
+                Invite
+              </button>
+            </div>
+            {inviteError && <p className="text-[11px] text-[#f87171] mt-1.5">{inviteError}</p>}
           </div>
 
           {/* Preview Card */}
@@ -1045,14 +1228,29 @@ export default function WritePage({ slugid }) {
           </div>
         </div>
 
-        <div className="p-5 border-t border-[#232d3f]">
+        <div className="p-5 border-t border-[#232d3f] space-y-2">
           <button
             onClick={handlePublish}
-            disabled={!title.trim()}
+            disabled={!title.trim() || publishing}
             className="w-full py-2.5 bg-[#9b7bf7] text-white font-bold rounded-xl text-[13px] hover:bg-[#b69aff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Publish now
+            {publishing ? 'Publishing...' : 'Publish now'}
           </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handlePublishBeta}
+              disabled={!title.trim() || publishing}
+              className="flex-1 py-2 bg-[#232d3f] text-[#9ca3af] font-medium rounded-xl text-[12px] hover:text-white transition-colors disabled:opacity-40"
+            >
+              Publish Beta
+            </button>
+            <button
+              onClick={handleSaveDraft}
+              className="flex-1 py-2 bg-[#232d3f] text-[#9ca3af] font-medium rounded-xl text-[12px] hover:text-white transition-colors"
+            >
+              Save Draft
+            </button>
+          </div>
         </div>
       </div>
 
