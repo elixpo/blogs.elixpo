@@ -99,16 +99,6 @@
   hyphens: none;
 }
 
-/* Disable spellcheck on inline code */
-.blog-editor-wrapper code[spellcheck],
-.blog-editor-wrapper code {
-  -webkit-text-decoration-skip-ink: none;
-}
-
-.blog-editor-wrapper [data-content-type="codeBlock"] [contenteditable] {
-  spellcheck: false;
-}
-
 /* Code blocks — lixCode font, no line highlights */
 .blog-editor-wrapper [data-content-type="codeBlock"] code,
 .blog-editor-wrapper [data-content-type="codeBlock"] pre,
