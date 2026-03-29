@@ -21,6 +21,7 @@ import { TabsBlock } from './blocks/TabsBlock';
 import { AIBlock } from './blocks/AIBlock';
 import { BlogImageBlock } from './blocks/BlogImageBlock';
 import { MermaidBlock } from './blocks/MermaidBlock';
+import { PDFEmbedBlock } from './blocks/PDFEmbedBlock';
 // Custom inline content
 import { InlineEquation } from './blocks/InlineEquation';
 import { DateInline } from './blocks/DateInline';
@@ -42,6 +43,7 @@ const schema = BlockNoteSchema.create({
     tabsBlock: TabsBlock({}),
     aiBlock: AIBlock({}),
     mermaidBlock: MermaidBlock({}),
+    pdfEmbed: PDFEmbedBlock({}),
   },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
@@ -80,7 +82,7 @@ function Icon({ d, d2, color }) {
 function getCustomSlashMenuItems(editor) {
   const defaults = getDefaultReactSlashMenuItems(editor).filter((item) => {
     const t = item.title.toLowerCase();
-    return t !== 'video' && t !== 'audio';
+    return t !== 'video' && t !== 'audio' && t !== 'file';
   });
 
   const customBlocks = [
@@ -131,6 +133,14 @@ function getCustomSlashMenuItems(editor) {
       aliases: ['mermaid', 'diagram', 'flowchart', 'sequence', 'chart', 'graph'],
       icon: <Icon d="M3 3h7v7H3zM14 3h7v7h-7zM8.5 14h7v7h-7z" d2="M6.5 10v4M17.5 10v4" />,
       onItemClick: () => editor.insertBlocks([{ type: 'mermaidBlock' }], editor.getTextCursorPosition().block, 'after'),
+    },
+    {
+      title: 'PDF Embed',
+      subtext: 'Embed a PDF document from URL',
+      group: 'Custom Blocks',
+      aliases: ['pdf', 'document', 'embed pdf', 'file'],
+      icon: <Icon d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" d2="M14 2v6h6" />,
+      onItemClick: () => editor.insertBlocks([{ type: 'pdfEmbed' }], editor.getTextCursorPosition().block, 'after'),
     },
     {
       title: 'AI Block',

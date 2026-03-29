@@ -240,6 +240,8 @@ export default function WritePage({ slugid }) {
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | local | syncing | synced
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showColorPanel, setShowColorPanel] = useState(false);
+  const [pageColor, setPageColor] = useState(null);
   const [slug, setSlug] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
@@ -623,6 +625,17 @@ export default function WritePage({ slugid }) {
             ?
           </button>
 
+          {/* Page color (members only) */}
+          {user?.tier === 'member' && (
+            <button
+              onClick={() => setShowColorPanel(!showColorPanel)}
+              className="h-8 w-8 rounded-lg bg-[#141a26] border border-[#232d3f] flex items-center justify-center hover:border-[#333] transition-colors"
+              title="Page theme color"
+            >
+              <div className="w-4 h-4 rounded-full" style={{ background: pageColor || 'linear-gradient(135deg, #9b7bf7, #60a5fa, #4ade80)', border: '1.5px solid #333' }} />
+            </button>
+          )}
+
           {/* Hamburger menu */}
           <HamburgerMenu
             onShareDraft={() => {
@@ -642,7 +655,7 @@ export default function WritePage({ slugid }) {
       </header>
 
       {/* Main Content Area */}
-      <main className="pt-14 flex justify-center editor-texture-bg">
+      <main className="pt-14 flex justify-center editor-texture-bg" style={pageColor ? { backgroundColor: pageColor } : undefined}>
         <div className={`w-full max-w-[720px] px-6 py-8 ${showPublishPanel ? 'mr-[400px]' : ''} transition-all`}>
 
           {/* Mode icons */}
@@ -1253,6 +1266,62 @@ export default function WritePage({ slugid }) {
           </div>
         </div>
       </div>
+
+      {/* Page Color Side Panel (members only) */}
+      {showColorPanel && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowColorPanel(false)} />
+          <div className="fixed top-0 right-0 h-full w-[320px] bg-[#141a26] border-l border-[#232d3f] z-50 flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-[#232d3f]">
+              <h2 className="text-[15px] font-bold text-white">Page Theme</h2>
+              <button onClick={() => setShowColorPanel(false)} className="text-[#8896a8] hover:text-white p-1">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              <p className="text-[12px] text-[#8896a8]">Choose a background accent for your blog page. Visible to readers.</p>
+
+              {/* Reset */}
+              <button
+                onClick={() => setPageColor(null)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors ${!pageColor ? 'border-[#9b7bf7] bg-[#9b7bf714]' : 'border-[#232d3f] hover:border-[#333]'}`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#131922] border border-[#232d3f]" />
+                <span className="text-[13px] text-[#e0e0e0]">Default (none)</span>
+              </button>
+
+              {/* Predefined colors */}
+              <div className="space-y-2">
+                {[
+                  { name: 'Midnight Purple', color: '#1a1028', accent: '#9b7bf7' },
+                  { name: 'Deep Ocean', color: '#0f1a2e', accent: '#60a5fa' },
+                  { name: 'Forest', color: '#0f1f17', accent: '#4ade80' },
+                  { name: 'Warm Ember', color: '#1f150f', accent: '#fb923c' },
+                  { name: 'Rose', color: '#1f0f18', accent: '#f472b6' },
+                  { name: 'Slate', color: '#171b22', accent: '#9ca3af' },
+                  { name: 'Golden', color: '#1a1708', accent: '#fbbf24' },
+                  { name: 'Crimson', color: '#1f0f0f', accent: '#f87171' },
+                  { name: 'Teal', color: '#0f1f1f', accent: '#2dd4bf' },
+                  { name: 'Indigo', color: '#13102a', accent: '#818cf8' },
+                ].map(({ name, color, accent }) => (
+                  <button
+                    key={name}
+                    onClick={() => setPageColor(color)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors ${pageColor === color ? 'border-[' + accent + '] bg-[' + accent + '14]' : 'border-[#232d3f] hover:border-[#333]'}`}
+                    style={pageColor === color ? { borderColor: accent, background: `${accent}14` } : {}}
+                  >
+                    <div className="w-8 h-8 rounded-lg border border-[#333]" style={{ background: color }} />
+                    <div className="flex-1 text-left">
+                      <span className="text-[13px] text-[#e0e0e0]">{name}</span>
+                    </div>
+                    <div className="w-3 h-3 rounded-full" style={{ background: accent }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Keyboard shortcuts modal */}
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
