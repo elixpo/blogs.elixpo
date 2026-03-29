@@ -134,14 +134,16 @@ function renderBlocksToHTML(blocks) {
     }
   }
 
-  // Build TOC HTML
+  // Build TOC HTML — same structure as editor's TableOfContents block
   let tocHTML = '';
   if (headings.length >= 2) {
-    tocHTML = '<nav class="preview-toc"><p class="preview-toc-title">Table of Contents</p><ul>';
+    tocHTML = '<div class="toc-block" style="border:1px solid #232d3f;border-radius:12px;background:#141a26;padding:16px 20px;margin:8px 0 24px">';
+    tocHTML += '<p style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#8896a8;font-weight:700;margin-bottom:12px">Table of Contents</p>';
+    tocHTML += '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">';
     for (const h of headings) {
-      tocHTML += `<li style="padding-left:${(h.level - 1) * 14}px"><a href="#${h.id}">${h.text}</a></li>`;
+      tocHTML += `<li><a href="#${h.id}" style="padding-left:${(h.level - 1) * 16}px;font-size:13px;display:block">${h.text}</a></li>`;
     }
-    tocHTML += '</ul></nav>';
+    tocHTML += '</ul></div>';
   }
 
   // Wrap consecutive bullet/numbered items in lists
