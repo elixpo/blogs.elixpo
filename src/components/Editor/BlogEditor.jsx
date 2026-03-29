@@ -633,18 +633,32 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           const blockEl = wrapperRef.current?.querySelector(`[data-id="${anchorBlockId}"]`);
           if (!blockEl) return;
 
-          // Hide the empty line's placeholder content — the AI input will take its place
-          blockEl.classList.add('ai-input-host');
-
           // Insert a new empty paragraph below so the placeholder text moves there
           editor.insertBlocks([{ type: 'paragraph', content: [] }], anchorBlockId, 'after');
 
-          // Position the AI input at the block
+          // Position the AI input at the block BEFORE hiding it
           const blockRect = blockEl.getBoundingClientRect();
           const top = blockRect.top - wrapperRect.top;
 
           setAiMenuPos({ top, left: 0, anchorBlockId });
           setShowAIMenu(true);
+
+          // Hide the empty line after capturing position — use rAF so React renders the menu first
+          requestAnimationFrame(() => {
+            blockEl.style.visibility = 'hidden';
+            blockEl.style.height = '0';
+            blockEl.style.overflow = 'hidden';
+            blockEl.style.margin = '0';
+            blockEl.style.padding = '0';
+            // Hide placeholder on the newly inserted paragraph below
+            const doc = editor.document;
+            const idx = doc.findIndex((b) => b.id === anchorBlockId);
+            if (idx !== -1 && idx + 1 < doc.length) {
+              const nextId = doc[idx + 1].id;
+              const nextEl = wrapperRef.current?.querySelector(`[data-id="${nextId}"]`);
+              if (nextEl) nextEl.classList.add('ai-hide-placeholder');
+            }
+          });
         }
       }
     }
@@ -724,8 +738,8 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     setAiPhase('idle');
     setAiGeneratingBlockId(null);
     hideSparkle();
-    wrapperRef.current?.querySelectorAll('.ai-skeleton-nearby, .ai-placeholder-skeleton').forEach((el) => {
-      el.classList.remove('ai-skeleton-nearby', 'ai-placeholder-skeleton');
+    wrapperRef.current?.querySelectorAll('.ai-skeleton-nearby, .ai-placeholder-skeleton, .ai-edit-selected-block').forEach((el) => {
+      el.classList.remove('ai-skeleton-nearby', 'ai-placeholder-skeleton', 'ai-edit-selected-block');
     });
 
     // Scroll to the AI-generated content and show keep/discard
@@ -846,10 +860,25 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     const menuPos = aiMenuPos; // capture before closing
     setShowAIMenu(false);
 
-    // Clean up the host block styling
+    // Restore the host block visibility and clean up placeholder hiding
     if (menuPos.anchorBlockId) {
       const hostEl = wrapperRef.current?.querySelector(`[data-id="${menuPos.anchorBlockId}"]`);
-      if (hostEl) hostEl.classList.remove('ai-input-host');
+      if (hostEl) {
+        hostEl.style.visibility = '';
+        hostEl.style.height = '';
+        hostEl.style.overflow = '';
+        hostEl.style.margin = '';
+        hostEl.style.padding = '';
+      }
+      // Remove placeholder-hide class from the next block
+      try {
+        const doc = editor.document;
+        const idx = doc.findIndex((b) => b.id === menuPos.anchorBlockId);
+        if (idx !== -1 && idx + 1 < doc.length) {
+          const nextEl = wrapperRef.current?.querySelector(`[data-id="${doc[idx + 1].id}"]`);
+          if (nextEl) nextEl.classList.remove('ai-hide-placeholder');
+        }
+      } catch {}
     }
 
     // Auto-keep previous AI content if any exists
@@ -907,9 +936,23 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     const abortController = new AbortController();
     aiAbortRef.current = abortController;
 
-    // Show inline status bar at the same position as the AI command menu
+    // Add skeleton shimmer to the original anchor line (where AI input was)
+    const originalAnchorEl = menuPos.anchorBlockId
+      ? wrapperRef.current?.querySelector(`[data-id="${menuPos.anchorBlockId}"]`)
+      : null;
+    if (originalAnchorEl) {
+      originalAnchorEl.classList.add('ai-edit-selected-block');
+      originalAnchorEl.classList.add('ai-hide-placeholder');
+    }
+
+    // Show inline status bar BELOW the anchor block
+    const wrapperRect = wrapperRef.current?.getBoundingClientRect();
+    const skeletonEl = originalAnchorEl || wrapperRef.current?.querySelector(`[data-id="${anchorBlockId}"]`);
+    const anchorBottom = skeletonEl && wrapperRect
+      ? skeletonEl.getBoundingClientRect().bottom - wrapperRect.top
+      : menuPos.top + 36;
     setAiStatusInline(true);
-    setAiInlinePos({ top: menuPos.top });
+    setAiInlinePos({ top: anchorBottom + 4 });
     setAiStatusText('is thinking');
 
     // Cycle through status messages before streaming starts
@@ -964,9 +1007,9 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
             aiStatusTimerRef.current = null;
           }
           setAiStatusInline(false); // move to bottom bar
-          // Remove skeleton from placeholder and nearby lines
-          wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton').forEach((el) => {
-            el.classList.remove('ai-placeholder-skeleton');
+          // Remove skeleton from placeholder, anchor, and nearby lines
+          wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-edit-selected-block').forEach((el) => {
+            el.classList.remove('ai-placeholder-skeleton', 'ai-edit-selected-block');
           });
           // Highlight and show sparkle on AI blocks
           highlightAiBlocks(currentIds, true);
@@ -1121,8 +1164,8 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           aiStatusTimerRef.current = null;
         }
         setAiStatusInline(false);
-        wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-skeleton-nearby').forEach((el) => {
-          el.classList.remove('ai-placeholder-skeleton', 'ai-skeleton-nearby');
+        wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-skeleton-nearby, .ai-edit-selected-block').forEach((el) => {
+          el.classList.remove('ai-placeholder-skeleton', 'ai-skeleton-nearby', 'ai-edit-selected-block');
         });
       }
 
@@ -1218,8 +1261,8 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     } catch (err) {
       if (aiStatusTimerRef.current) { clearInterval(aiStatusTimerRef.current); aiStatusTimerRef.current = null; }
       setAiStatusInline(false);
-      wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-skeleton-nearby').forEach((el) => {
-        el.classList.remove('ai-placeholder-skeleton', 'ai-skeleton-nearby');
+      wrapperRef.current?.querySelectorAll('.ai-placeholder-skeleton, .ai-skeleton-nearby, .ai-edit-selected-block').forEach((el) => {
+        el.classList.remove('ai-placeholder-skeleton', 'ai-skeleton-nearby', 'ai-edit-selected-block');
       });
       setAiGenerating(false);
       setAiPhase('idle');
@@ -1351,13 +1394,21 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
             // Restore the host block and remove the inserted empty paragraph
             if (aiMenuPos.anchorBlockId) {
               const hostEl = wrapperRef.current?.querySelector(`[data-id="${aiMenuPos.anchorBlockId}"]`);
-              if (hostEl) hostEl.classList.remove('ai-input-host');
+              if (hostEl) {
+                hostEl.style.visibility = '';
+                hostEl.style.height = '';
+                hostEl.style.overflow = '';
+                hostEl.style.margin = '';
+                hostEl.style.padding = '';
+              }
               // Remove the extra paragraph we inserted below
               try {
                 const doc = editor.document;
                 const idx = doc.findIndex((b) => b.id === aiMenuPos.anchorBlockId);
                 if (idx !== -1 && idx + 1 < doc.length) {
                   const nextBlock = doc[idx + 1];
+                  const nextEl = wrapperRef.current?.querySelector(`[data-id="${nextBlock.id}"]`);
+                  if (nextEl) nextEl.classList.remove('ai-hide-placeholder');
                   const isEmpty = nextBlock.type === 'paragraph' &&
                     (!nextBlock.content || nextBlock.content.length === 0 ||
                       (nextBlock.content.length === 1 && nextBlock.content[0].text === ''));
