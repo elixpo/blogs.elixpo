@@ -1,11 +1,13 @@
 'use client';
 
 import { createReactInlineContentSpec } from '@blocknote/react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 function MentionChip({ username, displayName, avatarUrl }) {
   const [showCard, setShowCard] = useState(false);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
+  const [profile, setProfile] = useState(null);
+  const [fetched, setFetched] = useState(false);
   const chipRef = useRef(null);
   const hoverTimer = useRef(null);
 
@@ -16,13 +18,24 @@ function MentionChip({ username, displayName, avatarUrl }) {
         setCardPos({ top: rect.bottom + 6, left: rect.left });
       }
       setShowCard(true);
-    }, 400);
+      // Fetch full profile on first hover
+      if (!fetched) {
+        setFetched(true);
+        fetch(`/api/resolve?name=${encodeURIComponent(username)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(d => { if (d) setProfile(d); })
+          .catch(() => {});
+      }
+    }, 350);
   };
 
   const handleMouseLeave = () => {
     clearTimeout(hoverTimer.current);
     setShowCard(false);
   };
+
+  const u = profile?.user || null;
+  const orgs = profile?.orgs || [];
 
   return (
     <>
@@ -44,43 +57,63 @@ function MentionChip({ username, displayName, avatarUrl }) {
 
       {showCard && (
         <div
-          style={{
-            position: 'fixed',
-            top: cardPos.top,
-            left: cardPos.left,
-            zIndex: 9999,
-          }}
+          style={{ position: 'fixed', top: cardPos.top, left: cardPos.left, zIndex: 9999 }}
           className="mention-hover-card"
           onMouseEnter={() => clearTimeout(hoverTimer.current)}
           onMouseLeave={handleMouseLeave}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            {(u?.avatar_url || avatarUrl) ? (
+              <img src={u?.avatar_url || avatarUrl} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid #232d3f' }} />
             ) : (
               <div style={{
-                width: 36, height: 36, borderRadius: '50%', background: '#232d3f',
+                width: 40, height: 40, borderRadius: '50%', background: '#232d3f',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, fontWeight: 700, color: '#9ca3af',
+                fontSize: 16, fontWeight: 700, color: '#9ca3af',
               }}>
                 {(displayName || username || '?')[0].toUpperCase()}
               </div>
             )}
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#e0e0e0' }}>{displayName || username}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#e0e0e0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {u?.display_name || displayName || username}
+              </div>
               <div style={{ fontSize: 11, color: '#8896a8' }}>@{username}</div>
             </div>
           </div>
+
+          {/* Bio */}
+          {u?.bio && (
+            <div style={{ fontSize: 12, color: '#b0b0b0', lineHeight: 1.5, marginBottom: '10px', maxHeight: '3em', overflow: 'hidden' }}>
+              {u.bio}
+            </div>
+          )}
+
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: '14px', fontSize: 12, color: '#8896a8', marginBottom: '10px' }}>
+            <span><strong style={{ color: '#e0e0e0' }}>{u?.followers ?? 0}</strong> followers</span>
+            <span><strong style={{ color: '#e0e0e0' }}>{u?.following ?? 0}</strong> following</span>
+            {(profile?.blogs?.length > 0) && (
+              <span><strong style={{ color: '#e0e0e0' }}>{profile.blogs.length}</strong> blogs</span>
+            )}
+          </div>
+
+          {/* Orgs — show if available from blogs or fetch */}
+          {/* TODO: orgs could be fetched separately if needed */}
+
+          {/* View profile link */}
           <a
             href={`/@${username}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              display: 'inline-block', fontSize: 11, color: '#9b7bf7',
-              textDecoration: 'none', fontWeight: 500,
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              fontSize: 12, color: '#9b7bf7', textDecoration: 'none', fontWeight: 500,
             }}
           >
-            View profile
+            View full profile
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           </a>
         </div>
       )}
