@@ -39,7 +39,8 @@ export async function GET(request) {
       orgs: orgs?.results || [],
       blogs: blogs?.results || [],
     });
-  } catch {
+  } catch (e) {
+    console.error('Search error:', e?.message || e);
     return NextResponse.json({ users: [], orgs: [], blogs: [] });
   }
 }
