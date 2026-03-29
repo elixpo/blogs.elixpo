@@ -864,6 +864,81 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     } catch { return ''; }
   }, [editor]);
 
+  // Replace an image placeholder with the real Cloudinary URL
+  const replaceImagePlaceholder = useCallback((imageId, url, alt) => {
+    try {
+      const doc = editor.document;
+      for (const block of doc) {
+        if (block.type === 'image' && block.props?._imageId === imageId) {
+          editor.updateBlock(block.id, {
+            type: 'image',
+            props: { url, caption: alt || block.props.caption || '', previewWidth: 740, _imageId: imageId },
+          });
+          // Remove skeleton class and add fade-in animation
+          requestAnimationFrame(() => {
+            const el = wrapperRef.current?.querySelector(`[data-id="${block.id}"]`);
+            if (el) {
+              el.classList.remove('ai-image-skeleton');
+              el.classList.add('ai-image-loaded');
+            }
+          });
+          break;
+        }
+      }
+      // Also look for the IMG_LOADING: text in paragraph blocks (fallback)
+      for (const block of doc) {
+        if (block.type === 'paragraph') {
+          const text = (block.content || []).map(c => c.text || '').join('');
+          if (text.includes(`IMG_LOADING:${imageId}`)) {
+            editor.updateBlock(block.id, {
+              type: 'image',
+              props: { url, caption: alt || '', previewWidth: 740 },
+            });
+            requestAnimationFrame(() => {
+              const el = wrapperRef.current?.querySelector(`[data-id="${block.id}"]`);
+              if (el) {
+                el.classList.remove('ai-image-skeleton');
+                el.classList.add('ai-image-loaded');
+              }
+            });
+            break;
+          }
+        }
+      }
+    } catch (e) { console.error('Failed to replace image placeholder:', e); }
+  }, [editor]);
+
+  const removeImagePlaceholder = useCallback((imageId) => {
+    try {
+      const doc = editor.document;
+      for (const block of doc) {
+        if (block.type === 'image' && block.props?._imageId === imageId) {
+          // Convert to empty paragraph instead of removing — leaves an empty line
+          editor.updateBlock(block.id, { type: 'paragraph', props: {}, content: [] });
+          return;
+        }
+        // Also check paragraph blocks with IMG_LOADING text
+        if (block.type === 'paragraph') {
+          const text = (block.content || []).map(c => c.text || '').join('');
+          if (text.includes(`IMG_LOADING:${imageId}`)) {
+            editor.updateBlock(block.id, { type: 'paragraph', props: {}, content: [] });
+            return;
+          }
+        }
+      }
+      // Fallback: convert any image block with no URL (empty placeholder)
+      for (const block of doc) {
+        if (block.type === 'image' && (!block.props?.url || block.props.url === '')) {
+          const el = wrapperRef.current?.querySelector(`[data-id="${block.id}"]`);
+          if (el?.classList.contains('ai-image-skeleton')) {
+            editor.updateBlock(block.id, { type: 'paragraph', props: {}, content: [] });
+            return;
+          }
+        }
+      }
+    } catch {}
+  }, [editor]);
+
   const handleAISubmit = useCallback(async (userPrompt) => {
     const menuPos = aiMenuPos; // capture before closing
     setShowAIMenu(false);
@@ -1261,81 +1336,6 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       handleAIError(err);
     }
   }, [editor, getAiBlockIds, highlightAiBlocks, getFullBlogContext, blogId, handleAIKeep, aiMenuPos, hideSparkle, onTitleChange, replaceImagePlaceholder, removeImagePlaceholder]);
-
-  // Replace an image placeholder with the real Cloudinary URL
-  const replaceImagePlaceholder = useCallback((imageId, url, alt) => {
-    try {
-      const doc = editor.document;
-      for (const block of doc) {
-        if (block.type === 'image' && block.props?._imageId === imageId) {
-          editor.updateBlock(block.id, {
-            type: 'image',
-            props: { url, caption: alt || block.props.caption || '', previewWidth: 740, _imageId: imageId },
-          });
-          // Remove skeleton class and add fade-in animation
-          requestAnimationFrame(() => {
-            const el = wrapperRef.current?.querySelector(`[data-id="${block.id}"]`);
-            if (el) {
-              el.classList.remove('ai-image-skeleton');
-              el.classList.add('ai-image-loaded');
-            }
-          });
-          break;
-        }
-      }
-      // Also look for the IMG_LOADING: text in paragraph blocks (fallback)
-      for (const block of doc) {
-        if (block.type === 'paragraph') {
-          const text = (block.content || []).map(c => c.text || '').join('');
-          if (text.includes(`IMG_LOADING:${imageId}`)) {
-            editor.updateBlock(block.id, {
-              type: 'image',
-              props: { url, caption: alt || '', previewWidth: 740 },
-            });
-            requestAnimationFrame(() => {
-              const el = wrapperRef.current?.querySelector(`[data-id="${block.id}"]`);
-              if (el) {
-                el.classList.remove('ai-image-skeleton');
-                el.classList.add('ai-image-loaded');
-              }
-            });
-            break;
-          }
-        }
-      }
-    } catch (e) { console.error('Failed to replace image placeholder:', e); }
-  }, [editor]);
-
-  const removeImagePlaceholder = useCallback((imageId) => {
-    try {
-      const doc = editor.document;
-      for (const block of doc) {
-        if (block.type === 'image' && block.props?._imageId === imageId) {
-          // Convert to empty paragraph instead of removing — leaves an empty line
-          editor.updateBlock(block.id, { type: 'paragraph', props: {}, content: [] });
-          return;
-        }
-        // Also check paragraph blocks with IMG_LOADING text
-        if (block.type === 'paragraph') {
-          const text = (block.content || []).map(c => c.text || '').join('');
-          if (text.includes(`IMG_LOADING:${imageId}`)) {
-            editor.updateBlock(block.id, { type: 'paragraph', props: {}, content: [] });
-            return;
-          }
-        }
-      }
-      // Fallback: convert any image block with no URL (empty placeholder)
-      for (const block of doc) {
-        if (block.type === 'image' && (!block.props?.url || block.props.url === '')) {
-          const el = wrapperRef.current?.querySelector(`[data-id="${block.id}"]`);
-          if (el?.classList.contains('ai-image-skeleton')) {
-            editor.updateBlock(block.id, { type: 'paragraph', props: {}, content: [] });
-            return;
-          }
-        }
-      }
-    } catch {}
-  }, [editor]);
 
   return (
     <div className={`blog-editor-wrapper${(showAIActions && aiBlockIds.size > 0) ? ' ai-editor-locked' : ''}`} ref={wrapperRef} style={{ position: 'relative' }}>
