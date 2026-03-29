@@ -244,57 +244,97 @@ export default function WritePage({ slugid }) {
 
   const username = user?.username || 'you';
 
-  // Ctrl+S → save to localStorage immediately, then sync to cloud
+  // Refs to always hold latest draft data (avoids stale closures in intervals/beforeunload)
+  const draftDataRef = useRef({ title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
+  useEffect(() => {
+    draftDataRef.current = { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji };
+  }, [title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji]);
+
+  // Cloud sync function — saves localStorage then pushes to cloud
+  const syncToCloud = useCallback(async ({ showToast = false, silent = false } = {}) => {
+    const data = draftDataRef.current;
+    if (!data.title && !data.editorContent) return;
+
+    // Always save to localStorage first
+    saveDraft(slugid, data);
+    setLastSaved(Date.now());
+
+    if (!silent) setSyncStatus('syncing');
+
+    try {
+      const res = await fetch('/api/blogs/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugid, ...data }),
+      });
+
+      if (res.ok) {
+        if (!silent) {
+          setSyncStatus('synced');
+          if (showToast) {
+            setShowSavedToast(true);
+            setTimeout(() => setShowSavedToast(false), 3000);
+          }
+          setTimeout(() => setSyncStatus('idle'), 5000);
+        }
+      } else {
+        if (!silent) {
+          setSyncStatus('local');
+          setTimeout(() => setSyncStatus('idle'), 5000);
+        }
+      }
+    } catch {
+      if (!silent) {
+        setSyncStatus('local');
+        setTimeout(() => setSyncStatus('idle'), 5000);
+      }
+    }
+  }, [slugid]);
+
+  // Ctrl+S → save + sync
   useEffect(() => {
     function handleKeyDown(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-
-        // Save to localStorage first
-        if (title || editorContent) {
-          saveDraft(slugid, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
-          setLastSaved(Date.now());
-          setSyncStatus('syncing');
-
-          // Sync to cloud
-          (async () => {
-            try {
-              const res = await fetch('/api/blogs/draft', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  slugid,
-                  title,
-                  subtitle,
-                  tags,
-                  publishAs,
-                  coverPreview,
-                  editorContent,
-                  pageEmoji,
-                }),
-              });
-
-              if (res.ok) {
-                setSyncStatus('synced');
-                setShowSavedToast(true);
-                setTimeout(() => setShowSavedToast(false), 3000);
-                setTimeout(() => setSyncStatus('idle'), 5000);
-              } else {
-                setSyncStatus('local');
-                setTimeout(() => setSyncStatus('idle'), 5000);
-              }
-            } catch {
-              setSyncStatus('local');
-              setTimeout(() => setSyncStatus('idle'), 5000);
-            }
-          })();
-        }
+        syncToCloud({ showToast: true });
       }
     }
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, slugid]);
+  }, [syncToCloud]);
+
+  // Auto-sync to cloud every 10 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      syncToCloud({ silent: true });
+    }, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [syncToCloud]);
+
+  // Sync on page load (after draft loads)
+  useEffect(() => {
+    if (!draftLoading) {
+      // Small delay to let editor content settle
+      const timer = setTimeout(() => syncToCloud({ silent: true }), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [draftLoading, syncToCloud]);
+
+  // Sync before page unload
+  useEffect(() => {
+    function handleBeforeUnload() {
+      const data = draftDataRef.current;
+      if (!data.title && !data.editorContent) return;
+      saveDraft(slugid, data);
+      // Use sendBeacon with Blob for reliable fire-and-forget on unload
+      try {
+        const blob = new Blob([JSON.stringify({ slugid, ...data })], { type: 'application/json' });
+        navigator.sendBeacon('/api/blogs/draft', blob);
+      } catch { /* best effort */ }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [slugid]);
 
   useEffect(() => {
     // Small delay to show skeleton and let the UI mount before heavy JSON parsing
