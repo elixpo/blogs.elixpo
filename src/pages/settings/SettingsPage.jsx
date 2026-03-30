@@ -423,29 +423,28 @@ function CreateOrgModal({ onClose, onCreated }) {
         </div>
 
         <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* Avatar + name row */}
-          <div className="flex items-start gap-5">
-            <div className="flex-shrink-0 text-center">
-              <img src={generatePixelAvatar(slug || name || avatarSeed)} alt="" className="w-16 h-16 rounded-xl" />
-              <p className="text-[10px] text-[#666] mt-1.5">Auto-generated</p>
+          {/* Avatar centered */}
+          <div className="flex flex-col items-center mb-2">
+            <img src={generatePixelAvatar(slug || name || avatarSeed)} alt="" className="w-28 h-28 rounded-2xl" />
+            <p className="text-[10px] text-[#666] mt-2">Auto-generated — change later in settings</p>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">Organization name *</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Name"
+                className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] transition-colors placeholder-[#6b7a8d]" />
             </div>
-            <div className="flex-1 space-y-3">
-              <div>
-                <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">Organization name *</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="My Organization"
-                  className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2.5 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] transition-colors placeholder-[#6b7a8d]" />
-              </div>
-              <div>
-                <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">
-                  URL slug *
-                  {slug && slugAvailable === true && <span className="text-[#4ade80] ml-2">Available</span>}
-                  {slug && slugAvailable === false && <span className="text-[#f87171] ml-2">Taken</span>}
-                </label>
-                <div className="flex items-center bg-[#131922] rounded-lg border border-[#232d3f] overflow-hidden">
-                  <span className="text-[#8896a8] text-[13px] px-3">lixblogs.com/@</span>
-                  <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^\w-]/g, ''))}
-                    className="flex-1 bg-transparent text-[#e0e0e0] py-2.5 pr-3 outline-none text-[13px]" />
-                </div>
+            <div>
+              <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">
+                URL slug *
+                {slug && slugAvailable === true && <span className="text-[#4ade80] ml-2">Available</span>}
+                {slug && slugAvailable === false && <span className="text-[#f87171] ml-2">Taken</span>}
+              </label>
+              <div className="flex items-center bg-[#131922] rounded-lg border border-[#232d3f] overflow-hidden">
+                <span className="text-[#8896a8] text-[13px] px-3 flex-shrink-0">@</span>
+                <input value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^\w-]/g, ''))}
+                  className="flex-1 bg-transparent text-[#e0e0e0] py-2 pr-3 outline-none text-[13px]" />
               </div>
             </div>
           </div>
@@ -466,38 +465,38 @@ function CreateOrgModal({ onClose, onCreated }) {
           <div className="h-px bg-[#232d3f]" />
 
           {/* Two-column layout */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">Category</label>
               <select value={category} onChange={e => setCategory(e.target.value)}
-                className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2.5 outline-none text-[13px] border border-[#232d3f] focus:border-[#444]">
-                <option value="">Select category...</option>
+                className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#232d3f] focus:border-[#444]">
+                <option value="">Select...</option>
                 {ORG_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">Website</label>
-              <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://..."
-                className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2.5 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] placeholder-[#6b7a8d]" />
+              <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://"
+                className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] placeholder-[#6b7a8d]" />
             </div>
           </div>
 
           <div>
             <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">Contact email</label>
             <input value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="org@example.com"
-              className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2.5 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] placeholder-[#6b7a8d]" />
+              className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] placeholder-[#6b7a8d]" />
           </div>
 
           <div>
             <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">Description</label>
-            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="One-line description of your org..."
-              className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2.5 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] placeholder-[#6b7a8d]" />
+            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short tagline"
+              className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] placeholder-[#6b7a8d]" />
           </div>
 
           <div>
             <label className="text-[12px] text-[#9ca3af] mb-1.5 block font-medium">About (Markdown)</label>
-            <textarea value={bio} onChange={e => setBio(e.target.value)} rows={4} placeholder="Tell people about your org, its mission, what you publish..."
-              className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2.5 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] placeholder-[#6b7a8d] resize-none" />
+            <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3} placeholder="Mission, what you publish..."
+              className="w-full bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[13px] border border-[#232d3f] focus:border-[#444] placeholder-[#6b7a8d] resize-none" />
           </div>
 
           {/* Info box */}
