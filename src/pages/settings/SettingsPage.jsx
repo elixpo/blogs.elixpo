@@ -5,9 +5,16 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { generatePixelAvatar } from '../../utils/pixelAvatar';
 import AppShell from '../../components/AppShell';
+import TabBar from '../../components/TabBar';
 import Link from 'next/link';
 
-const TABS = ['Account', 'Publishing', 'Notifications', 'Organization', 'Subscription'];
+const TABS = [
+  { label: 'Account', icon: 'person-outline' },
+  { label: 'Publishing', icon: 'create-outline' },
+  { label: 'Notifications', icon: 'notifications-outline' },
+  { label: 'Organization', icon: 'people-outline' },
+  { label: 'Subscription', icon: 'diamond-outline' },
+];
 
 function Toggle({ checked, onChange }) {
   return (
@@ -533,11 +540,16 @@ function CreateOrgModal({ onClose, onCreated }) {
                 dangerouslySetInnerHTML={{ __html: bio
                   ? bio
                     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/^### (.+)$/gm, '<h3 style="font-size:15px;font-weight:600;color:#e0e0e0;margin:12px 0 4px">$1</h3>')
+                    .replace(/^## (.+)$/gm, '<h2 style="font-size:17px;font-weight:700;color:#e0e0e0;margin:14px 0 4px">$1</h2>')
+                    .replace(/^# (.+)$/gm, '<h1 style="font-size:20px;font-weight:800;color:#fff;margin:16px 0 6px">$1</h1>')
                     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                    .replace(/`(.+?)`/g, '<code style="background:#232d3f;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
+                    .replace(/~~(.+?)~~/g, '<del>$1</del>')
+                    .replace(/`(.+?)`/g, '<code style="background:#232d3f;padding:1px 4px;border-radius:3px;font-size:12px;color:#c4b5fd">$1</code>')
                     .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color:#60a5fa;text-decoration:none">$1</a>')
                     .replace(/^- (.+)$/gm, '<li style="margin-left:16px">$1</li>')
+                    .replace(/^&gt; (.+)$/gm, '<blockquote style="border-left:3px solid #9b7bf740;padding-left:12px;color:#9ca3af;margin:8px 0">$1</blockquote>')
                     .replace(/\n/g, '<br>')
                   : '<span style="color:#666">Nothing to preview</span>'
                 }} />
@@ -715,22 +727,7 @@ export default function SettingsPage() {
       <div className="max-w-2xl mx-auto px-6 py-10">
         <h1 className="text-3xl font-bold text-white mb-8">Settings</h1>
 
-        {/* Tabs */}
-        <div className="flex gap-4 border-b border-[#232d3f] mb-8 overflow-x-auto scrollbar-none">
-          {TABS.map((tab, i) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(i)}
-              className={`pb-3 text-[13px] font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
-                i === activeTab
-                  ? 'text-white border-white'
-                  : 'text-[#9ca3af] border-transparent hover:text-[#b0b0b0]'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+        <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
 
         {activeTab === 0 && <AccountTab user={user} />}
         {activeTab === 1 && <PublishingTab user={user} />}
