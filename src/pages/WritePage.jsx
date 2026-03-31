@@ -351,10 +351,10 @@ export default function WritePage({ slugid }) {
   }, [slugid]);
 
   useEffect(() => {
-    // Small delay to show skeleton and let the UI mount before heavy JSON parsing
-    const timer = setTimeout(() => {
+    // Try local draft first, then fetch from server
+    const timer = setTimeout(async () => {
       const draft = loadDraft(slugid);
-      if (draft) {
+      if (draft && draft.editorContent) {
         if (draft.title) setTitle(draft.title);
         if (draft.subtitle) setSubtitle(draft.subtitle);
         if (draft.tags) setTags(draft.tags);
@@ -363,8 +363,30 @@ export default function WritePage({ slugid }) {
         if (draft.editorContent) setEditorContent(draft.editorContent);
         if (draft.pageEmoji) setPageEmoji(draft.pageEmoji);
         if (draft.savedAt) setLastSaved(draft.savedAt);
+        setDraftLoading(false);
+      } else {
+        // No local draft — try loading from server (for editing published blogs)
+        try {
+          const res = await fetch(`/api/blogs/draft?slugid=${slugid}`);
+          if (res.ok) {
+            const data = await res.json();
+            const blog = data.blog;
+            if (blog) {
+              if (blog.title) setTitle(blog.title);
+              if (blog.subtitle) setSubtitle(blog.subtitle);
+              if (blog.tags?.length) setTags(blog.tags);
+              if (blog.published_as) setPublishAs(blog.published_as);
+              if (blog.cover_image_r2_key) setCoverPreview(blog.cover_image_r2_key);
+              if (blog.page_emoji) setPageEmoji(blog.page_emoji);
+              if (blog.content) {
+                const contentStr = typeof blog.content === 'string' ? blog.content : JSON.stringify(blog.content);
+                setEditorContent(contentStr);
+              }
+            }
+          }
+        } catch { /* no server data, start fresh */ }
+        setDraftLoading(false);
       }
-      setDraftLoading(false);
     }, 80);
     return () => clearTimeout(timer);
   }, [slugid]);
