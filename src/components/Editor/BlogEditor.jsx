@@ -1517,7 +1517,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       <BlockNoteView
         editor={editor}
         onChange={handleChange}
-        theme="dark"
+        theme={isDark ? "dark" : "light"}
         slashMenu={false}
       >
         <SuggestionMenuController
