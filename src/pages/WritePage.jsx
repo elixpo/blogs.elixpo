@@ -55,6 +55,11 @@ const KeyboardShortcutsModal = dynamic(
   { ssr: false }
 );
 
+const CollaboratorPanel = dynamic(
+  () => import('../components/Editor/CollaboratorPanel'),
+  { ssr: false }
+);
+
 const STORAGE_KEY_PREFIX = 'lixblogs_draft_';
 
 function getDraftKey(slugid) {
@@ -251,6 +256,7 @@ export default function WritePage({ slugid }) {
   const [syncStatus, setSyncStatus] = useState('idle'); // idle | local | syncing | synced
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showCollabPanel, setShowCollabPanel] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [pageColor, setPageColor] = useState(null);
   const [slug, setSlug] = useState('');
@@ -726,11 +732,23 @@ export default function WritePage({ slugid }) {
             )}
           </div>
 
+          {/* Invite collaborators */}
+          <button
+            onClick={() => setShowCollabPanel(true)}
+            className="h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[12px] font-medium transition-colors"
+            style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-muted)' }}
+            title="Invite collaborators"
+          >
+            <ion-icon name="people-outline" style={{ fontSize: '14px' }} />
+            <span className="hidden sm:inline">Invite</span>
+          </button>
+
           {/* Shortcuts help */}
           <button
             data-shortcuts-btn
             onClick={() => setShowShortcuts(true)}
-            className="h-8 w-8 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center hover:border-[var(--border-hover)] transition-colors text-[var(--text-faint)] hover:text-[#c4b5fd] text-sm font-bold"
+            className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors text-sm font-bold"
+            style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-faint)' }}
             title="Keyboard shortcuts"
           >
             ?
@@ -1443,6 +1461,7 @@ export default function WritePage({ slugid }) {
 
       {/* Keyboard shortcuts modal */}
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      {showCollabPanel && <CollaboratorPanel slugid={slugid} onClose={() => setShowCollabPanel(false)} />}
 
       {/* Saved to cloud toast */}
       <AnimatePresence>
