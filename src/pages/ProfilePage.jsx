@@ -17,7 +17,7 @@ function UsageBar({ label, used, limit, unit, color = '#9b7bf7' }) {
           {used}{unit ? ` ${unit}` : ''} <span className="text-[var(--text-faint)]">/ {limit}{unit ? ` ${unit}` : ''}</span>
         </span>
       </div>
-      <div className="h-2 rounded-full bg-[#1e2433] overflow-hidden">
+      <div className="h-2 rounded-full bg-[var(--bg-elevated)] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${percent}%`, background: percent > 85 ? '#f87171' : color }}
@@ -111,9 +111,9 @@ export default function ProfilePage() {
           </div>
           <div className="absolute -bottom-12 left-6">
             {user.avatar_url ? (
-              <img src={user.avatar_url} alt="" className="h-24 w-24 rounded-full border-4 border-[#131922] object-cover" />
+              <img src={user.avatar_url} alt="" className="h-24 w-24 rounded-full border-4 border-[var(--bg-app)] object-cover" />
             ) : (
-              <div className="h-24 w-24 rounded-full border-4 border-[#131922] bg-[#2a2d3a] flex items-center justify-center text-[var(--text-muted)]xl text-[var(--text-body)] font-bold">
+              <div className="h-24 w-24 rounded-full border-4 border-[var(--bg-app)] bg-[var(--bg-elevated)] flex items-center justify-center text-3xl text-[var(--text-muted)] font-bold">
                 {(user.display_name || user.username || '?')[0].toUpperCase()}
               </div>
             )}
