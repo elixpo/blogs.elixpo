@@ -9,6 +9,7 @@ import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import '../styles/editor/editor.css';
 import { compressCoverImage } from '../utils/compressImage';
+import { generatePixelAvatar } from '../utils/pixelAvatar';
 
 function AvatarImg({ src, name, size = 32 }) {
   const [failed, setFailed] = useState(false);
@@ -1187,69 +1188,102 @@ export default function WritePage({ slugid }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin">
-          {/* Blog Properties */}
-          <div className="flex items-center gap-4 text-[13px] text-[var(--text-muted)] bg-[var(--bg-app)] border border-[var(--border-default)] rounded-lg px-4 py-3">
+          {/* Blog stats */}
+          <div className="flex items-center gap-4 text-[13px] rounded-lg px-4 py-3" style={{ color: 'var(--text-muted)', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-default)' }}>
             <span className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
               {wordCount} words
             </span>
-            <span className="text-[var(--text-faint)]">&middot;</span>
+            <span style={{ color: 'var(--text-faint)' }}>&middot;</span>
             <span className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               {readTime} min read
             </span>
           </div>
 
-          {/* Owner — GitHub-style dropdown */}
+          {/* Owner — locked after publish */}
           <div>
-            <label className="text-[12px] text-[var(--text-muted)] mb-2 block font-medium">Owner</label>
-            <div className="relative" ref={ownerDropdownRef}>
-              <button
-                onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
-                className="w-full flex items-center gap-2.5 bg-[var(--bg-app)] border border-[var(--border-default)] rounded-lg px-3 py-2.5 text-[13px] hover:border-[var(--border-hover)] transition-colors"
-              >
+            <label className="text-[12px] font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>
+              Owner
+              {isPublished && <span className="ml-1.5 text-[10px] font-normal" style={{ color: 'var(--text-faint)' }}>(locked)</span>}
+            </label>
+            {isPublished ? (
+              /* Locked — show current owner, no dropdown */
+              <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px]" style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-default)', opacity: 0.7 }}>
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[10px] text-[var(--text-body)] font-bold">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-body)' }}>
                     {(user?.display_name || username || '?')[0].toUpperCase()}
                   </div>
                 )}
-                <span className="text-[var(--text-primary)] font-medium flex-1 text-left">{publishAs === 'personal' ? username : publishAs}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
+                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {publishAs === 'personal' ? username : (userOrgs.find(o => `org:${o.id}` === publishAs)?.name || publishAs.replace('org:', ''))}
+                </span>
+                <ion-icon name="lock-closed" style={{ fontSize: '12px', color: 'var(--text-faint)', marginLeft: 'auto' }} />
+              </div>
+            ) : (
+              /* Editable — dropdown */
+              <div className="relative" ref={ownerDropdownRef}>
+                <button
+                  onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
+                  className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] transition-colors"
+                  style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-default)' }}
+                >
+                  {user?.avatar_url ? (
+                    <img src={user.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-body)' }}>
+                      {(user?.display_name || username || '?')[0].toUpperCase()}
+                    </div>
+                  )}
+                  <span className="font-medium flex-1 text-left" style={{ color: 'var(--text-primary)' }}>
+                    {publishAs === 'personal' ? username : (userOrgs.find(o => `org:${o.id}` === publishAs)?.name || publishAs.replace('org:', ''))}
+                  </span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-faint)' }}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
 
-              {showOwnerDropdown && (
-                <div className="absolute top-full mt-1 left-0 right-0 bg-[var(--bg-app)] border border-[var(--border-default)] rounded-lg shadow-xl z-10 overflow-hidden">
-                  <div className="px-3 py-2 text-[11px] text-[var(--text-faint)] font-medium uppercase tracking-wider border-b border-[var(--border-default)]">Choose an owner</div>
-                  {/* Personal account */}
-                  <button
-                    onClick={() => { setPublishAs('personal'); setShowOwnerDropdown(false); }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] hover:bg-[var(--bg-hover)] transition-colors ${publishAs === 'personal' ? 'bg-[var(--bg-hover)]' : ''}`}
-                  >
-                    {user?.avatar_url ? (
-                      <img src={user.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[10px] text-[var(--text-body)] font-bold">
-                        {(user?.display_name || username || '?')[0].toUpperCase()}
-                      </div>
-                    )}
-                    <span className="text-[var(--text-primary)]">{username}</span>
-                    {publishAs === 'personal' && (
-                      <svg className="ml-auto w-4 h-4 text-[#4ade80]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    )}
-                  </button>
-                  {/* TODO: Populate user's orgs from API */}
-                </div>
-              )}
-            </div>
+                {showOwnerDropdown && (
+                  <div className="absolute top-full mt-1 left-0 right-0 rounded-lg shadow-xl z-10 overflow-hidden" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
+                    <div className="px-3 py-2 text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)', borderBottom: '1px solid var(--divider)' }}>Choose an owner</div>
+                    <button
+                      onClick={() => { setPublishAs('personal'); setShowOwnerDropdown(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] transition-colors"
+                      style={{ backgroundColor: publishAs === 'personal' ? 'var(--bg-hover)' : 'transparent' }}
+                    >
+                      {user?.avatar_url ? (
+                        <img src={user.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-body)' }}>
+                          {(user?.display_name || username || '?')[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span style={{ color: 'var(--text-primary)' }}>{username}</span>
+                      {publishAs === 'personal' && <svg className="ml-auto w-4 h-4 text-[#4ade80]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </button>
+                    {userOrgs.map(org => (
+                      <button
+                        key={org.id}
+                        onClick={() => { setPublishAs(`org:${org.id}`); setShowOwnerDropdown(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] transition-colors"
+                        style={{ backgroundColor: publishAs === `org:${org.id}` ? 'var(--bg-hover)' : 'transparent' }}
+                      >
+                        <img src={org.logo_url || generatePixelAvatar(org.slug)} alt="" className="w-5 h-5 rounded object-cover" />
+                        <span style={{ color: 'var(--text-primary)' }}>{org.name}</span>
+                        {publishAs === `org:${org.id}` && <svg className="ml-auto w-4 h-4 text-[#4ade80]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Tags */}
           <div>
-            <label className="text-[12px] text-[var(--text-muted)] mb-2 block font-medium">Tags (up to 5) <span className="text-[var(--text-faint)] font-normal">— press Enter to attach</span></label>
+            <label className="text-[12px] font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>Tags (up to 5) <span className="font-normal" style={{ color: 'var(--text-faint)' }}>— press Enter to attach</span></label>
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag) => (
                 <span key={tag} className="flex items-center gap-1 px-2.5 py-1 bg-[#9b7bf714] rounded-full text-[12px] text-[#9b7bf7]">
@@ -1265,125 +1299,54 @@ export default function WritePage({ slugid }) {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 placeholder="Add a tag, press Enter..."
-                className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] transition-colors placeholder-[#6b7a8d]"
+                className="w-full rounded-lg px-3 py-2 outline-none text-[13px] transition-colors"
+                style={{ backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--input-border)' }}
               />
             )}
           </div>
 
-          {/* URL Slug */}
+          {/* URL Slug — with warning for published blogs */}
           <div>
-            <label className="text-[12px] text-[var(--text-muted)] mb-2 block font-medium">URL Slug</label>
-            <div className="flex items-center bg-[var(--bg-app)] rounded-lg border border-[var(--border-default)] overflow-hidden">
-              <span className="text-[var(--text-muted)] text-[13px] px-3 flex-shrink-0">@{username}/</span>
+            <label className="text-[12px] font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>URL Slug</label>
+            <div className="flex items-center rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--input-border)' }}>
+              <span className="text-[13px] px-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }}>@{username}/</span>
               <input
                 type="text"
                 value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^\w-]/g, '-').replace(/-+/g, '-'))}
+                onChange={(e) => {
+                  const newSlug = e.target.value.toLowerCase().replace(/[^\w-]/g, '-').replace(/-+/g, '-');
+                  setSlug(newSlug);
+                }}
                 placeholder={slugid}
-                className="flex-1 bg-transparent text-[var(--text-primary)] py-2 pr-3 outline-none text-[13px]"
+                className="flex-1 bg-transparent py-2 pr-3 outline-none text-[13px]"
+                style={{ color: 'var(--text-primary)' }}
               />
             </div>
-          </div>
-
-          {/* Collaborators / Invite */}
-          <div>
-            <label className="text-[12px] text-[var(--text-muted)] mb-2 block font-medium">Collaborators</label>
-            {/* Existing collaborators */}
-            {collaborators.length > 0 && (
-              <div className="space-y-2 mb-3">
-                {collaborators.map((c) => (
-                  <div key={c.id || c.username} className="flex items-center gap-2.5 bg-[var(--bg-app)] border border-[var(--border-default)] rounded-lg px-3 py-2">
-                    {c.avatar_url ? (
-                      <img src={c.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[9px] text-[var(--text-body)] font-bold">
-                        {(c.display_name || c.username || '?')[0].toUpperCase()}
-                      </div>
-                    )}
-                    <span className="text-[13px] text-[var(--text-primary)] flex-1">@{c.username}</span>
-                    <span className="text-[11px] text-[var(--text-faint)] bg-[var(--bg-elevated)] px-2 py-0.5 rounded-full">{c.role}</span>
-                    <button onClick={() => handleRemoveCollab(c.id)} className="text-[var(--text-faint)] hover:text-[#f87171] transition-colors">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
+            {isPublished && slug !== (blogVersion?._originalSlug || slug) && (
+              <p className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#f87171' }}>
+                <ion-icon name="warning-outline" style={{ fontSize: '13px' }} />
+                Changing the slug will permanently break the old URL. This cannot be undone.
+              </p>
             )}
-
-            {/* Invite form */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inviteUsername}
-                onChange={(e) => { setInviteUsername(e.target.value); setInviteError(''); }}
-                onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
-                placeholder="Username..."
-                className="flex-1 bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] transition-colors placeholder-[#6b7a8d]"
-              />
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-                className="bg-[var(--bg-app)] text-[var(--text-muted)] border border-[var(--border-default)] rounded-lg px-2 py-2 text-[12px] outline-none"
-              >
-                <option value="viewer">Viewer</option>
-                <option value="editor">Editor</option>
-                <option value="admin">Admin</option>
-              </select>
-              <button
-                onClick={handleInvite}
-                className="px-3 py-2 bg-[var(--bg-elevated)] text-[var(--text-primary)] rounded-lg text-[12px] font-medium hover:bg-[#2a3548] transition-colors"
-              >
-                Invite
-              </button>
-            </div>
-            {inviteError && <p className="text-[11px] text-[#f87171] mt-1.5">{inviteError}</p>}
-          </div>
-
-          {/* Preview Card */}
-          <div>
-            <label className="text-[12px] text-[var(--text-muted)] mb-2 block font-medium">Preview</label>
-            <div className="bg-[var(--bg-app)] border border-[var(--border-default)] rounded-xl p-4">
-              {coverPreview && (
-                <img src={coverPreview} alt="Cover" className="w-full h-[100px] object-cover rounded-lg mb-3" />
-              )}
-              <p className="font-bold text-[15px] leading-tight text-[var(--text-primary)]">{title || 'Your blog title'}</p>
-              {subtitle && <p className="text-[var(--text-muted)] text-[13px] mt-1">{subtitle}</p>}
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {tags.map((tag) => (
-                    <span key={tag} className="text-[11px] text-[#9b7bf7]">#{tag}</span>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        <div className="p-5 border-t border-[var(--border-default)] space-y-2">
+        {/* Bottom actions */}
+        <div className="p-5 space-y-2" style={{ borderTop: '1px solid var(--border-default)' }}>
           <button
             onClick={handlePublish}
             disabled={!title.trim() || publishing}
-            className="w-full py-2.5 bg-[#9b7bf7] text-[var(--text-primary)] font-bold rounded-xl text-[13px] hover:bg-[#b69aff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-[#9b7bf7] text-white font-bold rounded-xl text-[13px] hover:bg-[#b69aff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {publishing ? 'Publishing...' : 'Publish now'}
+            {publishing ? (isPublished ? 'Updating...' : 'Publishing...') : (isPublished ? 'Update now' : 'Publish now')}
           </button>
-          <div className="flex gap-2">
-            <button
-              onClick={handlePublishBeta}
-              disabled={!title.trim() || publishing}
-              className="flex-1 py-2 bg-[var(--bg-elevated)] text-[var(--text-muted)] font-medium rounded-xl text-[12px] hover:text-[var(--text-primary)] transition-colors disabled:opacity-40"
-            >
-              Publish Beta
-            </button>
-            <button
-              onClick={handleSaveDraft}
-              className="flex-1 py-2 bg-[var(--bg-elevated)] text-[var(--text-muted)] font-medium rounded-xl text-[12px] hover:text-[var(--text-primary)] transition-colors"
-            >
-              Save Draft
-            </button>
-          </div>
+          <button
+            onClick={handleSaveDraft}
+            className="w-full py-2 font-medium rounded-xl text-[12px] transition-colors"
+            style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
+          >
+            Save Draft
+          </button>
         </div>
       </div>
 
