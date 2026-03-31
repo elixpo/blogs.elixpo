@@ -73,6 +73,13 @@ export default function HandlePage({ path }) {
     let blocks = [];
     try { blocks = typeof blog.content === 'string' ? JSON.parse(blog.content) : blog.content || []; } catch { blocks = []; }
 
+    // Count words from blocks
+    const countBlockWords = (b) => (b || []).reduce((sum, block) => {
+      const text = (block.content || []).map(c => c.text || '').join(' ');
+      return sum + text.split(/\s+/).filter(Boolean).length + countBlockWords(block.children);
+    }, 0);
+    const wc = countBlockWords(blocks);
+
     // Check if current user can edit
     const isAuthor = currentUser && blog.author_id === currentUser.id;
     const canEdit = isAuthor; // org membership check would need an extra API call — author check is sufficient for now
@@ -100,7 +107,7 @@ export default function HandlePage({ path }) {
             blocks={blocks}
             coverPreview={blog.cover_image_r2_key}
             user={{ username: blog.author_username, display_name: blog.author_name, avatar_url: blog.author_avatar }}
-            wordCount={0}
+            wordCount={wc}
           />
         </div>
       </AppShell>

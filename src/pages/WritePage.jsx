@@ -325,8 +325,8 @@ export default function WritePage({ slugid }) {
   // Auto-sync to cloud every 10 minutes
   useEffect(() => {
     const interval = setInterval(() => {
-      syncToCloud({ silent: true });
-    }, 10 * 60 * 1000);
+      syncToCloud({ showToast: true });
+    }, 2 * 60 * 1000);
     return () => clearInterval(interval);
   }, [syncToCloud]);
 
@@ -407,7 +407,7 @@ export default function WritePage({ slugid }) {
         saveDraft(slugid, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
         setLastSaved(Date.now());
       }
-    }, 5000);
+    }, 2000);
     return () => clearTimeout(autoSaveTimer.current);
   }, [title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, slugid]);
 
