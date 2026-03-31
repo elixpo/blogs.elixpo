@@ -34,36 +34,36 @@ export function blogInvite(data) {
 
       <!-- Avatars -->
       ${circleAvatar(inviterAvatar, inviterName, 68)}
-      <div style="margin:8px 0;font-size:22px;color:#5a657a;font-weight:300">+</div>
+      <div style="margin:8px 0;font-size:22px;color:#7c8a9e;font-weight:300">+</div>
       ${circleAvatar(recipientAvatar, recipientName, 68)}
 
       <!-- Headline -->
       <p style="margin:28px 0 6px;font-size:18px;font-weight:700;color:#ffffff">
         @${escHtml(inviterName)} invited you to collaborate
       </p>
-      <p style="margin:0 0 28px;font-size:14px;color:#6b7f99">
+      <p style="margin:0 0 28px;font-size:14px;color:#8b949e">
         You've been invited as <strong style="color:#d1d5db">${escHtml(roleLabel)}</strong> on a blog post
       </p>
 
       <!-- Blog title -->
-      <div style="display:inline-block;background-color:#111823;border:1px solid #1e2736;border-radius:8px;padding:10px 20px;margin-bottom:28px">
+      <div style="display:inline-block;background-color:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px 20px;margin-bottom:28px">
         <span style="font-size:15px;font-weight:700;color:#ffffff">${escHtml(displayTitle || 'Untitled')}</span>
-        <span style="font-size:12px;color:#5a657a;margin-left:6px">by @${escHtml(inviterName)}</span>
+        <span style="font-size:12px;color:#7c8a9e;margin-left:6px">by @${escHtml(inviterName)}</span>
       </div>
 
       <!-- Buttons -->
       <div style="margin-bottom:32px">
         <a href="${escHtml(editUrl)}" style="display:inline-block;background-color:#9b7bf7;border-radius:8px;padding:11px 28px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none">Accept invitation</a>
         &nbsp;&nbsp;
-        <a href="${escHtml(declineUrl || editUrl)}" style="display:inline-block;border:1px solid #2d3a4d;border-radius:8px;padding:11px 28px;background-color:#111823;color:#d1d5db;font-size:14px;font-weight:600;text-decoration:none">Decline</a>
+        <a href="${escHtml(declineUrl || editUrl)}" style="display:inline-block;border:1px solid #30363d;border-radius:8px;padding:11px 28px;background-color:#161b22;color:#d1d5db;font-size:14px;font-weight:600;text-decoration:none">Decline</a>
       </div>
 
       <!-- Divider -->
-      <div style="height:1px;background-color:#1e2736;margin-bottom:20px"></div>
+      <div style="height:1px;background-color:#21262d;margin-bottom:20px"></div>
 
       <!-- Permissions -->
-      <p style="margin:0 0 8px;font-size:12px;color:#5a657a">
-        As <strong style="color:#6b7f99">${escHtml(roleLabel)}</strong>, you will be able to:
+      <p style="margin:0 0 8px;font-size:12px;color:#7c8a9e">
+        As <strong style="color:#8b949e">${escHtml(roleLabel)}</strong>, you will be able to:
       </p>
       <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.8">
         ${role === 'admin' ? 'Edit, publish, and manage blog settings<br/>' : ''}${role === 'editor' || role === 'admin' ? 'Edit the blog content<br/>' : ''}View the blog in the editor<br/>
@@ -82,8 +82,8 @@ export function blogInvite(data) {
 
 function circleAvatar(url, name, size) {
   if (url) {
-    return `<img src="${escHtml(url)}" alt="${escHtml(name)}" width="${size}" height="${size}" style="display:inline-block;border-radius:50%;border:2px solid #1e2736;object-fit:cover" />`;
+    return `<img src="${escHtml(url)}" alt="${escHtml(name)}" width="${size}" height="${size}" style="display:inline-block;border-radius:50%;border:2px solid #21262d;object-fit:cover" />`;
   }
   const initial = (name || '?')[0].toUpperCase();
-  return `<div style="display:inline-block;width:${size}px;height:${size}px;border-radius:50%;background-color:#1a2030;border:2px solid #1e2736;color:#7c8a9e;font-size:${Math.round(size * 0.36)}px;font-weight:700;line-height:${size}px;text-align:center">${initial}</div>`;
+  return `<div style="display:inline-block;width:${size}px;height:${size}px;border-radius:50%;background-color:#1c2129;border:2px solid #21262d;color:#7c8a9e;font-size:${Math.round(size * 0.36)}px;font-weight:700;line-height:${size}px;text-align:center">${initial}</div>`;
 }

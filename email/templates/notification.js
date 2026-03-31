@@ -1,16 +1,9 @@
-import { baseLayout, ctaButton, muted, escHtml, avatar } from './base.js';
+import { baseLayout, ctaButton, muted, escHtml } from './base.js';
 
 /**
- * Generic notification email — new follower, new comment, blog published, etc.
+ * Generic notification email — center-aligned, compact.
  *
- * @param {object} data
- * @param {string} data.type          - 'new_follower' | 'new_comment' | 'blog_published' | 'blog_liked'
- * @param {string} data.actorName     - Who triggered the event
- * @param {string} [data.actorAvatar] - Actor avatar URL
- * @param {string} [data.blogTitle]   - Blog title (if relevant)
- * @param {string} [data.comment]     - Comment text (if relevant)
- * @param {string} data.actionUrl     - URL to view the activity
- * @returns {{ subject: string, html: string }}
+ * Types: new_follower, new_comment, blog_published, blog_liked
  */
 export function notification(data) {
   const { type, actorName, actorAvatar, blogTitle, comment, actionUrl } = data;
@@ -18,25 +11,25 @@ export function notification(data) {
   const templates = {
     new_follower: {
       subject: `${actorName} started following you`,
-      heading: `New follower`,
+      heading: 'New follower',
       message: `<strong style="color:#ffffff">${escHtml(actorName)}</strong> is now following you on LixBlogs.`,
       cta: 'View Profile',
     },
     new_comment: {
       subject: `${actorName} commented on "${blogTitle}"`,
-      heading: `New comment`,
+      heading: 'New comment',
       message: `<strong style="color:#ffffff">${escHtml(actorName)}</strong> commented on <strong style="color:#ffffff">${escHtml(blogTitle)}</strong>.`,
       cta: 'View Comment',
     },
     blog_published: {
       subject: `${actorName} published "${blogTitle}"`,
-      heading: `New post`,
+      heading: 'New post',
       message: `<strong style="color:#ffffff">${escHtml(actorName)}</strong> published a new blog: <strong style="color:#ffffff">${escHtml(blogTitle)}</strong>.`,
       cta: 'Read Post',
     },
     blog_liked: {
       subject: `${actorName} liked "${blogTitle}"`,
-      heading: `New like`,
+      heading: 'New like',
       message: `<strong style="color:#ffffff">${escHtml(actorName)}</strong> liked your blog <strong style="color:#ffffff">${escHtml(blogTitle)}</strong>.`,
       cta: 'View Blog',
     },
@@ -45,36 +38,29 @@ export function notification(data) {
   const t = templates[type] || templates.new_follower;
 
   const body = `
-    <p style="margin:0 0 6px;font-size:11px;font-weight:600;color:#6b7f99;text-transform:uppercase;letter-spacing:1px">${t.heading}</p>
+    <div style="text-align:center">
 
-    <!-- Actor card -->
-    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:16px 0;background-color:#0c1017;border:1px solid #1e2736;border-radius:12px;overflow:hidden">
-      <tr>
-        <td style="padding:16px 20px">
-          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-            <td style="padding-right:12px;vertical-align:middle">
-              ${avatar(actorAvatar, actorName, 40)}
-            </td>
-            <td style="vertical-align:middle">
-              <p style="margin:0;font-size:15px;color:#d1d5db;line-height:1.5">${t.message}</p>
-            </td>
-          </tr></table>
-        </td>
-      </tr>
-    </table>
+      <!-- Actor avatar -->
+      ${actorAvatar
+        ? `<img src="${escHtml(actorAvatar)}" alt="" width="56" height="56" style="display:inline-block;border-radius:50%;border:2px solid #21262d;object-fit:cover" />`
+        : `<div style="display:inline-block;width:56px;height:56px;border-radius:50%;background-color:#1c2129;border:2px solid #21262d;color:#8b949e;font-size:22px;font-weight:700;line-height:56px">${(actorName || '?')[0].toUpperCase()}</div>`
+      }
 
-    ${comment ? `
-    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#0c1017;border:1px solid #1e2736;border-radius:12px;overflow:hidden;margin-bottom:8px">
-      <tr>
-        <td style="padding:16px 20px;border-left:3px solid #9b7bf740">
-          <p style="margin:0;font-size:13px;color:#d1d5db;line-height:1.5;font-style:italic">"${escHtml(comment)}"</p>
-        </td>
-      </tr>
-    </table>` : ''}
+      <!-- Heading -->
+      <p style="margin:16px 0 4px;font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:1.2px">${t.heading}</p>
+      <p style="margin:0 0 6px;font-size:16px;color:#c9d1d9;line-height:1.6">${t.message}</p>
 
-    ${ctaButton(t.cta, actionUrl)}
+      ${comment ? `
+      <!-- Comment preview -->
+      <div style="display:inline-block;text-align:left;max-width:400px;border-left:3px solid #9b7bf740;padding:10px 16px;background-color:#161b22;border-radius:0 8px 8px 0;margin:16px 0 4px">
+        <p style="margin:0;font-size:13px;color:#c9d1d9;line-height:1.5;font-style:italic">&ldquo;${escHtml(comment)}&rdquo;</p>
+      </div>
+      ` : ''}
 
-    ${muted('You can manage your notification preferences in <a href="https://blogs.elixpo.com/settings?tab=notifications" style="color:#9b7bf7;text-decoration:none">Settings</a>.')}
+      ${ctaButton(t.cta, actionUrl)}
+
+      ${muted('Manage notifications in <a href="https://blogs.elixpo.com/settings?tab=notifications" style="color:#b49aff;text-decoration:none">Settings</a>.')}
+    </div>
   `;
 
   return {
