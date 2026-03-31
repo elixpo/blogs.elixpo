@@ -184,7 +184,7 @@ export default function AppShell({ children }) {
         <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-cover bg-center logo-themed" style={{ backgroundImage: "url(/logo.png)" }} />
+              <img src={isDark ? '/logo-light.png' : '/logo-dark.png'} alt="" className="h-8 w-8 rounded-full" />
               <span className="text-xl font-bold tracking-tight font-kanit" style={{ color: 'var(--text-primary)' }}>LixBlogs</span>
             </Link>
           </div>
@@ -226,7 +226,7 @@ export default function AppShell({ children }) {
                 >
                   Sign In
                 </button>
-                <button onClick={handleLogin} className="text-[14px] font-medium text-white bg-[#9b7bf7] hover:bg-[#8b6ae6] transition-colors px-4 py-1.5 rounded-full">
+                <button onClick={handleLogin} className="text-[14px] font-medium text-[var(--text-primary)] bg-[#9b7bf7] hover:bg-[#8b6ae6] transition-colors px-4 py-1.5 rounded-full">
                   Get Started
                 </button>
               </>
