@@ -39,7 +39,8 @@ export async function GET(request) {
     // Resolve profile
     if (ns.owner_type === 'user') {
       const user = await db.prepare(`
-        SELECT id, username, display_name, bio, avatar_url, banner_r2_key, created_at
+        SELECT id, username, display_name, bio, avatar_url, banner_r2_key,
+          location, timezone, pronouns, website, company, links, created_at
         FROM users WHERE id = ?
       `).bind(ns.owner_id).first();
 
