@@ -64,26 +64,29 @@ async function sendViaMailChannels(opts) {
   }
 }
 
-// ─── Node.js / Local: nodemailer + Gmail SMTP ──────────────────────────
+// ─── Node.js / Local: nodemailer + SMTP ─────────────────────────────────
 async function sendViaNodemailer(opts) {
   try {
     const nodemailer = await import('nodemailer');
 
-    const user = process.env.GMAIL_USER;
-    const pass = process.env.GMAIL_APP_PASSWORD;
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const port = parseInt(process.env.SMTP_PORT || '465', 10);
+    const user = process.env.SMTP_FROM_EMAIL;
+    const pass = process.env.SMTP_PASS;
 
     if (!user || !pass) {
-      return { ok: false, error: 'Missing GMAIL_USER or GMAIL_APP_PASSWORD in .env' };
+      return { ok: false, error: 'Missing SMTP_FROM_EMAIL or SMTP_PASS in .env' };
     }
 
     const transporter = nodemailer.default.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      host,
+      port,
+      secure: port === 465,
       auth: { user, pass },
     });
 
-    const from = opts.from || `LixBlogs <${user}>`;
+    const fromName = process.env.SMTP_FROM_NAME || 'LixBlogs';
+    const from = opts.from || `${fromName} <${user}>`;
 
     const info = await transporter.sendMail({
       from,

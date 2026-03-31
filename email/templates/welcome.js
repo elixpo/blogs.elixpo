@@ -1,4 +1,4 @@
-import { baseLayout, ctaButton, muted, escHtml } from './base.js';
+import { baseLayout, buttonRow, muted, escHtml } from './base.js';
 
 /**
  * Welcome email — sent after a user completes onboarding.
@@ -16,22 +16,22 @@ export function welcome(data) {
   const subject = `Welcome to LixBlogs, ${name}!`;
 
   const body = `
-    <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#ffffff">Welcome aboard!</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#d1d5db;line-height:1.6">
+    <p style="margin:0 0 6px;font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-0.5px">Welcome aboard!</p>
+    <p style="margin:0 0 32px;font-size:16px;color:#d1d5db;line-height:1.7">
       Hey <strong style="color:#ffffff">${escHtml(name)}</strong>, your LixBlogs account is ready.
       Here's what you can do next:
     </p>
 
-    <!-- Feature cards -->
-    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:12px">
-      ${featureCard('create-outline', 'Write your first blog', 'Use our block editor with AI assistance, image embeds, code blocks, and more.')}
-      ${featureCard('people-outline', 'Create an organization', 'Collaborate with your team. Invite members, create collections, publish together.')}
-      ${featureCard('person-add-outline', 'Complete your profile', 'Add a bio, location, social links, and pronouns so readers know who you are.')}
-    </table>
+    ${featureRow('Write your first blog', 'Use our block editor with AI assistance, image embeds, code blocks, and more.')}
+    ${featureRow('Create an organization', 'Collaborate with your team. Invite members, create collections, publish together.')}
+    ${featureRow('Complete your profile', 'Add a bio, location, social links, and pronouns so readers know who you are.')}
 
-    ${ctaButton('Start Writing', `https://blogs.elixpo.com/new-blog`)}
+    ${buttonRow(
+      { text: 'Start Writing', href: 'https://blogs.elixpo.com/new-blog' },
+      { text: 'Visit Profile', href: `https://blogs.elixpo.com/${username}` },
+    )}
 
-    ${muted(`Your profile lives at <a href="https://blogs.elixpo.com/${escHtml(username)}" style="color:#9b7bf7;text-decoration:none">blogs.elixpo.com/${escHtml(username)}</a>`)}
+    ${muted(`Your profile: <a href="https://blogs.elixpo.com/${escHtml(username)}" style="color:#9b7bf7;text-decoration:none">blogs.elixpo.com/${escHtml(username)}</a>`)}
   `;
 
   return {
@@ -40,20 +40,14 @@ export function welcome(data) {
   };
 }
 
-function featureCard(icon, title, desc) {
+function featureRow(title, desc) {
   return `
-    <tr>
-      <td style="padding:12px 16px;background-color:#0c1017;border:1px solid #1e2736;border-radius:10px;margin-bottom:8px">
-        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-          <td style="vertical-align:top;padding-right:12px;padding-top:2px">
-            <span style="font-size:18px;color:#9b7bf7">&#9679;</span>
-          </td>
-          <td style="vertical-align:top">
-            <p style="margin:0;font-size:14px;font-weight:600;color:#ffffff">${title}</p>
-            <p style="margin:4px 0 0;font-size:12px;color:#6b7f99;line-height:1.5">${desc}</p>
-          </td>
-        </tr></table>
-      </td>
-    </tr>
-    <tr><td style="height:8px"></td></tr>`;
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:12px">
+      <tr>
+        <td style="padding:16px 20px;background-color:#111823;border:1px solid #1e2736;border-radius:10px">
+          <p style="margin:0;font-size:15px;font-weight:600;color:#ffffff">${title}</p>
+          <p style="margin:5px 0 0;font-size:13px;color:#6b7f99;line-height:1.5">${desc}</p>
+        </td>
+      </tr>
+    </table>`;
 }

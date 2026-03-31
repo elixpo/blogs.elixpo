@@ -1,6 +1,5 @@
 /**
- * Base email layout wrapper.
- * All templates use this to get consistent header, footer, and styling.
+ * Base email layout wrapper — full-width, no card container.
  *
  * @param {object} opts
  * @param {string} opts.title    - Email subject / preview title
@@ -24,15 +23,13 @@ export function baseLayout({ title, body, preheader = '' }) {
 <body style="margin:0;padding:0;background-color:#0c1017;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#e8edf5;-webkit-text-size-adjust:100%">
   ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all">${escHtml(preheader)}${'&zwnj;&nbsp;'.repeat(30)}</div>` : ''}
 
-  <!-- Outer wrapper -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0c1017">
-    <tr><td align="center" style="padding:40px 16px">
+    <tr><td style="padding:0">
 
-      <!-- Card -->
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#111823;border:1px solid #1e2736;border-radius:16px;overflow:hidden">
-        <!-- Header -->
+      <!-- Header -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #1e2736">
         <tr>
-          <td style="padding:28px 32px 20px;border-bottom:1px solid #1e2736">
+          <td style="padding:24px 32px">
             <table role="presentation" cellpadding="0" cellspacing="0"><tr>
               <td style="padding-right:10px;vertical-align:middle">
                 <img src="https://blogs.elixpo.com/logo.png" alt="LixBlogs" width="28" height="28" style="display:block;border-radius:6px" />
@@ -43,22 +40,26 @@ export function baseLayout({ title, body, preheader = '' }) {
             </tr></table>
           </td>
         </tr>
+      </table>
 
-        <!-- Body -->
+      <!-- Body -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         <tr>
-          <td style="padding:32px">
+          <td style="padding:40px 32px 48px">
             ${body}
           </td>
         </tr>
+      </table>
 
-        <!-- Footer -->
+      <!-- Footer -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #1e2736">
         <tr>
-          <td style="padding:20px 32px 28px;border-top:1px solid #1e2736">
+          <td style="padding:24px 32px 32px">
             <p style="margin:0;font-size:12px;color:#5a657a;line-height:1.6">
               You received this email because of your account on
               <a href="https://blogs.elixpo.com" style="color:#9b7bf7;text-decoration:none">LixBlogs</a>.
             </p>
-            <p style="margin:8px 0 0;font-size:11px;color:#3d4a5e">
+            <p style="margin:8px 0 0;font-size:11px;color:#4a5568">
               &copy; ${new Date().getFullYear()} Elixpo &middot;
               <a href="https://blogs.elixpo.com/about" style="color:#5a657a;text-decoration:none">About</a>
             </p>
@@ -88,6 +89,22 @@ export function ctaButton(text, href) {
       <tr>
         <td style="background-color:#9b7bf7;border-radius:10px;padding:12px 28px">
           <a href="${escHtml(href)}" style="color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;display:inline-block;letter-spacing:0.2px">${escHtml(text)}</a>
+        </td>
+      </tr>
+    </table>`;
+}
+
+/** Two buttons side by side: primary + secondary outline */
+export function buttonRow(primary, secondary) {
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px">
+      <tr>
+        <td style="background-color:#9b7bf7;border-radius:10px;padding:12px 28px">
+          <a href="${escHtml(primary.href)}" style="color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;display:inline-block;letter-spacing:0.2px">${escHtml(primary.text)}</a>
+        </td>
+        <td style="width:12px"></td>
+        <td style="border:1px solid #2d3a4d;border-radius:10px;padding:12px 28px">
+          <a href="${escHtml(secondary.href)}" style="color:#d1d5db;font-size:14px;font-weight:600;text-decoration:none;display:inline-block;letter-spacing:0.2px">${escHtml(secondary.text)}</a>
         </td>
       </tr>
     </table>`;

@@ -98,9 +98,9 @@ async function main() {
       process.exit(1);
     }
 
-    const to = process.env.GMAIL_USER;
+    const to = process.env.SMTP_FROM_EMAIL;
     if (!to) {
-      console.error('Set GMAIL_USER in .env to send test emails');
+      console.error('Set SMTP_FROM_EMAIL in .env to send test emails');
       process.exit(1);
     }
 
