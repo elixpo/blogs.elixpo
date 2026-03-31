@@ -238,8 +238,9 @@ export default function WritePage({ slugid }) {
   const [draftLoading, setDraftLoading] = useState(true);
   const [editorReady, setEditorReady] = useState(false);
   const [aiTitleKey, setAiTitleKey] = useState(0);
-  const [blogVersion, setBlogVersion] = useState(null); // { status, updatedAt, publishedAt, isPublished, isDraftAhead }
+  const [blogVersion, setBlogVersion] = useState(null);
   const [lastKnownUpdatedAt, setLastKnownUpdatedAt] = useState(null);
+  const [userOrgs, setUserOrgs] = useState([]);
   const isPublished = blogVersion?.isPublished;
   const [coverZoom, setCoverZoom] = useState(1);
   const [coverPos, setCoverPos] = useState({ x: 50, y: 50 });
@@ -491,6 +492,13 @@ export default function WritePage({ slugid }) {
       .then(d => { if (d?.collaborators) setCollaborators(d.collaborators); })
       .catch(() => {});
   }, [slugid]);
+
+  // Load user's orgs for owner dropdown
+  useEffect(() => {
+    fetch('/api/orgs').then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.orgs) setUserOrgs(d.orgs); })
+      .catch(() => {});
+  }, []);
 
   // Close owner dropdown on outside click
   useEffect(() => {
