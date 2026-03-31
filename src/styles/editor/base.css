@@ -39,7 +39,7 @@
 
 .blog-editor-wrapper .bn-editor {
   background: transparent;
-  color: #e4e4e7;
+  color: var(--text-primary);
   font-family: 'lixFont', sans-serif;
   font-size: 1em;
   line-height: 1.75;
@@ -71,19 +71,19 @@
   font-size: 30px !important;
   font-family: 'lixFont', sans-serif;
   font-weight: 700 !important;
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 .blog-editor-wrapper .bn-default-styles h2 {
   font-size: 24px !important;
   font-family: 'lixFont', sans-serif;
   font-weight: 650 !important;
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 .blog-editor-wrapper .bn-default-styles h3 {
   font-size: 20px !important;
   font-family: 'lixFont', sans-serif;
   font-weight: 600 !important;
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Inline code — lavender theme */

@@ -208,6 +208,31 @@ function NotificationDropdown() {
   );
 }
 
+/** Avatar with fallback — handles broken image URLs gracefully */
+function UserAvatar({ src, name, size = 32, className = '', style = {} }) {
+  const [failed, setFailed] = useState(false);
+  const initial = (name || '?')[0].toUpperCase();
+  const s = { width: size, height: size, ...style };
+
+  if (src && !failed) {
+    return (
+      <img
+        src={src} alt="" className={`rounded-full object-cover ${className}`}
+        style={s}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return (
+    <div
+      className={`rounded-full flex items-center justify-center font-bold ${className}`}
+      style={{ ...s, backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)', fontSize: Math.round(size * 0.38) }}
+    >
+      {initial}
+    </div>
+  );
+}
+
 const NAV_ITEMS = [
   { label: 'Home', icon: 'home-outline', href: '/' },
   { label: 'Library', icon: 'bookmark-outline', href: '/library' },
@@ -244,17 +269,10 @@ function ProfileDropdown({ user, logout }) {
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-1 py-1 rounded-full transition-colors"
-        style={{ '--hover-bg': 'var(--bg-hover)' }}
         onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
         onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
       >
-        {user.avatar_url ? (
-          <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" style={{ border: '2px solid var(--border-default)' }} />
-        ) : (
-          <div className="h-8 w-8 rounded-full flex items-center justify-center text-[13px] font-medium" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '2px solid var(--border-default)' }}>
-            {initial}
-          </div>
-        )}
+        <UserAvatar src={user.avatar_url} name={user.display_name || user.username} size={32} style={{ border: '2px solid var(--border-default)' }} />
       </button>
 
       {open && (
@@ -262,22 +280,17 @@ function ProfileDropdown({ user, logout }) {
           <Link
             href={`/${user.username}`}
             onClick={() => setOpen(false)}
-            className="flex items-center gap-3.5 px-5 py-4 transition-colors"
-            style={{ backgroundColor: 'var(--bg-surface)' }}
+            className="flex items-center gap-3.5 px-4 py-3.5 m-2 rounded-xl transition-colors"
+            style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-elevated)'}
             onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface)'}
           >
-            {user.avatar_url ? (
-              <img src={user.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover flex-shrink-0" style={{ border: '2px solid var(--accent)', opacity: 0.9 }} />
-            ) : (
-              <div className="h-12 w-12 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '2px solid var(--accent)', opacity: 0.9 }}>
-                {initial}
-              </div>
-            )}
+            <UserAvatar src={user.avatar_url} name={user.display_name || user.username} size={44} style={{ border: '2px solid var(--accent)', flexShrink: 0 }} />
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user.display_name || user.username}</p>
               <p className="text-[12px] truncate" style={{ color: 'var(--text-muted)' }}>@{user.username}</p>
             </div>
+            <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-faint)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
           </Link>
 
           <div style={{ height: '1px', backgroundColor: 'var(--divider)' }} />
@@ -480,15 +493,9 @@ export default function AppShell({ children }) {
             </div>
           </nav>
           {user && (
-            <Link href="/profile" className="block px-3 py-3 rounded-xl transition-colors cursor-pointer" style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--card-border)' }}>
+            <Link href="/profile" className="block px-3 py-3 rounded-xl transition-colors cursor-pointer" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
               <div className="flex items-center gap-2.5">
-                {user.avatar_url ? (
-                  <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover flex-shrink-0" />
-                ) : (
-                  <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-medium" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
-                    {(user.display_name || user.username || '?')[0].toUpperCase()}
-                  </div>
-                )}
+                <UserAvatar src={user.avatar_url} name={user.display_name || user.username} size={32} className="flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user.display_name || user.username}</p>
                   <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>@{user.username}</p>

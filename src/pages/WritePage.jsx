@@ -10,6 +10,20 @@ import '@blocknote/mantine/style.css';
 import '../styles/editor/editor.css';
 import { compressCoverImage } from '../utils/compressImage';
 
+function AvatarImg({ src, name, size = 32 }) {
+  const [failed, setFailed] = useState(false);
+  const initial = (name || '?')[0].toUpperCase();
+  if (src && !failed) {
+    return <img src={src} alt="" className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setFailed(true)} />;
+  }
+  return (
+    <div className="rounded-full flex items-center justify-center font-bold"
+      style={{ width: size, height: size, backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)', fontSize: Math.round(size * 0.38) }}>
+      {initial}
+    </div>
+  );
+}
+
 const BlockNoteEditor = dynamic(
   () => import('../components/Editor/BlogEditor'),
   { ssr: false }
@@ -94,22 +108,12 @@ function HeaderProfileDropdown({ user, logout }) {
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(!open)} className="rounded-full hover:ring-2 hover:ring-[var(--border-default)] transition-all">
-        {user.avatar_url ? (
-          <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
-        ) : (
-          <div className="h-8 w-8 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[13px] text-[var(--text-body)] font-medium">
-            {initial}
-          </div>
-        )}
+        <AvatarImg src={user.avatar_url} name={user.display_name || user.username} size={32} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[240px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-[240px] rounded-xl shadow-2xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
           <Link href="/profile" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors">
-            {user.avatar_url ? (
-              <img src={user.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover flex-shrink-0" />
-            ) : (
-              <div className="h-9 w-9 rounded-full bg-[var(--bg-elevated)] flex-shrink-0 flex items-center justify-center text-[14px] text-[var(--text-body)] font-medium">{initial}</div>
-            )}
+            <AvatarImg src={user.avatar_url} name={user.display_name || user.username} size={36} />
             <div className="min-w-0">
               <p className="text-[13px] text-[var(--text-primary)] font-semibold truncate">{user.display_name || user.username}</p>
               <p className="text-[11px] text-[#9b7bf7]">View profile</p>
@@ -963,13 +967,7 @@ export default function WritePage({ slugid }) {
                   {/* Author bar — above title */}
                   <div className="flex items-center gap-3 mt-2 mb-2">
                     <div className="flex -space-x-2">
-                      {user?.avatar_url ? (
-                        <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-[var(--border-default)] border-[var(--bg-app)]" />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-[var(--bg-elevated)] border-[var(--border-default)] border-[var(--bg-app)] flex items-center justify-center text-[11px] font-bold text-[var(--text-muted)]">
-                          {(user?.display_name || user?.username || '?')[0].toUpperCase()}
-                        </div>
-                      )}
+                      <AvatarImg src={user?.avatar_url} name={user?.display_name || user?.username} size={28} />
                     </div>
                     <div className="flex items-center gap-2 text-[13px] text-[var(--text-faint)]">
                       <span className="text-[var(--text-muted)] font-medium">{user?.display_name || user?.username || 'Author'}</span>
