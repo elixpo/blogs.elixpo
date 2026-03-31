@@ -1,6 +1,7 @@
 export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 import { getSession } from '../../../lib/auth';
+import { STAFF_ORG_ID } from '../../../lib/staff';
 
 const BLOG_FIELDS = `b.id, b.slug, b.title, b.subtitle, b.cover_image_r2_key, b.page_emoji,
   b.author_id, b.published_as, b.published_at, b.read_time_minutes`;
@@ -66,6 +67,7 @@ export async function GET(request) {
         ...p,
         author: authorMap[p.author_id] || { username: 'unknown', display_name: 'Unknown' },
         tags: tagMap[p.id] || [],
+        is_staff: p.published_as === `org:${STAFF_ORG_ID}`,
       }));
     }
 

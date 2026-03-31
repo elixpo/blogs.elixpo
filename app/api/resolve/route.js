@@ -1,6 +1,7 @@
 export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 import { decompressBlogContent } from '../../../lib/compress';
+import { STAFF_ORG_ID } from '../../../lib/staff';
 
 function decompressBlog(blog) {
   if (!blog) return blog;
