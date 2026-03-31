@@ -277,7 +277,7 @@ export default function OrgManagePage({ slug }) {
       {sublabel && <p className="text-[11px] text-[var(--text-faint)] mb-2">{sublabel}</p>}
       <input
         type={type} value={value} onChange={onChange} placeholder={placeholder}
-        className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[#6b7f99]"
+        className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]"
         {...props}
       />
     </div>
@@ -309,7 +309,7 @@ export default function OrgManagePage({ slug }) {
           </div>
           <Link
             href={`/${org.slug}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111823] border border-[var(--border-default)] rounded-lg text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[#334155] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-lg text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[#334155] transition-colors"
           >
             <ion-icon name="eye-outline" style={{ fontSize: '13px' }} />
             View Profile
@@ -333,7 +333,7 @@ export default function OrgManagePage({ slug }) {
                     value={description} onChange={e => setDescription(e.target.value)}
                     placeholder="Building the future of..."
                     maxLength={160}
-                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[#6b7f99]"
+                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]"
                   />
                   <p className="text-[10px] text-[var(--text-muted)] mt-1 text-right">{description.length}/160</p>
                 </div>
@@ -343,7 +343,7 @@ export default function OrgManagePage({ slug }) {
                   <textarea
                     value={bio} onChange={e => setBio(e.target.value)} rows={4}
                     placeholder="We are a team of..."
-                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors resize-none placeholder-[#6b7f99]"
+                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors resize-none placeholder-[var(--text-faint)]"
                   />
                 </div>
               </div>
@@ -445,7 +445,7 @@ export default function OrgManagePage({ slug }) {
                   {links.map((link, i) => {
                     const preset = LINK_PRESETS.find(p => p.key === link.type) || LINK_PRESETS.at(-1);
                     return (
-                      <div key={i} className="flex items-center gap-3 p-3 bg-[#111823] border border-[var(--border-default)] rounded-xl group">
+                      <div key={i} className="flex items-center gap-3 p-3 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-xl group">
                         <div className="h-9 w-9 rounded-lg bg-[var(--bg-base)] flex items-center justify-center shrink-0">
                           <ion-icon name={preset.icon} style={{ fontSize: '18px', color: '#7c8a9e' }} />
                         </div>
@@ -454,7 +454,7 @@ export default function OrgManagePage({ slug }) {
                             <input
                               value={link.label || ''} onChange={e => updateLink(i, 'label', e.target.value)}
                               placeholder="Label"
-                              className="w-full bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder-[#6b7f99] font-medium"
+                              className="w-full bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder-[var(--text-faint)] font-medium"
                             />
                           )}
                           {link.type !== 'custom' && (
@@ -463,7 +463,7 @@ export default function OrgManagePage({ slug }) {
                           <input
                             value={link.url || ''} onChange={e => updateLink(i, 'url', e.target.value)}
                             placeholder={preset.placeholder}
-                            className="w-full bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder-[#6b7f99]"
+                            className="w-full bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder-[var(--text-faint)]"
                           />
                         </div>
                         <button
@@ -487,7 +487,7 @@ export default function OrgManagePage({ slug }) {
                       key={preset.key}
                       onClick={() => addLink(preset)}
                       disabled={preset.key !== 'custom' && addedLinkTypes.has(preset.key)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111823] border border-[var(--border-default)] rounded-lg text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[#2d3a4d] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-lg text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[#2d3a4d] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <ion-icon name={preset.icon} style={{ fontSize: '14px' }} />
                       {preset.label}
@@ -514,7 +514,7 @@ export default function OrgManagePage({ slug }) {
         {activeTab === 'members' && (
           <div className="space-y-3">
             {members.map(m => (
-              <div key={m.id} className="flex items-center gap-3 p-3.5 bg-[#111823] border border-[var(--border-default)] rounded-xl">
+              <div key={m.id} className="flex items-center gap-3 p-3.5 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-xl">
                 {m.avatar_url ? (
                   <img src={m.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
                 ) : (
@@ -549,7 +549,7 @@ export default function OrgManagePage({ slug }) {
         {activeTab === 'collections' && (
           <div className="space-y-4">
             {collections.map(c => (
-              <div key={c.id} className="flex items-center gap-3 p-4 bg-[#111823] border border-[var(--border-default)] rounded-xl">
+              <div key={c.id} className="flex items-center gap-3 p-4 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-xl">
                 <div className="h-9 w-9 rounded-lg bg-[var(--bg-base)] flex items-center justify-center shrink-0">
                   <ion-icon name="folder" style={{ fontSize: '18px', color: '#60a5fa' }} />
                 </div>
@@ -563,15 +563,15 @@ export default function OrgManagePage({ slug }) {
               </div>
             ))}
 
-            <div className="border border-[var(--border-default)] rounded-xl p-5 space-y-4 bg-[#111823]">
+            <div className="border border-[var(--border-default)] rounded-xl p-5 space-y-4 bg-[var(--card-bg)]">
               <p className="text-[13px] text-[var(--text-primary)] font-semibold flex items-center gap-2">
                 <ion-icon name="add-circle-outline" style={{ fontSize: '16px', color: '#9b7bf7' }} />
                 New Collection
               </p>
               <input value={newColName} onChange={e => { setNewColName(e.target.value); setNewColSlug(e.target.value.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').slice(0, 40)); }} placeholder="Collection name"
-                className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[#6b7f99]" />
+                className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]" />
               <input value={newColDesc} onChange={e => setNewColDesc(e.target.value)} placeholder="Description (optional)"
-                className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[#6b7f99]" />
+                className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]" />
               <button onClick={handleCreateCollection} disabled={!newColName.trim()}
                 className="px-4 py-2 bg-[#9b7bf7] text-[var(--text-primary)] font-medium rounded-lg text-[12px] hover:bg-[#b69aff] disabled:opacity-40 transition-colors">
                 Create
@@ -584,7 +584,7 @@ export default function OrgManagePage({ slug }) {
         {activeTab === 'invites' && (
           <div className="space-y-5">
             {/* Direct invite by username */}
-            <div className="border border-[var(--border-default)] rounded-xl p-5 space-y-4 bg-[#111823]">
+            <div className="border border-[var(--border-default)] rounded-xl p-5 space-y-4 bg-[var(--card-bg)]">
               <p className="text-[13px] text-[var(--text-primary)] font-semibold flex items-center gap-2">
                 <ion-icon name="person-add-outline" style={{ fontSize: '16px', color: '#9b7bf7' }} />
                 Invite by username
@@ -595,7 +595,7 @@ export default function OrgManagePage({ slug }) {
                     value={directQuery}
                     onChange={e => { setDirectQuery(e.target.value); setDirectError(''); }}
                     placeholder="Search username..."
-                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[#6b7f99]"
+                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]"
                   />
                   {directResults.length > 0 && (
                     <div className="absolute top-full mt-1 left-0 right-0 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg shadow-xl z-10 overflow-hidden max-h-[200px] overflow-y-auto">
@@ -637,7 +637,7 @@ export default function OrgManagePage({ slug }) {
             </div>
 
             {/* Generate invite link */}
-            <div className="border border-[var(--border-default)] rounded-xl p-5 space-y-4 bg-[#111823]">
+            <div className="border border-[var(--border-default)] rounded-xl p-5 space-y-4 bg-[var(--card-bg)]">
               <p className="text-[13px] text-[var(--text-primary)] font-semibold flex items-center gap-2">
                 <ion-icon name="link-outline" style={{ fontSize: '16px', color: '#9b7bf7' }} />
                 Generate invite link
@@ -653,12 +653,12 @@ export default function OrgManagePage({ slug }) {
                 <div>
                   <label className="text-[11px] text-[var(--text-faint)] mb-1 block">Expires in (hours)</label>
                   <input value={inviteExpiry} onChange={e => setInviteExpiry(e.target.value)} placeholder="Never"
-                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg px-2.5 py-2 text-[12px] outline-none focus:border-[#9b7bf7]/50 transition-colors placeholder-[#6b7f99]" />
+                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg px-2.5 py-2 text-[12px] outline-none focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]" />
                 </div>
                 <div>
                   <label className="text-[11px] text-[var(--text-faint)] mb-1 block">Max uses</label>
                   <input value={inviteMaxUses} onChange={e => setInviteMaxUses(e.target.value)} placeholder="Unlimited"
-                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg px-2.5 py-2 text-[12px] outline-none focus:border-[#9b7bf7]/50 transition-colors placeholder-[#6b7f99]" />
+                    className="w-full bg-[var(--bg-base)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg px-2.5 py-2 text-[12px] outline-none focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]" />
                 </div>
               </div>
               <button onClick={handleCreateInvite} disabled={creatingInvite}
@@ -673,7 +673,7 @@ export default function OrgManagePage({ slug }) {
                 <p className="text-[11px] text-[var(--text-faint)] uppercase tracking-widest font-semibold mb-3">Active Invites</p>
                 <div className="space-y-2">
                   {invites.map(inv => (
-                    <div key={inv.id} className="flex items-center gap-3 p-3.5 bg-[#111823] border border-[var(--border-default)] rounded-xl">
+                    <div key={inv.id} className="flex items-center gap-3 p-3.5 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-xl">
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] text-[var(--text-primary)] font-mono truncate">{inv.id}</p>
                         <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--text-faint)]">
@@ -692,7 +692,7 @@ export default function OrgManagePage({ slug }) {
             )}
 
             {/* Shareable org link */}
-            <div className="border border-[var(--border-default)] rounded-xl p-4 flex items-center gap-3 bg-[#111823]">
+            <div className="border border-[var(--border-default)] rounded-xl p-4 flex items-center gap-3 bg-[var(--card-bg)]">
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] text-[var(--text-faint)] mb-1">Share this org&apos;s profile</p>
                 <p className="text-[13px] text-[var(--text-primary)] font-mono truncate">

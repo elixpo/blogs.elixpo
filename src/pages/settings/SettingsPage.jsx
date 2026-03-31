@@ -119,7 +119,7 @@ function AccountTab({ user, refetchUser }) {
     setSaving(false);
   };
 
-  const inputCls = "w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[#6b7f99]";
+  const inputCls = "w-full bg-[var(--bg-base)] text-[var(--text-primary)] rounded-lg px-3.5 py-2.5 outline-none text-[13px] border border-[var(--border-default)] focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]";
 
   return (
     <div className="space-y-8">
@@ -127,11 +127,11 @@ function AccountTab({ user, refetchUser }) {
       <section>
         <h3 className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-widest mb-4">Profile</h3>
         <div className="space-y-4">
-          <div className="flex items-center gap-4 p-4 bg-[#111823] border border-[var(--border-default)] rounded-xl">
+          <div className="flex items-center gap-4 p-4 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-xl">
             {user.avatar_url ? (
-              <img src={user.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-[#1e2736]" />
+              <img src={user.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--border-default)]" />
             ) : (
-              <div className="h-16 w-16 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-2xl text-[var(--text-muted)] font-bold ring-2 ring-[#1e2736]">
+              <div className="h-16 w-16 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-2xl text-[var(--text-muted)] font-bold ring-2 ring-[var(--border-default)]">
                 {(user.display_name || user.username || '?')[0].toUpperCase()}
               </div>
             )}
@@ -225,20 +225,20 @@ function AccountTab({ user, refetchUser }) {
             {links.map((link, i) => {
               const preset = USER_LINK_PRESETS.find(p => p.key === link.type) || USER_LINK_PRESETS.at(-1);
               return (
-                <div key={i} className="flex items-center gap-3 p-3 bg-[#111823] border border-[var(--border-default)] rounded-xl group">
+                <div key={i} className="flex items-center gap-3 p-3 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-xl group">
                   <div className="h-8 w-8 rounded-lg bg-[var(--bg-base)] flex items-center justify-center shrink-0">
                     <ion-icon name={preset.icon} style={{ fontSize: '16px', color: '#7c8a9e' }} />
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
                     {link.type === 'custom' && (
                       <input value={link.label || ''} onChange={e => updateLink(i, 'label', e.target.value)} placeholder="Label"
-                        className="w-full bg-transparent text-[12px] text-[var(--text-primary)] outline-none placeholder-[#6b7f99] font-medium" />
+                        className="w-full bg-transparent text-[12px] text-[var(--text-primary)] outline-none placeholder-[var(--text-faint)] font-medium" />
                     )}
                     {link.type !== 'custom' && (
                       <p className="text-[11px] text-[var(--text-faint)] font-medium">{preset.label}</p>
                     )}
                     <input value={link.url || ''} onChange={e => updateLink(i, 'url', e.target.value)} placeholder={preset.placeholder}
-                      className="w-full bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder-[#6b7f99]" />
+                      className="w-full bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder-[var(--text-faint)]" />
                   </div>
                   <button onClick={() => removeLink(i)} className="text-[var(--text-muted)] hover:text-[#f87171] transition-colors p-1 opacity-0 group-hover:opacity-100">
                     <ion-icon name="trash-outline" style={{ fontSize: '15px' }} />
@@ -253,7 +253,7 @@ function AccountTab({ user, refetchUser }) {
           {USER_LINK_PRESETS.map(preset => (
             <button key={preset.key} onClick={() => addLink(preset)}
               disabled={preset.key !== 'custom' && addedTypes.has(preset.key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111823] border border-[var(--border-default)] rounded-lg text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[#2d3a4d] transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-lg text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[#2d3a4d] transition-all disabled:opacity-30 disabled:cursor-not-allowed">
               <ion-icon name={preset.icon} style={{ fontSize: '13px' }} />
               {preset.label}
             </button>
@@ -602,7 +602,7 @@ function CreateOrgModal({ onClose, onCreated }) {
             <div>
               <label className="text-[12px] text-[var(--text-muted)] mb-1.5 block font-medium">Organization name *</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Name"
-                className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] transition-colors placeholder-[#6b7a8d]" />
+                className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] transition-colors placeholder-[var(--text-faint)]" />
             </div>
             <div>
               <label className="text-[12px] text-[var(--text-muted)] mb-1.5 block font-medium">
@@ -665,13 +665,13 @@ function CreateOrgModal({ onClose, onCreated }) {
               {contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) && <span className="text-[#f87171] ml-1.5 font-normal">invalid email</span>}
             </label>
             <input value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="org@example.com" type="email"
-              className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] placeholder-[#6b7a8d]" />
+              className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] placeholder-[var(--text-faint)]" />
           </div>
 
           <div>
             <label className="text-[12px] text-[var(--text-muted)] mb-1.5 block font-medium">Description</label>
             <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short tagline"
-              className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] placeholder-[#6b7a8d]" />
+              className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] placeholder-[var(--text-faint)]" />
           </div>
 
           {/* About — code/preview toggle like GitHub */}
@@ -691,7 +691,7 @@ function CreateOrgModal({ onClose, onCreated }) {
             </div>
             {!bioPreview ? (
               <textarea value={bio} onChange={e => setBio(e.target.value)} rows={4} placeholder="Supports **bold**, *italic*, [links](url), `code`, lists..."
-                className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] font-mono border border-[var(--border-default)] focus:border-[var(--border-hover)] placeholder-[#6b7a8d] resize-none" />
+                className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] font-mono border border-[var(--border-default)] focus:border-[var(--border-hover)] placeholder-[var(--text-faint)] resize-none" />
             ) : (
               <div className="bg-[var(--bg-app)] border border-[var(--border-default)] rounded-lg px-3 py-2 min-h-[100px] text-[13px] text-[var(--text-secondary)] leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: bio
