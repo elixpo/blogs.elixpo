@@ -17,12 +17,8 @@ export function middleware(request) {
   const segments = pathname.split('/').filter(Boolean);
   const firstSegment = segments[0] || '';
 
-  // If it's not a known app route and not empty, rewrite to /handle/...
-  if (firstSegment && !APP_ROUTES.has(firstSegment) && !firstSegment.startsWith('_')) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/handle${pathname}`;
-    return NextResponse.rewrite(url);
-  }
+  // Dynamic handle routes are now served by app/[...path]/page.jsx directly
+  // (no middleware rewrite needed)
 
   // Auth protection
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
