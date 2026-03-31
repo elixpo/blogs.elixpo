@@ -93,49 +93,147 @@ export default function HandlePage({ path }) {
   // ── User profile ──
   if (data.type === 'user') {
     const u = data.user;
+    const userLinks = (() => { try { return JSON.parse(u.links || '[]'); } catch { return []; } })();
+    const joined = u.created_at ? new Date(u.created_at * 1000) : null;
+    const isOwnProfile = currentUser && currentUser.id === u.id;
+
     return (
       <AppShell>
-        <div className="max-w-3xl mx-auto px-6 py-8">
-          <div className="w-full h-44 rounded-xl bg-[#1a2030] mb-16 relative">
-            <div className="absolute -bottom-12 left-6">
-              {u.avatar_url ? (
-                <img src={u.avatar_url} alt="" className="h-24 w-24 rounded-full border-4 border-[#131922] object-cover" />
-              ) : (
-                <div className="h-24 w-24 rounded-full border-4 border-[#131922] bg-[#232d3f] flex items-center justify-center text-3xl text-[#b0b0b0] font-bold">
-                  {(u.display_name || u.username || '?')[0].toUpperCase()}
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+          {/* ── Avatar + Header ── */}
+          <div className="flex items-start gap-5 mb-5">
+            {u.avatar_url ? (
+              <img src={u.avatar_url} alt="" className="h-[88px] w-[88px] rounded-full border-[3px] border-[#1e2736] object-cover shadow-lg shadow-black/20 shrink-0" />
+            ) : (
+              <div className="h-[88px] w-[88px] rounded-full border-[3px] border-[#1e2736] bg-[#1a2030] flex items-center justify-center text-3xl text-[#7c8a9e] font-bold shadow-lg shadow-black/20 shrink-0">
+                {(u.display_name || u.username || '?')[0].toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0 flex-1 pt-1">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="text-[26px] font-extrabold text-white tracking-tight leading-tight">
+                    {u.display_name || u.username}
+                    {u.pronouns && <span className="text-[14px] font-normal text-[#5a657a] ml-2">({u.pronouns})</span>}
+                  </h1>
+                  <p className="text-[#7c8a9e] text-[15px] mt-0.5 font-medium">@{u.username}</p>
                 </div>
-              )}
+                {isOwnProfile && (
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141a26] border border-[#232d3f] rounded-full text-[13px] text-[#9ca3af] hover:text-white hover:border-[#9b7bf7]/50 hover:bg-[#9b7bf7]/10 transition-all shrink-0"
+                  >
+                    <ion-icon name="create-outline" style={{ fontSize: '14px' }} />
+                    Edit
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-white">{u.display_name || u.username}</h1>
-          <p className="text-[#9ca3af] text-sm mt-0.5">@{u.username}</p>
+          {/* ── Bio ── */}
+          {u.bio && <p className="text-[#d1d5db] text-[15px] leading-relaxed mb-4">{u.bio}</p>}
 
-          {u.bio && <p className="text-[#c8c8c8] text-[15px] leading-relaxed mt-4">{u.bio}</p>}
+          {/* ── Meta info row ── */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-[#7c8a9e]">
+            {u.company && (
+              <span className="flex items-center gap-1.5">
+                <ion-icon name="business-outline" style={{ fontSize: '14px' }} />
+                {u.company}
+              </span>
+            )}
+            {u.location && (
+              <span className="flex items-center gap-1.5">
+                <ion-icon name="location-outline" style={{ fontSize: '14px' }} />
+                {u.location}
+              </span>
+            )}
+            {u.timezone && (
+              <span className="flex items-center gap-1.5">
+                <ion-icon name="time-outline" style={{ fontSize: '14px' }} />
+                {u.timezone.replace(/_/g, ' ')}
+              </span>
+            )}
+            {u.website && (
+              <a href={u.website.startsWith('http') ? u.website : `https://${u.website}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 hover:text-[#60a5fa] transition-colors">
+                <ion-icon name="globe-outline" style={{ fontSize: '14px' }} />
+                {u.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+              </a>
+            )}
+            {joined && (
+              <span className="flex items-center gap-1.5">
+                <ion-icon name="calendar-outline" style={{ fontSize: '14px' }} />
+                Joined {joined.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </span>
+            )}
+          </div>
 
-          <div className="flex items-center gap-6 text-[14px] text-[#9ca3af] mt-4 mb-8">
+          {/* ── Social links ── */}
+          {userLinks.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {userLinks.filter(l => l.url?.trim()).map((link, i) => {
+                const iconMap = { github: 'logo-github', twitter: 'logo-twitter', linkedin: 'logo-linkedin', mastodon: 'globe-outline', website: 'globe-outline' };
+                const icon = iconMap[link.type] || 'link-outline';
+                return (
+                  <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111823] border border-[#1e2736] rounded-full text-[12px] text-[#7c8a9e] hover:text-white hover:border-[#2d3a4d] transition-all">
+                    <ion-icon name={icon} style={{ fontSize: '14px' }} />
+                    {link.label || link.type || 'Link'}
+                  </a>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Followers / Following ── */}
+          <div className="flex items-center gap-5 text-[14px] text-[#7c8a9e] mt-4 mb-6">
             <span><strong className="text-[#e0e0e0]">{u.followers}</strong> Followers</span>
             <span><strong className="text-[#e0e0e0]">{u.following}</strong> Following</span>
           </div>
 
-          <div className="h-px bg-[#232d3f] mb-8" />
+          <div className="h-px bg-[#1e2736] mb-6" />
 
-          <h2 className="text-[15px] font-semibold text-white mb-4">Published</h2>
+          {/* ── Published blogs ── */}
+          <h2 className="text-[11px] font-semibold text-[#5a657a] uppercase tracking-widest mb-4">
+            Published {(data.blogs || []).length > 0 && <span className="text-[#3d4a5e] ml-1">({(data.blogs || []).length})</span>}
+          </h2>
           {(data.blogs || []).length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               {data.blogs.map(b => (
-                <Link key={b.id} href={`/${u.username}/${b.slug}`} className="block p-4 bg-[#141a26] border border-[#232d3f] rounded-xl hover:border-[#333] transition-colors">
-                  <p className="text-[15px] text-[#e0e0e0] font-medium">{b.page_emoji && `${b.page_emoji} `}{b.title || 'Untitled'}</p>
-                  {b.subtitle && <p className="text-[13px] text-[#8896a8] mt-1">{b.subtitle}</p>}
-                  <div className="flex items-center gap-3 mt-2 text-[11px] text-[#666]">
-                    {b.read_time_minutes > 0 && <span>{b.read_time_minutes} min read</span>}
-                    {b.published_at && <span>{new Date(b.published_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                <Link key={b.id} href={`/${u.username}/${b.slug}`}
+                  className="block p-4 bg-[#111823] border border-[#1e2736] rounded-xl hover:border-[#2d3a4d] transition-colors group">
+                  <div className="flex items-start gap-3">
+                    {b.cover_image_r2_key && (
+                      <img src={b.cover_image_r2_key} alt="" className="w-20 h-14 rounded-lg object-cover shrink-0 mt-0.5" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] text-[#e0e0e0] font-semibold group-hover:text-white transition-colors leading-snug">
+                        {b.page_emoji && <span className="mr-1.5">{b.page_emoji}</span>}
+                        {b.title || 'Untitled'}
+                      </p>
+                      {b.subtitle && <p className="text-[13px] text-[#7c8a9e] mt-1 line-clamp-1">{b.subtitle}</p>}
+                      <div className="flex items-center gap-3 mt-2 text-[11px] text-[#4a5568]">
+                        {b.read_time_minutes > 0 && (
+                          <span className="flex items-center gap-1">
+                            <ion-icon name="time-outline" style={{ fontSize: '12px' }} />
+                            {b.read_time_minutes} min read
+                          </span>
+                        )}
+                        {b.published_at && (
+                          <span>{new Date(b.published_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-[#8896a8] text-[13px] text-center py-12">No published blogs yet.</p>
+            <div className="text-center py-16 bg-[#111823] border border-[#1e2736] rounded-xl">
+              <ion-icon name="document-text-outline" style={{ fontSize: '36px', color: '#2d3a4d' }} />
+              <p className="text-[#5a657a] text-[14px] mt-3">No published blogs yet</p>
+            </div>
           )}
         </div>
       </AppShell>
