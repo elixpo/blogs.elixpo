@@ -1073,8 +1073,10 @@ export default function WritePage({ slugid }) {
                       blogId={slugid}
                     />
                     {/* Outline sidebar — shows heading positions */}
-                    {editorContent && editorContent.length > 0 && (() => {
-                      const headings = (editorContent || []).filter(
+                    {editorContent && (() => {
+                      const blocks = Array.isArray(editorContent) ? editorContent : (() => { try { return JSON.parse(editorContent); } catch { return []; } })();
+                      if (!blocks.length) return null;
+                      const headings = blocks.filter(
                         (b) => b.type === 'heading' && b.content?.length > 0
                       );
                       if (headings.length === 0) return null;
