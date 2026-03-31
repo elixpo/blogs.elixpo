@@ -43,12 +43,17 @@ export async function GET(request) {
     // Get tags
     const tags = await db.prepare('SELECT tag FROM blog_tags WHERE blog_id = ?').bind(slugid).all();
 
+    // Get version info
+    const { getBlogVersionInfo } = await import('../../../../lib/blog-version');
+    const version = await getBlogVersionInfo(db, slugid);
+
     return NextResponse.json({
       blog: {
         ...blog,
         content,
         tags: (tags?.results || []).map(t => t.tag),
       },
+      version,
     });
   } catch (e) {
     console.error('Draft fetch error:', e);

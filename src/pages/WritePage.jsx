@@ -237,6 +237,9 @@ export default function WritePage({ slugid }) {
   const [draftLoading, setDraftLoading] = useState(true);
   const [editorReady, setEditorReady] = useState(false);
   const [aiTitleKey, setAiTitleKey] = useState(0);
+  const [blogVersion, setBlogVersion] = useState(null); // { status, updatedAt, publishedAt, isPublished, isDraftAhead }
+  const [lastKnownUpdatedAt, setLastKnownUpdatedAt] = useState(null);
+  const isPublished = blogVersion?.isPublished;
   const [coverZoom, setCoverZoom] = useState(1);
   const [coverPos, setCoverPos] = useState({ x: 50, y: 50 });
   const [isDraggingCover, setIsDraggingCover] = useState(false);
@@ -383,6 +386,10 @@ export default function WritePage({ slugid }) {
                 setEditorContent(contentStr);
               }
             }
+            if (data.version) {
+              setBlogVersion(data.version);
+              setLastKnownUpdatedAt(data.version.updatedAt);
+            }
           }
         } catch { /* no server data, start fresh */ }
         setDraftLoading(false);
@@ -501,7 +508,7 @@ export default function WritePage({ slugid }) {
     syncToCloud({ showToast: true });
   };
 
-  const handlePublish = async () => {
+  const doPublish = async (targetStatus) => {
     if (!title.trim() || publishing) return;
     setPublishing(true);
     setShowPublishMenu(false);
@@ -509,9 +516,21 @@ export default function WritePage({ slugid }) {
       const res = await fetch('/api/blogs/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, status: 'published' }),
+        body: JSON.stringify({ slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, status: targetStatus, lastKnownUpdatedAt }),
       });
+
+      if (res.status === 409) {
+        // Conflict — someone else updated
+        const data = await res.json();
+        alert(data.message || 'This blog was updated by someone else. Please reload and try again.');
+        setPublishing(false);
+        return;
+      }
+
       if (res.ok) {
+        const data = await res.json();
+        setLastKnownUpdatedAt(data.updatedAt);
+        setBlogVersion(v => v ? { ...v, isPublished: true, updatedAt: data.updatedAt, publishedAt: data.updatedAt, isDraftAhead: false } : v);
         setShowPublishPanel(false);
         setShowSavedToast(true);
         setTimeout(() => setShowSavedToast(false), 3000);
@@ -519,6 +538,8 @@ export default function WritePage({ slugid }) {
     } catch { /* silent */ }
     setPublishing(false);
   };
+
+  const handlePublish = () => doPublish('published');
 
   const handlePublishBeta = async () => {
     if (!title.trim() || publishing) return;
@@ -528,7 +549,7 @@ export default function WritePage({ slugid }) {
       await fetch('/api/blogs/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, status: 'unlisted' }),
+        body: JSON.stringify({ slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, status: 'unlisted', lastKnownUpdatedAt }),
       });
       setShowPublishPanel(false);
     } catch { /* silent */ }
@@ -612,20 +633,30 @@ export default function WritePage({ slugid }) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2.5">
-          <span className="text-[var(--text-muted)] text-[11px] px-2 py-0.5 rounded-md bg-[var(--bg-surface)] border border-[var(--border-default)]">Draft</span>
+          {/* Status badge */}
+          <span
+            className="text-[11px] px-2 py-0.5 rounded-md border"
+            style={{
+              backgroundColor: isPublished ? '#4ade8014' : 'var(--bg-surface)',
+              color: isPublished ? '#4ade80' : 'var(--text-muted)',
+              borderColor: isPublished ? '#4ade8030' : 'var(--border-default)',
+            }}
+          >
+            {isPublished ? (blogVersion?.isDraftAhead ? 'Edited' : 'Published') : 'Draft'}
+          </span>
 
-          {/* Publish split button */}
+          {/* Publish / Update split button */}
           <div className="relative">
             <div className="flex items-center">
               <button
                 onClick={() => setShowPublishPanel(!showPublishPanel)}
-                className="px-4 py-1.5 bg-[#9b7bf7] text-[var(--text-primary)] font-semibold rounded-l-full text-[13px] hover:bg-[#b69aff] transition-colors"
+                className="px-4 py-1.5 bg-[#9b7bf7] text-white font-semibold rounded-l-full text-[13px] hover:bg-[#b69aff] transition-colors"
               >
-                Publish
+                {isPublished ? 'Update' : 'Publish'}
               </button>
               <button
                 onClick={() => setShowPublishMenu(!showPublishMenu)}
-                className="px-2 py-1.5 bg-[#9b7bf7] text-[var(--text-primary)] rounded-r-full border-l border-[var(--bg-app)]/10 hover:bg-[#b69aff] transition-colors"
+                className="px-2 py-1.5 bg-[#9b7bf7] text-white rounded-r-full border-l border-white/10 hover:bg-[#b69aff] transition-colors"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6 9 12 15 18 9" />
@@ -636,19 +667,28 @@ export default function WritePage({ slugid }) {
             {showPublishMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowPublishMenu(false)} />
-                <div className="absolute right-0 top-full mt-2 w-44 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-2xl z-50 overflow-hidden py-1">
-                  <button onClick={handleSaveDraft} className="w-full px-4 py-2.5 text-left text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors">
-                    <ion-icon name="save-outline" style={{ fontSize: '15px', color: '#888' }} />
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl z-50 overflow-hidden py-1" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
+                  <button onClick={handleSaveDraft} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                    <ion-icon name="save-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
                     Save Draft
                   </button>
-                  <button onClick={handlePublish} disabled={!title.trim()} className="w-full px-4 py-2.5 text-left text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:opacity-40">
-                    <ion-icon name="send-outline" style={{ fontSize: '15px', color: '#888' }} />
-                    Publish
-                  </button>
-                  <button onClick={handlePublishBeta} disabled={!title.trim()} className="w-full px-4 py-2.5 text-left text-[13px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:opacity-40">
-                    <ion-icon name="eye-outline" style={{ fontSize: '15px', color: '#888' }} />
-                    Publish Beta
-                  </button>
+                  {isPublished ? (
+                    <button onClick={handlePublish} disabled={!title.trim()} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:opacity-40" style={{ color: 'var(--text-secondary)' }}>
+                      <ion-icon name="cloud-upload-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
+                      Update Published
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={handlePublish} disabled={!title.trim()} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:opacity-40" style={{ color: 'var(--text-secondary)' }}>
+                        <ion-icon name="send-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
+                        Publish
+                      </button>
+                      <button onClick={handlePublishBeta} disabled={!title.trim()} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:opacity-40" style={{ color: 'var(--text-muted)' }}>
+                        <ion-icon name="eye-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
+                        Publish Unlisted
+                      </button>
+                    </>
+                  )}
                 </div>
               </>
             )}
