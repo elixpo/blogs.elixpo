@@ -427,12 +427,12 @@ export default function HandlePage({ path }) {
             </div>
           )}
 
-          {/* ── Members ── */}
-          {members.length > 0 && (
+          {/* ── Members (excluding owner, already shown above) ── */}
+          {members.filter(m => !owner || m.id !== owner.id).length > 0 && (
             <div className="mb-7">
               <h3 className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-widest mb-3">Members</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {members.map(m => (
+                {members.filter(m => !owner || m.id !== owner.id).map(m => (
                   <Link
                     key={m.id}
                     href={`/${m.username}`}
