@@ -419,7 +419,7 @@ export default function OrgManagePage({ slug }) {
                 </p>
               </div>
               <button
-                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/@${org?.slug}`)}
+                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/handle/${org?.slug}`)}
                 className="px-3 py-1.5 bg-[#232d3f] text-[#9ca3af] rounded-lg text-[12px] font-medium hover:text-white transition-colors flex-shrink-0"
               >
                 Copy Link

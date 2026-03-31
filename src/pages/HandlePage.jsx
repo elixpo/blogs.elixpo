@@ -121,7 +121,7 @@ export default function HandlePage({ path }) {
           {(data.blogs || []).length > 0 ? (
             <div className="space-y-4">
               {data.blogs.map(b => (
-                <Link key={b.id} href={`/@${u.username}/${b.slug}`} className="block p-4 bg-[#141a26] border border-[#232d3f] rounded-xl hover:border-[#333] transition-colors">
+                <Link key={b.id} href={`/handle/${u.username}/${b.slug}`} className="block p-4 bg-[#141a26] border border-[#232d3f] rounded-xl hover:border-[#333] transition-colors">
                   <p className="text-[15px] text-[#e0e0e0] font-medium">{b.page_emoji && `${b.page_emoji} `}{b.title || 'Untitled'}</p>
                   {b.subtitle && <p className="text-[13px] text-[#8896a8] mt-1">{b.subtitle}</p>}
                   <div className="flex items-center gap-3 mt-2 text-[11px] text-[#666]">
@@ -204,7 +204,7 @@ export default function HandlePage({ path }) {
           {(data.blogs || []).length > 0 ? (
             <div className="space-y-4">
               {data.blogs.map(b => (
-                <Link key={b.id} href={`/@${org.slug}/${b.slug}`} className="block p-4 bg-[#141a26] border border-[#232d3f] rounded-xl hover:border-[#333] transition-colors">
+                <Link key={b.id} href={`/handle/${org.slug}/${b.slug}`} className="block p-4 bg-[#141a26] border border-[#232d3f] rounded-xl hover:border-[#333] transition-colors">
                   <p className="text-[15px] text-[#e0e0e0] font-medium">{b.page_emoji && `${b.page_emoji} `}{b.title || 'Untitled'}</p>
                   {b.subtitle && <p className="text-[13px] text-[#8896a8] mt-1">{b.subtitle}</p>}
                   <div className="flex items-center gap-3 mt-2 text-[11px] text-[#666]">
