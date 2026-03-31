@@ -241,6 +241,7 @@ export default function WritePage({ slugid }) {
   const [blogVersion, setBlogVersion] = useState(null);
   const [lastKnownUpdatedAt, setLastKnownUpdatedAt] = useState(null);
   const [userOrgs, setUserOrgs] = useState([]);
+  const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
   const isPublished = blogVersion?.isPublished;
   const [coverZoom, setCoverZoom] = useState(1);
   const [coverPos, setCoverPos] = useState({ x: 50, y: 50 });
@@ -402,6 +403,7 @@ export default function WritePage({ slugid }) {
 
   useEffect(() => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    setHasUnsavedEdits(true);
     autoSaveTimer.current = setTimeout(() => {
       if (title || editorContent) {
         saveDraft(slugid, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
@@ -540,9 +542,13 @@ export default function WritePage({ slugid }) {
         const data = await res.json();
         setLastKnownUpdatedAt(data.updatedAt);
         setBlogVersion(v => v ? { ...v, isPublished: true, updatedAt: data.updatedAt, publishedAt: data.updatedAt, isDraftAhead: false } : v);
+        setHasUnsavedEdits(false);
         setShowPublishPanel(false);
-        setShowSavedToast(true);
-        setTimeout(() => setShowSavedToast(false), 3000);
+        // Redirect to published blog
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
       }
     } catch { /* silent */ }
     setPublishing(false);
@@ -1343,18 +1349,22 @@ export default function WritePage({ slugid }) {
         <div className="p-5 space-y-2" style={{ borderTop: '1px solid var(--border-default)' }}>
           <button
             onClick={handlePublish}
-            disabled={!title.trim() || publishing}
+            disabled={!title.trim() || publishing || !hasUnsavedEdits}
             className="w-full py-2.5 bg-[#9b7bf7] text-white font-bold rounded-xl text-[13px] hover:bg-[#b69aff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {publishing ? (isPublished ? 'Updating...' : 'Publishing...') : (isPublished ? 'Update now' : 'Publish now')}
           </button>
           <button
             onClick={handleSaveDraft}
-            className="w-full py-2 font-medium rounded-xl text-[12px] transition-colors"
+            disabled={publishing || !hasUnsavedEdits}
+            className="w-full py-2 font-medium rounded-xl text-[12px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
           >
             Save Draft
           </button>
+          {!hasUnsavedEdits && (
+            <p className="text-center text-[11px]" style={{ color: 'var(--text-faint)' }}>No changes to save</p>
+          )}
         </div>
       </div>
 
