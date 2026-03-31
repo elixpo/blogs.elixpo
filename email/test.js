@@ -28,8 +28,11 @@ const SAMPLES = {
     orgLogoUrl: '',
     inviterName: 'selenium-cutlet',
     inviterAvatar: 'https://lh3.googleusercontent.com/a/ACg8ocJlCSczaUeHuK0Vu79xKBwghqBj60V9evGwmf0aO_k36BCZ1aE=s96-c',
+    recipientName: 'Ada Lovelace',
+    recipientAvatar: '',
     role: 'write',
     inviteUrl: 'https://blogs.elixpo.com/org/join/abc123',
+    orgUrl: 'https://blogs.elixpo.com/elixpo',
     message: 'Hey! Come write some cool blog posts with us.',
   }),
 
