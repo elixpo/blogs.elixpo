@@ -428,6 +428,18 @@ export default function WritePage({ slugid }) {
     setMode(newMode);
   }, []);
 
+  // Ctrl+Shift+P → toggle edit/preview
+  useEffect(() => {
+    function handleKey(e) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        switchMode(mode === 'edit' ? 'preview' : 'edit');
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [switchMode, mode]);
+
   // Auto-generate slug from title
   useEffect(() => {
     if (!title.trim()) { setSlug(''); return; }

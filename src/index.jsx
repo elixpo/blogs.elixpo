@@ -85,23 +85,23 @@ const RECOMMENDED_TOPICS = [
 
 function FeedCard({ post }) {
   return (
-    <article className="group py-7 border-b border-[#232d3f] last:border-b-0 cursor-pointer">
+    <article className="group py-7 last:border-b-0 cursor-pointer" style={{ borderBottom: '1px solid var(--divider)' }}>
       <div className="flex items-center gap-2 mb-3">
-        <div className="h-6 w-6 rounded-full bg-[#2a2d3a] flex-shrink-0" />
-        <span className="text-[13px] text-[#b0b0b0]">
-          {post.org && <><span className="text-[#c8c8c8] hover:underline">in {post.org}</span><span className="mx-1.5 text-[#8896a8]">&middot;</span></>}
-          <span className="text-[#c8c8c8] hover:underline">{post.author}</span>
+        <div className="h-6 w-6 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bg-elevated)' }} />
+        <span className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
+          {post.org && <><span className="hover:underline" style={{ color: 'var(--text-secondary)' }}>in {post.org}</span><span className="mx-1.5" style={{ color: 'var(--text-faint)' }}>&middot;</span></>}
+          <span className="hover:underline" style={{ color: 'var(--text-secondary)' }}>{post.author}</span>
         </span>
       </div>
       <div className="flex gap-6">
         <div className="flex-1 min-w-0">
-          <h2 className="text-[20px] font-bold text-[#e8e8e8] leading-[1.3] mb-1.5 group-hover:text-white transition-colors font-serif tracking-[-0.01em]">
+          <h2 className="text-[20px] font-bold leading-[1.3] mb-1.5 group-hover:opacity-80 transition-opacity font-serif tracking-[-0.01em]" style={{ color: 'var(--text-primary)' }}>
             {post.title}
           </h2>
-          <p className="text-[15px] text-[#888] leading-[1.5] line-clamp-2 mb-4">
+          <p className="text-[15px] leading-[1.5] line-clamp-2 mb-4" style={{ color: 'var(--text-muted)' }}>
             {post.subtitle}
           </p>
-          <div className="flex items-center gap-4 text-[13px] text-[#9ca3af]">
+          <div className="flex items-center gap-4 text-[13px]" style={{ color: 'var(--text-faint)' }}>
             <span className="text-[#9b7bf7] text-[12px] bg-[#9b7bf714] px-2.5 py-0.5 rounded-full font-medium">{post.tag}</span>
             <span>{post.date}</span>
             <span className="flex items-center gap-1">
@@ -113,16 +113,16 @@ function FeedCard({ post }) {
               {post.comments}
             </span>
             <span className="ml-auto flex items-center gap-3">
-              <button className="hover:text-[#b0b0b0] transition-colors p-1" title="Save">
+              <button className="transition-colors p-1" style={{ color: 'var(--text-faint)' }} title="Save">
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
               </button>
-              <button className="hover:text-[#b0b0b0] transition-colors p-1" title="More">
+              <button className="transition-colors p-1" style={{ color: 'var(--text-faint)' }} title="More">
                 <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
               </button>
             </span>
           </div>
         </div>
-        <div className="w-[120px] h-[120px] bg-[#232d3f] rounded-md flex-shrink-0 hidden sm:block" />
+        <div className="w-[120px] h-[120px] rounded-md flex-shrink-0 hidden sm:block" style={{ backgroundColor: 'var(--bg-elevated)' }} />
       </div>
     </article>
   );
@@ -130,18 +130,18 @@ function FeedCard({ post }) {
 
 function StaffPickCard({ pick }) {
   return (
-    <div className="py-4 cursor-pointer group">
+    <div className="py-4 cursor-pointer group" style={{ borderBottom: '1px solid var(--divider)' }}>
       <div className="flex items-center gap-2 mb-1.5">
-        <div className="h-5 w-5 rounded-full bg-[#2a2d3a] flex-shrink-0" />
-        <span className="text-[12px] text-[#b0b0b0]">
-          {pick.org && <><span className="hover:underline">in {pick.org}</span><span className="mx-1 text-[#8896a8]">&middot;</span></>}
+        <div className="h-5 w-5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bg-elevated)' }} />
+        <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+          {pick.org && <><span className="hover:underline">in {pick.org}</span><span className="mx-1" style={{ color: 'var(--text-faint)' }}>&middot;</span></>}
           <span className="hover:underline">{pick.author}</span>
         </span>
       </div>
-      <h3 className="text-[15px] font-bold text-[#d0d0d0] leading-[1.35] group-hover:text-white transition-colors font-serif">
+      <h3 className="text-[15px] font-bold leading-[1.35] group-hover:opacity-80 transition-opacity font-serif" style={{ color: 'var(--text-primary)' }}>
         {pick.title}
       </h3>
-      <span className="text-[12px] text-[#8896a8] mt-1 block">{pick.date}</span>
+      <span className="text-[12px] mt-1 block" style={{ color: 'var(--text-faint)' }}>{pick.date}</span>
     </div>
   );
 }
@@ -153,19 +153,19 @@ export default function App() {
     <AppShell>
       <div className="flex">
         {/* Center Feed */}
-        <div className="flex-1 min-w-0 border-r border-[#232d3f]">
+        <div className="flex-1 min-w-0" style={{ borderRight: '1px solid var(--divider)' }}>
           {/* Topic Tabs */}
-          <div className="sticky top-14 z-40 bg-[#131922]/95 backdrop-blur-md border-b border-[#232d3f]">
+          <div className="sticky top-14 z-40 backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--bg-app) 92%, transparent)', borderBottom: '1px solid var(--divider)' }}>
             <div className="flex items-center gap-0 px-6 overflow-x-auto scrollbar-none">
               {TOPICS.map((topic, i) => (
                 <button
                   key={topic.label}
                   onClick={() => setActiveTopic(i)}
-                  className={`flex items-center gap-1.5 px-4 py-3 text-[13px] font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0 ${
-                    i === activeTopic
-                      ? 'text-white border-white'
-                      : 'text-[#9ca3af] border-transparent hover:text-[#b0b0b0] hover:border-[#333]'
-                  }`}
+                  className="flex items-center gap-1.5 px-4 py-3 text-[13px] font-medium whitespace-nowrap border-b-2 transition-colors flex-shrink-0"
+                  style={{
+                    color: i === activeTopic ? 'var(--text-primary)' : 'var(--text-muted)',
+                    borderBottomColor: i === activeTopic ? 'var(--text-primary)' : 'transparent',
+                  }}
                 >
                   {topic.icon && <ion-icon name={topic.icon} style={{ fontSize: '14px' }} />}
                   {topic.label}
@@ -186,25 +186,26 @@ export default function App() {
         <aside className="hidden xl:block w-[340px] flex-shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto px-8 py-6 scrollbar-thin">
           {/* Staff Picks */}
           <div className="mb-8">
-            <h3 className="text-[14px] font-bold text-[#e0e0e0] mb-1 tracking-wide">Staff Picks</h3>
-            <div className="divide-y divide-[#232d3f]">
+            <h3 className="text-[14px] font-bold mb-1 tracking-wide" style={{ color: 'var(--text-primary)' }}>Staff Picks</h3>
+            <div>
               {STAFF_PICKS.map((pick) => (
                 <StaffPickCard key={pick.id} pick={pick} />
               ))}
             </div>
-            <button className="text-[13px] text-[#9b7bf7] hover:text-[#b69aff] transition-colors mt-2 font-medium">
+            <button className="text-[13px] text-[#9b7bf7] hover:text-[#8b6ae6] transition-colors mt-2 font-medium">
               See the full list
             </button>
           </div>
 
           {/* Recommended Topics */}
           <div className="mb-8">
-            <h3 className="text-[14px] font-bold text-[#e0e0e0] mb-3 tracking-wide">Recommended Topics</h3>
+            <h3 className="text-[14px] font-bold mb-3 tracking-wide" style={{ color: 'var(--text-primary)' }}>Recommended Topics</h3>
             <div className="flex flex-wrap gap-2">
               {RECOMMENDED_TOPICS.map((topic) => (
                 <button
                   key={topic}
-                  className="px-3.5 py-1.5 rounded-full text-[13px] text-[#b0b0b0] bg-[#141a26] border border-[#232d3f] hover:border-[#333] hover:text-white transition-colors"
+                  className="px-3.5 py-1.5 rounded-full text-[13px] transition-colors"
+                  style={{ color: 'var(--text-body)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
                 >
                   {topic}
                 </button>
@@ -213,29 +214,29 @@ export default function App() {
           </div>
 
           {/* Writing Prompt */}
-          <div className="bg-[#141a26] border border-[#232d3f] rounded-xl p-5">
-            <h3 className="text-[14px] font-bold text-[#e0e0e0] mb-1">Writing on LixBlogs</h3>
-            <ul className="text-[13px] text-[#888] space-y-1.5 mt-3">
-              <li className="hover:text-[#b0b0b0] cursor-pointer transition-colors">New to LixBlogs? Start here</li>
-              <li className="hover:text-[#b0b0b0] cursor-pointer transition-colors">Read LixBlogs writing tips</li>
-              <li className="hover:text-[#b0b0b0] cursor-pointer transition-colors">Get practical writing advice</li>
+          <div className="rounded-xl p-5" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
+            <h3 className="text-[14px] font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Writing on LixBlogs</h3>
+            <ul className="text-[13px] space-y-1.5 mt-3" style={{ color: 'var(--text-muted)' }}>
+              <li className="cursor-pointer transition-colors hover:opacity-70">New to LixBlogs? Start here</li>
+              <li className="cursor-pointer transition-colors hover:opacity-70">Read LixBlogs writing tips</li>
+              <li className="cursor-pointer transition-colors hover:opacity-70">Get practical writing advice</li>
             </ul>
             <button
               onClick={() => window.location.href = '/new-blog'}
-              className="inline-block mt-4 px-5 py-2 text-[13px] font-medium text-white bg-[#9b7bf7] hover:bg-[#b69aff] rounded-full transition-colors"
+              className="inline-block mt-4 px-5 py-2 text-[13px] font-medium text-white bg-[#9b7bf7] hover:bg-[#8b6ae6] rounded-full transition-colors"
             >
               Start writing
             </button>
           </div>
 
           {/* Footer Links */}
-          <div className="mt-8 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#8896a8]">
-            <span className="hover:text-[#888] cursor-pointer transition-colors">Help</span>
-            <span className="hover:text-[#888] cursor-pointer transition-colors">Status</span>
-            <span className="hover:text-[#888] cursor-pointer transition-colors">About</span>
-            <span className="hover:text-[#888] cursor-pointer transition-colors">Blog</span>
-            <span className="hover:text-[#888] cursor-pointer transition-colors">Privacy</span>
-            <span className="hover:text-[#888] cursor-pointer transition-colors">Terms</span>
+          <div className="mt-8 flex flex-wrap gap-x-4 gap-y-1 text-[12px]" style={{ color: 'var(--text-faint)' }}>
+            <span className="cursor-pointer transition-colors hover:opacity-70">Help</span>
+            <span className="cursor-pointer transition-colors hover:opacity-70">Status</span>
+            <span className="cursor-pointer transition-colors hover:opacity-70">About</span>
+            <span className="cursor-pointer transition-colors hover:opacity-70">Blog</span>
+            <span className="cursor-pointer transition-colors hover:opacity-70">Privacy</span>
+            <span className="cursor-pointer transition-colors hover:opacity-70">Terms</span>
           </div>
         </aside>
       </div>
