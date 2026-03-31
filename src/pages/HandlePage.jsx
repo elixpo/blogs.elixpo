@@ -6,7 +6,7 @@ import AppShell from '../components/AppShell';
 import Link from 'next/link';
 import { generatePixelAvatar } from '../utils/pixelAvatar';
 import { useAuth } from '../context/AuthContext';
-import '../styles/editor/preview.css';
+import '../styles/editor/editor.css';
 
 const BlogPreview = dynamic(() => import('../components/Editor/BlogPreview'), { ssr: false });
 
