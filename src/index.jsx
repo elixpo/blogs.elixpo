@@ -186,7 +186,7 @@ export default function App() {
         <aside className="hidden xl:block w-[340px] flex-shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto px-8 py-6 scrollbar-thin">
           {/* Staff Picks */}
           <div className="mb-8">
-            <h3 className="text-[14px] font-bold mb-1 tracking-wide" style={{ color: 'var(--text-primary)' }}>Staff Picks</h3>
+            <h3 className="text-[14px] font-bold pb-2 mb-1 tracking-wide" style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--divider)' }}>Top Picks</h3>
             <div>
               {STAFF_PICKS.map((pick) => (
                 <StaffPickCard key={pick.id} pick={pick} />
