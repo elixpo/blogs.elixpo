@@ -96,7 +96,7 @@ export default function OrgManagePage({ slug }) {
     if (!directQuery || directQuery.length < 2) { setDirectResults([]); return; }
     setDirectSearching(true);
     const timer = setTimeout(() => {
-      fetch(`/api/search?q=${encodeURIComponent(directQuery)}`)
+      fetch(`/api/search?q=${encodeURIComponent(directQuery)}&scope=users`)
         .then(r => r.ok ? r.json() : { users: [] })
         .then(d => {
           // Filter out users who are already members
@@ -410,48 +410,21 @@ export default function OrgManagePage({ slug }) {
               {directSuccess && <p className="text-[11px] text-[#4ade80]">{directSuccess}</p>}
             </div>
 
-            {/* Generate invite link */}
-            <div className="border border-[#232d3f] rounded-xl p-4 space-y-3">
-              <p className="text-[13px] text-[#e0e0e0] font-medium">Or generate an invite link</p>
-              <div className="flex gap-2">
-                <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}
-                  className="bg-[#131922] text-[#9ca3af] border border-[#232d3f] rounded-lg px-3 py-2 text-[12px] outline-none">
-                  {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-                <input value={inviteMaxUses} onChange={e => setInviteMaxUses(e.target.value)} placeholder="Max uses" type="number"
-                  className="w-24 bg-[#131922] text-[#e0e0e0] rounded-lg px-3 py-2 outline-none text-[12px] border border-[#232d3f] placeholder-[#6b7a8d]" />
-                <select value={inviteExpiry} onChange={e => setInviteExpiry(e.target.value)}
-                  className="bg-[#131922] text-[#9ca3af] border border-[#232d3f] rounded-lg px-3 py-2 text-[12px] outline-none">
-                  <option value="">Never expires</option>
-                  <option value="1">1 hour</option>
-                  <option value="24">24 hours</option>
-                  <option value="168">7 days</option>
-                  <option value="720">30 days</option>
-                </select>
-                <button onClick={handleCreateInvite} disabled={creatingInvite}
-                  className="px-4 py-2 bg-[#9b7bf7] text-white font-medium rounded-lg text-[12px] hover:bg-[#b69aff] disabled:opacity-40 whitespace-nowrap">
-                  {creatingInvite ? '...' : 'Create & Copy'}
-                </button>
+            {/* Shareable org link */}
+            <div className="border border-[#232d3f] rounded-xl p-4 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] text-[#8896a8] mb-1">Share this org&apos;s profile</p>
+                <p className="text-[13px] text-[#e0e0e0] font-mono truncate">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/@{org?.slug}
+                </p>
               </div>
+              <button
+                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/@${org?.slug}`)}
+                className="px-3 py-1.5 bg-[#232d3f] text-[#9ca3af] rounded-lg text-[12px] font-medium hover:text-white transition-colors flex-shrink-0"
+              >
+                Copy Link
+              </button>
             </div>
-
-            {/* Existing invites */}
-            {invites.map(inv => (
-              <div key={inv.id} className="flex items-center gap-3 p-3 bg-[#141a26] border border-[#232d3f] rounded-xl">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] text-[#e0e0e0] font-mono">/org/join/{inv.id}</p>
-                  <p className="text-[11px] text-[#8896a8]">
-                    Role: <span style={{ color: ROLE_COLORS[inv.role] }}>{ROLE_LABELS[inv.role]}</span>
-                    {' '}&middot; Used: {inv.uses}{inv.max_uses ? `/${inv.max_uses}` : ''}
-                    {inv.expires_at && ` &middot; Expires: ${new Date(inv.expires_at * 1000).toLocaleDateString()}`}
-                  </p>
-                </div>
-                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/org/join/${inv.id}`); }}
-                  className="text-[11px] text-[#9b7bf7] hover:text-[#b69aff]">Copy</button>
-                <button onClick={() => handleDeleteInvite(inv.id)} className="text-[11px] text-[#666] hover:text-[#f87171]">Delete</button>
-              </div>
-            ))}
-            {invites.length === 0 && <p className="text-[13px] text-[#8896a8] text-center py-8">No active invites.</p>}
           </div>
         )}
       </div>
