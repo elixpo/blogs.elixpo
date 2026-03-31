@@ -229,6 +229,24 @@ export default function HandlePage({ path }) {
 
           {/* ── Meta info row ── */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-5 text-[13px] text-[#7c8a9e]">
+            {org.location && (
+              <span className="flex items-center gap-1.5">
+                <ion-icon name="location-outline" style={{ fontSize: '14px' }} />
+                {org.location}
+              </span>
+            )}
+            {org.timezone && (
+              <span className="flex items-center gap-1.5">
+                <ion-icon name="time-outline" style={{ fontSize: '14px' }} />
+                {org.timezone.replace(/_/g, ' ')}
+              </span>
+            )}
+            {org.contact_email && (
+              <a href={`mailto:${org.contact_email}`} className="flex items-center gap-1.5 hover:text-[#60a5fa] transition-colors">
+                <ion-icon name="mail-outline" style={{ fontSize: '14px' }} />
+                {org.contact_email}
+              </a>
+            )}
             {founded && (
               <span className="flex items-center gap-1.5">
                 <ion-icon name="calendar-outline" style={{ fontSize: '14px' }} />
@@ -259,20 +277,25 @@ export default function HandlePage({ path }) {
             )}
           </div>
 
-          {/* ── Links ── */}
+          {/* ── Social links ── */}
           {links.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
-              {links.map((link, i) => (
-                <a
-                  key={i}
-                  href={link.url || link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1 bg-[#141a26] border border-[#232d3f] rounded-full text-[12px] text-[#60a5fa] hover:border-[#334155] transition-colors"
-                >
-                  {link.label || link.url || link}
-                </a>
-              ))}
+              {links.filter(l => l.url?.trim()).map((link, i) => {
+                const iconMap = { github: 'logo-github', twitter: 'logo-twitter', linkedin: 'logo-linkedin', discord: 'logo-discord', youtube: 'logo-youtube', website: 'globe-outline' };
+                const icon = iconMap[link.type] || 'link-outline';
+                return (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111823] border border-[#1e2736] rounded-full text-[12px] text-[#7c8a9e] hover:text-white hover:border-[#2d3a4d] transition-all"
+                  >
+                    <ion-icon name={icon} style={{ fontSize: '14px' }} />
+                    {link.label || link.type || 'Link'}
+                  </a>
+                );
+              })}
             </div>
           )}
 
