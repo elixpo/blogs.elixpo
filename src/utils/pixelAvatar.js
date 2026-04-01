@@ -74,7 +74,7 @@ export function generatePixelAvatar(seed) {
 
 /**
  * Generate a deterministic blog banner SVG data URL.
- * 4 corners have weighted gradient blobs, center is clean.
+ * GitHub contribution-graph style — tiny square pixels, dense at corners, sparse in center.
  */
 export function generateBlogBanner(seed) {
   const h = hashSeed(seed);
@@ -85,44 +85,40 @@ export function generateBlogBanner(seed) {
 
   const W = 720;
   const H = 240;
+  const PX = 6; // pixel size — small like GitHub squares
+  const GAP = 1;
+  const STEP = PX + GAP;
+  const COLS = Math.floor(W / STEP);
+  const ROWS = Math.floor(H / STEP);
 
-  // 4 corner blobs — each gets a unique position offset from its corner
-  const corners = [
-    { cx: 0, cy: 0, color: fg },          // top-left
-    { cx: W, cy: 0, color: fgLight },      // top-right
-    { cx: 0, cy: H, color: fg2 },          // bottom-left
-    { cx: W, cy: H, color: fg },           // bottom-right
-  ];
+  const colors = [fg, fgLight, fg2, fg, fgLight];
 
-  const blobs = corners.map((c, i) => {
-    const rx = 180 + ((h * (i * 7 + 3)) & 0x3F);
-    const ry = 120 + ((h * (i * 11 + 5)) & 0x3F);
-    const ox = ((h * (i * 17 + 2)) & 0x1F) * (c.cx > 0 ? -1 : 1);
-    const oy = ((h * (i * 13 + 4)) & 0x1F) * (c.cy > 0 ? -1 : 1);
-    return `<ellipse cx="${c.cx + ox}" cy="${c.cy + oy}" rx="${rx}" ry="${ry}" fill="${c.color}" opacity="0.35" />`;
-  }).join('');
+  let rects = '';
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      // Distance from each corner (0 at corner, 1 at center)
+      const nx = x / (COLS - 1);
+      const ny = y / (ROWS - 1);
+      const dTL = Math.sqrt(nx * nx + ny * ny);
+      const dTR = Math.sqrt((1 - nx) * (1 - nx) + ny * ny);
+      const dBL = Math.sqrt(nx * nx + (1 - ny) * (1 - ny));
+      const dBR = Math.sqrt((1 - nx) * (1 - nx) + (1 - ny) * (1 - ny));
+      const minDist = Math.min(dTL, dTR, dBL, dBR);
 
-  // Scatter small dots near corners for texture
-  let dots = '';
-  for (let i = 0; i < 30; i++) {
-    const corner = i % 4;
-    const baseX = corner % 2 === 0 ? 0 : W;
-    const baseY = corner < 2 ? 0 : H;
-    const dx = ((h * (i * 19 + 7)) % 200) * (baseX > 0 ? -1 : 1);
-    const dy = ((h * (i * 23 + 11)) % 130) * (baseY > 0 ? -1 : 1);
-    const r = 2 + ((h * (i * 3 + 1)) & 0x07);
-    const opacity = 0.15 + ((h * (i * 5 + 2)) & 0x0F) / 60;
-    const fill = i % 3 === 0 ? fgLight : fg;
-    dots += `<circle cx="${baseX + dx}" cy="${baseY + dy}" r="${r}" fill="${fill}" opacity="${opacity.toFixed(2)}" />`;
+      // Probability: high near corners (minDist ~0), drops off toward center
+      const prob = Math.max(0, 1 - minDist * 1.6);
+      const rand = ((h * (y * 131 + x * 67 + 29)) & 0xFF) / 255;
+
+      if (rand < prob) {
+        // Opacity stronger near corners
+        const opacity = (0.2 + prob * 0.6).toFixed(2);
+        const colorIdx = ((h * (y * 7 + x * 3)) & 0xFF) % colors.length;
+        const fill = colors[colorIdx];
+        rects += `<rect x="${x * STEP}" y="${y * STEP}" width="${PX}" height="${PX}" fill="${fill}" opacity="${opacity}" rx="1"/>`;
+      }
+    }
   }
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-    <rect width="${W}" height="${H}" fill="${bg}" rx="12"/>
-    <g filter="url(#blur)">${blobs}</g>
-    ${dots}
-    <defs>
-      <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
-    </defs>
-  </svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="${bg}" rx="12"/>${rects}</svg>`;
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
