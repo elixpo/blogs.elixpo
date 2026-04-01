@@ -84,17 +84,17 @@ export function generateBlogBanner(seed) {
   const W = 720;
   const H = 240;
   const PX = 8;
-  // Corner block size in cells
-  const CX = 8; // how many cells wide each corner cluster is
-  const CY = 8; // how many cells tall
+  // Corner block size in cells — bigger = pixels reach further toward center
+  const CX = 14;
+  const CY = 12;
 
   // Generate one corner pattern (CX x CY), then mirror to all 4
   const bits = [];
   for (let y = 0; y < CY; y++) {
     for (let x = 0; x < CX; x++) {
-      // Denser closer to the actual corner, sparser further
+      // Denser at corner (x=0,y=0), sparser further out
       const dist = Math.sqrt(x * x + y * y) / Math.sqrt(CX * CX + CY * CY);
-      const threshold = 80 + dist * 140;
+      const threshold = dist * 200;
       bits.push(((h * (y * 7 + x * 13 + 3)) & 0xFF) > threshold);
     }
   }
