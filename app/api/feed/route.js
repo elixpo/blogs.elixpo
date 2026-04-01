@@ -61,47 +61,7 @@ export async function GET(request) {
       posts = await queryBlended(db, userId, now, limit);
     }
 
-    // Enrich with author info and tags
-    if (posts.length > 0) {
-      const authorIds = [...new Set(posts.map(p => p.author_id))];
-      const blogIds = posts.map(p => p.id);
-
-      const [authors, tags] = await Promise.all([
-        batchQuery(db, 'SELECT id, username, display_name, avatar_url FROM users WHERE id IN', authorIds),
-        batchQuery(db, 'SELECT blog_id, tag FROM blog_tags WHERE blog_id IN', blogIds),
-      ]);
-
-      const authorMap = Object.fromEntries(authors.map(a => [a.id, a]));
-      const tagMap = {};
-      for (const t of tags) {
-        if (!tagMap[t.blog_id]) tagMap[t.blog_id] = [];
-        tagMap[t.blog_id].push(t.tag);
-      }
-
-      // Check edit permissions for org-published blogs
-      let orgMemberSet = new Set();
-      if (userId) {
-        const orgIds = [...new Set(posts.filter(p => p.published_as?.startsWith('org:')).map(p => p.published_as.replace('org:', '')))];
-        if (orgIds.length > 0) {
-          const memberRows = await batchQuery(db, "SELECT org_id || ':' || user_id as key FROM org_members WHERE role IN ('admin','maintain','write') AND user_id = '" + userId + "' AND org_id IN", orgIds);
-          orgMemberSet = new Set(memberRows.map(r => r.key));
-        }
-      }
-
-      posts = posts.map(p => {
-        const isAuthor = userId && p.author_id === userId;
-        const orgId = p.published_as?.startsWith('org:') ? p.published_as.replace('org:', '') : null;
-        const isOrgMember = orgId && orgMemberSet.has(`${orgId}:${userId}`);
-
-        return {
-          ...p,
-          author: authorMap[p.author_id] || { username: 'unknown', display_name: 'Unknown' },
-          tags: tagMap[p.id] || [],
-          is_staff: p.published_as === `org:${STAFF_ORG_ID}`,
-          can_edit: !!(isAuthor || isOrgMember),
-        };
-      });
-    }
+    posts = await enrichPosts(db, posts, userId);
 
     return NextResponse.json({
       posts,
@@ -214,6 +174,48 @@ async function queryBlended(db, userId, now, limit) {
 
   // Clean up internal score field
   return all.slice(0, limit).map(({ _score, ...rest }) => rest);
+}
+
+// ─── Enrich posts with author, tags, permissions ────────────────────
+async function enrichPosts(db, posts, userId) {
+  if (posts.length === 0) return posts;
+
+  const authorIds = [...new Set(posts.map(p => p.author_id))];
+  const blogIds = posts.map(p => p.id);
+
+  const [authors, tags] = await Promise.all([
+    batchQuery(db, 'SELECT id, username, display_name, avatar_url FROM users WHERE id IN', authorIds),
+    batchQuery(db, 'SELECT blog_id, tag FROM blog_tags WHERE blog_id IN', blogIds),
+  ]);
+
+  const authorMap = Object.fromEntries(authors.map(a => [a.id, a]));
+  const tagMap = {};
+  for (const t of tags) {
+    if (!tagMap[t.blog_id]) tagMap[t.blog_id] = [];
+    tagMap[t.blog_id].push(t.tag);
+  }
+
+  let orgMemberSet = new Set();
+  if (userId) {
+    const orgIds = [...new Set(posts.filter(p => p.published_as?.startsWith('org:')).map(p => p.published_as.replace('org:', '')))];
+    if (orgIds.length > 0) {
+      const memberRows = await batchQuery(db, "SELECT org_id || ':' || user_id as key FROM org_members WHERE role IN ('admin','maintain','write') AND user_id = '" + userId + "' AND org_id IN", orgIds);
+      orgMemberSet = new Set(memberRows.map(r => r.key));
+    }
+  }
+
+  return posts.map(p => {
+    const isAuthor = userId && p.author_id === userId;
+    const orgId = p.published_as?.startsWith('org:') ? p.published_as.replace('org:', '') : null;
+    const isOrgMember = orgId && orgMemberSet.has(`${orgId}:${userId}`);
+    return {
+      ...p,
+      author: authorMap[p.author_id] || { username: 'unknown', display_name: 'Unknown' },
+      tags: tagMap[p.id] || [],
+      is_staff: p.published_as === `org:${STAFF_ORG_ID}`,
+      can_edit: !!(isAuthor || isOrgMember),
+    };
+  });
 }
 
 // ─── Batch query helper ──────────────────────────────────────────────
