@@ -106,7 +106,7 @@ export default function HandlePage({ path }) {
             pageEmoji={blog.page_emoji}
             tags={blog.tags || []}
             blocks={blocks}
-            coverPreview={blog.cover_image_r2_key}
+            coverPreview={blog.cover_image_r2_key || generateBlogBanner(blog.id || blog.slug)}
             user={{ username: blog.author_username, display_name: blog.author_name, avatar_url: blog.author_avatar }}
             wordCount={wc}
           />
@@ -181,11 +181,7 @@ export default function HandlePage({ path }) {
                           {b.comment_count > 0 && <span>{b.comment_count} comments</span>}
                         </div>
                       </div>
-                      {b.cover_image_r2_key ? (
-                        <img src={b.cover_image_r2_key} alt="" className="w-[120px] h-[80px] rounded-md object-cover flex-shrink-0 hidden sm:block" />
-                      ) : (
-                        <div className="w-[120px] h-[80px] rounded-md flex-shrink-0 hidden sm:block" style={{ backgroundColor: 'var(--bg-elevated)' }} />
-                      )}
+                      <img src={b.cover_image_r2_key || generateBlogBanner(b.id || b.slug)} alt="" className="w-[120px] h-[80px] rounded-md object-cover flex-shrink-0 hidden sm:block" />
                     </div>
                   </article>
                 </Link>

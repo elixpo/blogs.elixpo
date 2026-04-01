@@ -74,51 +74,54 @@ export function generatePixelAvatar(seed) {
 
 /**
  * Generate a deterministic blog banner SVG data URL.
- * Wide format (3:1 ratio), pixels at corners/edges, solid center.
+ * 4 corners have weighted gradient blobs, center is clean.
  */
 export function generateBlogBanner(seed) {
   const h = hashSeed(seed);
   const palette = PALETTES[h % PALETTES.length];
+  const palette2 = PALETTES[(h + 5) % PALETTES.length];
   const [bg, fg, fgLight] = palette;
+  const fg2 = palette2[1];
 
   const W = 720;
   const H = 240;
-  const COLS = 24;
-  const ROWS = 8;
-  const CW = W / COLS;
-  const CH = H / ROWS;
 
-  let rects = '';
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      // Distance from center (normalized 0-1)
-      const cx = Math.abs(x - (COLS - 1) / 2) / ((COLS - 1) / 2);
-      const cy = Math.abs(y - (ROWS - 1) / 2) / ((ROWS - 1) / 2);
-      const edgeness = Math.max(cx, cy);
+  // 4 corner blobs — each gets a unique position offset from its corner
+  const corners = [
+    { cx: 0, cy: 0, color: fg },          // top-left
+    { cx: W, cy: 0, color: fgLight },      // top-right
+    { cx: 0, cy: H, color: fg2 },          // bottom-left
+    { cx: W, cy: H, color: fg },           // bottom-right
+  ];
 
-      // Only render pixels near edges — center stays solid
-      const threshold = 40 + (1 - edgeness) * 180;
-      const val = ((h * (y * 31 + x * 13 + 5)) & 0xFF);
+  const blobs = corners.map((c, i) => {
+    const rx = 180 + ((h * (i * 7 + 3)) & 0x3F);
+    const ry = 120 + ((h * (i * 11 + 5)) & 0x3F);
+    const ox = ((h * (i * 17 + 2)) & 0x1F) * (c.cx > 0 ? -1 : 1);
+    const oy = ((h * (i * 13 + 4)) & 0x1F) * (c.cy > 0 ? -1 : 1);
+    return `<ellipse cx="${c.cx + ox}" cy="${c.cy + oy}" rx="${rx}" ry="${ry}" fill="${c.color}" opacity="0.35" />`;
+  }).join('');
 
-      if (val > threshold) {
-        // Vary opacity based on distance from edge
-        const opacity = 0.3 + edgeness * 0.7;
-        const fill = ((x + y) % 4 === 0) ? fgLight : fg;
-        rects += `<rect x="${x * CW}" y="${y * CH}" width="${CW}" height="${CH}" fill="${fill}" opacity="${opacity.toFixed(2)}" rx="1"/>`;
-      }
-    }
+  // Scatter small dots near corners for texture
+  let dots = '';
+  for (let i = 0; i < 30; i++) {
+    const corner = i % 4;
+    const baseX = corner % 2 === 0 ? 0 : W;
+    const baseY = corner < 2 ? 0 : H;
+    const dx = ((h * (i * 19 + 7)) % 200) * (baseX > 0 ? -1 : 1);
+    const dy = ((h * (i * 23 + 11)) % 130) * (baseY > 0 ? -1 : 1);
+    const r = 2 + ((h * (i * 3 + 1)) & 0x07);
+    const opacity = 0.15 + ((h * (i * 5 + 2)) & 0x0F) / 60;
+    const fill = i % 3 === 0 ? fgLight : fg;
+    dots += `<circle cx="${baseX + dx}" cy="${baseY + dy}" r="${r}" fill="${fill}" opacity="${opacity.toFixed(2)}" />`;
   }
 
-  // Add subtle gradient overlay from center outward for depth
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
     <rect width="${W}" height="${H}" fill="${bg}" rx="12"/>
-    ${rects}
-    <rect width="${W}" height="${H}" fill="url(#cg)" rx="12"/>
+    <g filter="url(#blur)">${blobs}</g>
+    ${dots}
     <defs>
-      <radialGradient id="cg" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="${bg}" stop-opacity="0.6"/>
-        <stop offset="100%" stop-color="${bg}" stop-opacity="0"/>
-      </radialGradient>
+      <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
     </defs>
   </svg>`;
   return `data:image/svg+xml;base64,${btoa(svg)}`;
