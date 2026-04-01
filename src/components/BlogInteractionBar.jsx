@@ -204,15 +204,39 @@ export default function BlogInteractionBar({ blogId }) {
           <ion-icon name={interactions.bookmarked ? 'bookmark' : 'bookmark-outline'} style={{ fontSize: '18px' }} />
         </button>
 
-        {/* Share */}
-        <button
-          onClick={handleShare}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-full transition-all"
-          style={{ color: 'var(--text-muted)' }}
-          title="Share"
-        >
-          <ion-icon name="share-outline" style={{ fontSize: '18px' }} />
-        </button>
+        {/* Share dropdown */}
+        <div className="relative" ref={shareRef}>
+          <button
+            onClick={() => setShareOpen(!shareOpen)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full transition-all"
+            style={{ color: 'var(--text-muted)' }}
+            title="Share"
+          >
+            <ion-icon name="share-outline" style={{ fontSize: '18px' }} />
+          </button>
+          {shareOpen && (
+            <div className="absolute bottom-full mb-2 right-0 w-[200px] rounded-xl shadow-xl z-50 overflow-hidden py-1" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
+              <button onClick={copyLink} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] transition-colors text-left" style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                <ion-icon name="link-outline" style={{ fontSize: '16px', color: 'var(--text-faint)' }} />
+                Copy link
+              </button>
+              <button onClick={copyEmbed} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] transition-colors text-left" style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                <ion-icon name="code-slash-outline" style={{ fontSize: '16px', color: 'var(--text-faint)' }} />
+                Embed
+              </button>
+              <button onClick={copyMarkdown} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] transition-colors text-left" style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                <ion-icon name="document-text-outline" style={{ fontSize: '16px', color: 'var(--text-faint)' }} />
+                Copy Markdown
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
