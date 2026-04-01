@@ -1,59 +1,125 @@
 /**
- * Generate a deterministic pixel avatar SVG data URL from a seed string.
- * Creates a 5x5 symmetric pixel grid with high-contrast color pairs.
+ * Deterministic pixel art generators for avatars and banners.
+ * Pixels cluster near corners/edges with a solid color center.
  */
-export function generatePixelAvatar(seed) {
-  // Simple hash
+
+// Shared hash function
+function hashSeed(seed) {
   let hash = 0;
-  const s = seed || 'org';
+  const s = seed || 'default';
   for (let i = 0; i < s.length; i++) {
     hash = ((hash << 5) - hash + s.charCodeAt(i)) | 0;
   }
-  const h = Math.abs(hash);
+  return Math.abs(hash);
+}
 
-  // Curated high-contrast pairs: [dark bg, bright fg]
-  const palettes = [
-    ['#1a1040', '#c084fc', '#e9d5ff'], // deep purple → lavender
-    ['#0f2a1a', '#4ade80', '#bbf7d0'], // dark green → mint
-    ['#0c1a2e', '#60a5fa', '#bfdbfe'], // navy → sky blue
-    ['#2a1215', '#fb7185', '#fecdd3'], // dark rose → pink
-    ['#1a1708', '#fbbf24', '#fef08a'], // dark gold → amber
-    ['#0f1f2e', '#22d3ee', '#a5f3fc'], // dark teal → cyan
-    ['#1e1028', '#a78bfa', '#ddd6fe'], // indigo → violet
-    ['#1a0f08', '#fb923c', '#fed7aa'], // dark ember → orange
-    ['#0f1a1a', '#2dd4bf', '#99f6e4'], // dark sea → teal
-    ['#1a0820', '#e879f9', '#f5d0fe'], // dark magenta → fuchsia
-    ['#101828', '#818cf8', '#c7d2fe'], // slate → periwinkle
-    ['#1a1a08', '#a3e635', '#d9f99d'], // dark olive → lime
-  ];
+// Curated palettes: [bg, primary, accent]
+const PALETTES = [
+  ['#1a1040', '#c084fc', '#e9d5ff'], // purple → lavender
+  ['#0f2a1a', '#4ade80', '#bbf7d0'], // green → mint
+  ['#0c1a2e', '#60a5fa', '#bfdbfe'], // navy → sky blue
+  ['#2a1215', '#fb7185', '#fecdd3'], // rose → pink
+  ['#1a1708', '#fbbf24', '#fef08a'], // gold → amber
+  ['#0f1f2e', '#22d3ee', '#a5f3fc'], // teal → cyan
+  ['#1e1028', '#a78bfa', '#ddd6fe'], // indigo → violet
+  ['#1a0f08', '#fb923c', '#fed7aa'], // ember → orange
+  ['#0f1a1a', '#2dd4bf', '#99f6e4'], // sea → teal
+  ['#1a0820', '#e879f9', '#f5d0fe'], // magenta → fuchsia
+  ['#101828', '#818cf8', '#c7d2fe'], // slate → periwinkle
+  ['#1a1a08', '#a3e635', '#d9f99d'], // olive → lime
+];
 
-  const palette = palettes[h % palettes.length];
-  const bg = palette[0];
-  // Pick between the two foreground shades based on hash
-  const fg = palette[1];
-  const fgLight = palette[2];
+/**
+ * Generate a deterministic pixel avatar SVG data URL.
+ * Pixels cluster near corners with a solid center.
+ */
+export function generatePixelAvatar(seed) {
+  const h = hashSeed(seed);
+  const palette = PALETTES[h % PALETTES.length];
+  const [bg, fg, fgLight] = palette;
 
-  // Generate 5x5 symmetric pixel pattern (only compute left half + center)
+  const SIZE = 48;
+  const GRID = 6;
+  const CELL = SIZE / GRID;
+
+  // Generate pattern — higher probability near edges/corners
   const bits = [];
-  for (let y = 0; y < 5; y++) {
-    for (let x = 0; x < 3; x++) {
-      // Use different hash multipliers for more varied patterns
-      bits.push(((h * (y * 7 + x * 13 + 3)) & 0xFF) > 90);
+  for (let y = 0; y < GRID; y++) {
+    for (let x = 0; x < Math.ceil(GRID / 2); x++) {
+      // Distance from center (0 = center, 1 = corner)
+      const cx = Math.abs(x - (GRID - 1) / 2) / ((GRID - 1) / 2);
+      const cy = Math.abs(y - (GRID - 1) / 2) / ((GRID - 1) / 2);
+      const edgeness = Math.max(cx, cy);
+
+      // Higher threshold in center = fewer pixels; lower near edges = more pixels
+      const threshold = 60 + (1 - edgeness) * 120;
+      bits.push(((h * (y * 11 + x * 17 + 7)) & 0xFF) > threshold);
     }
   }
 
   let rects = '';
-  for (let y = 0; y < 5; y++) {
-    for (let x = 0; x < 5; x++) {
-      const bx = x < 3 ? x : 4 - x; // mirror
-      if (bits[y * 3 + bx]) {
-        // Alternate between fg and fgLight for depth
+  for (let y = 0; y < GRID; y++) {
+    for (let x = 0; x < GRID; x++) {
+      const bx = x < Math.ceil(GRID / 2) ? x : GRID - 1 - x; // mirror
+      if (bits[y * Math.ceil(GRID / 2) + bx]) {
         const fill = ((x + y) % 3 === 0) ? fgLight : fg;
-        rects += `<rect x="${x * 8 + 4}" y="${y * 8 + 4}" width="8" height="8" fill="${fill}" rx="1"/>`;
+        rects += `<rect x="${x * CELL}" y="${y * CELL}" width="${CELL}" height="${CELL}" fill="${fill}" rx="1"/>`;
       }
     }
   }
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="${bg}" rx="8"/>${rects}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}"><rect width="${SIZE}" height="${SIZE}" fill="${bg}" rx="8"/>${rects}</svg>`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+/**
+ * Generate a deterministic blog banner SVG data URL.
+ * Wide format (3:1 ratio), pixels at corners/edges, solid center.
+ */
+export function generateBlogBanner(seed) {
+  const h = hashSeed(seed);
+  const palette = PALETTES[h % PALETTES.length];
+  const [bg, fg, fgLight] = palette;
+
+  const W = 720;
+  const H = 240;
+  const COLS = 24;
+  const ROWS = 8;
+  const CW = W / COLS;
+  const CH = H / ROWS;
+
+  let rects = '';
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      // Distance from center (normalized 0-1)
+      const cx = Math.abs(x - (COLS - 1) / 2) / ((COLS - 1) / 2);
+      const cy = Math.abs(y - (ROWS - 1) / 2) / ((ROWS - 1) / 2);
+      const edgeness = Math.max(cx, cy);
+
+      // Only render pixels near edges — center stays solid
+      const threshold = 40 + (1 - edgeness) * 180;
+      const val = ((h * (y * 31 + x * 13 + 5)) & 0xFF);
+
+      if (val > threshold) {
+        // Vary opacity based on distance from edge
+        const opacity = 0.3 + edgeness * 0.7;
+        const fill = ((x + y) % 4 === 0) ? fgLight : fg;
+        rects += `<rect x="${x * CW}" y="${y * CH}" width="${CW}" height="${CH}" fill="${fill}" opacity="${opacity.toFixed(2)}" rx="1"/>`;
+      }
+    }
+  }
+
+  // Add subtle gradient overlay from center outward for depth
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+    <rect width="${W}" height="${H}" fill="${bg}" rx="12"/>
+    ${rects}
+    <rect width="${W}" height="${H}" fill="url(#cg)" rx="12"/>
+    <defs>
+      <radialGradient id="cg" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="${bg}" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="${bg}" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+  </svg>`;
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }

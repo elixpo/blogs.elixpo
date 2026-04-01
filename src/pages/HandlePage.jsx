@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import AppShell from '../components/AppShell';
 import Link from 'next/link';
-import { generatePixelAvatar } from '../utils/pixelAvatar';
+import { generatePixelAvatar, generateBlogBanner } from '../utils/pixelAvatar';
 import { useAuth } from '../context/AuthContext';
 import BlogInteractionBar from '../components/BlogInteractionBar';
 import '../styles/editor/editor.css';
