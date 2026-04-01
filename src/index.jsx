@@ -393,6 +393,21 @@ export default function App() {
               <FeedSkeleton />
             ) : posts.length > 0 ? (
               posts.map(post => <FeedCard key={post.id} post={post} />)
+            ) : topics[activeTopic]?.filter === 'following' ? (
+              <div className="text-center py-20">
+                <ion-icon name="people-outline" style={{ fontSize: '44px', color: 'var(--text-faint)' }} />
+                <p className="text-[17px] font-semibold mt-4" style={{ color: 'var(--text-primary)' }}>Your following feed is empty</p>
+                <p className="text-[14px] mt-2 max-w-sm mx-auto" style={{ color: 'var(--text-muted)' }}>
+                  Follow writers and organizations to see their latest posts here.
+                </p>
+                <button
+                  onClick={() => setActiveTopic(0)}
+                  className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 text-[14px] font-medium text-white bg-[#9b7bf7] hover:bg-[#8b6ae6] rounded-full transition-colors"
+                >
+                  <ion-icon name="sparkles" style={{ fontSize: '16px' }} />
+                  Discover writers
+                </button>
+              </div>
             ) : (
               <div className="text-center py-20">
                 <ion-icon name="document-text-outline" style={{ fontSize: '40px', color: 'var(--text-faint)' }} />
