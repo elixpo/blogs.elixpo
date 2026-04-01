@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { generatePixelAvatar, generateBlogBanner } from '../utils/pixelAvatar';
 import { useAuth } from '../context/AuthContext';
 import BlogInteractionBar from '../components/BlogInteractionBar';
+import BlogComments from '../components/BlogComments';
 import '../styles/editor/editor.css';
 
 const BlogPreview = dynamic(() => import('../components/Editor/BlogPreview'), { ssr: false });
@@ -113,6 +114,9 @@ export default function HandlePage({ path }) {
 
           {/* Interaction bar — like, clap, bookmark, share, views */}
           <BlogInteractionBar blogId={blog.id} />
+
+          {/* Comments section — always expanded */}
+          <BlogComments blogId={blog.id} />
         </div>
       </AppShell>
     );
