@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import AppShell from './components/AppShell';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 function timeAgo(ts) {
   if (!ts) return '';
