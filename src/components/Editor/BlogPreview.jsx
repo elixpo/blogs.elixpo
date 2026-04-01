@@ -246,29 +246,8 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
 
   return (
     <div className="blog-preview" id="blog-preview-top">
-      {/* Floating TOC — top right */}
-      {headings.length >= 2 && (
-        <nav className="preview-floating-toc">
-          <p className="preview-floating-toc-label">On this page</p>
-          <ul className="preview-floating-toc-list">
-            {headings.map(h => (
-              <li key={h.id}>
-                <a
-                  href={`#${h.id}`}
-                  className="preview-floating-toc-link"
-                  style={{ paddingLeft: (h.level - 1) * 12 }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }}
-                >
-                  {h.text}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
+      {/* Floating TOC with scroll spy */}
+      {headings.length >= 2 && <FloatingTOC headings={headings} />}
 
       {/* Back to top */}
       <button
