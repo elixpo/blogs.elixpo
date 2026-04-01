@@ -155,10 +155,12 @@ export default function BlogInteractionBar({ blogId }) {
         {/* Like */}
         <button
           onClick={toggleLike}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-medium transition-all"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-medium"
           style={{
             color: interactions.liked ? '#f87171' : 'var(--text-muted)',
             backgroundColor: interactions.liked ? '#f8717110' : 'transparent',
+            transform: likeAnim ? 'scale(1.25)' : 'scale(1)',
+            transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s, background-color 0.15s',
           }}
           title={interactions.liked ? 'Unlike' : 'Like'}
         >
@@ -169,11 +171,12 @@ export default function BlogInteractionBar({ blogId }) {
         {/* Clap */}
         <button
           onClick={addClap}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-medium transition-all"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-medium"
           style={{
             color: interactions.userClaps > 0 ? '#9b7bf7' : 'var(--text-muted)',
             backgroundColor: interactions.userClaps > 0 ? '#9b7bf710' : 'transparent',
-            transform: clapAnim ? 'scale(1.15)' : 'scale(1)',
+            transform: clapAnim ? 'scale(1.3) rotate(-8deg)' : 'scale(1) rotate(0deg)',
+            transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s, background-color 0.15s',
           }}
           title={`Clap (${interactions.userClaps}/50)`}
         >
