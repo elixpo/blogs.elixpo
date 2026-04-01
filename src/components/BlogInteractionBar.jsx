@@ -107,13 +107,33 @@ export default function BlogInteractionBar({ blogId }) {
     }
   };
 
-  const handleShare = () => {
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareRef = useRef(null);
+
+  useEffect(() => {
+    if (!shareOpen) return;
+    const handleClick = (e) => { if (shareRef.current && !shareRef.current.contains(e.target)) setShareOpen(false); };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [shareOpen]);
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href).catch(() => {});
+    setShareOpen(false);
+  };
+
+  const copyEmbed = () => {
     const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({ url }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(url).catch(() => {});
-    }
+    const code = `<iframe src="${url}?embed=1" width="100%" height="600" frameborder="0"></iframe>`;
+    navigator.clipboard.writeText(code).catch(() => {});
+    setShareOpen(false);
+  };
+
+  const copyMarkdown = () => {
+    const url = window.location.href;
+    const md = `[${document.title || 'Blog post'}](${url})`;
+    navigator.clipboard.writeText(md).catch(() => {});
+    setShareOpen(false);
   };
 
   if (!interactions) return null;
