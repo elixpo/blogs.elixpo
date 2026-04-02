@@ -188,6 +188,18 @@ async function enrichPosts(db, posts, userId) {
     batchQuery(db, 'SELECT blog_id, tag FROM blog_tags WHERE blog_id IN', blogIds),
   ]);
 
+  // Fetch co-author counts
+  const coAuthorCountMap = {};
+  if (blogIds.length > 0) {
+    const placeholders = blogIds.map(() => '?').join(',');
+    const caResult = await db.prepare(
+      `SELECT blog_id, COUNT(*) as count FROM blog_co_authors WHERE blog_id IN (${placeholders}) GROUP BY blog_id`
+    ).bind(...blogIds).all();
+    for (const row of (caResult?.results || [])) {
+      coAuthorCountMap[row.blog_id] = row.count;
+    }
+  }
+
   const authorMap = Object.fromEntries(authors.map(a => [a.id, a]));
   const tagMap = {};
   for (const t of tags) {
@@ -218,6 +230,7 @@ async function enrichPosts(db, posts, userId) {
       ...p,
       author: authorMap[p.author_id] || { username: 'unknown', display_name: 'Unknown' },
       org: org ? { id: org.id, slug: org.slug, name: org.name, logo_url: org.logo_r2_key } : null,
+      co_author_count: coAuthorCountMap[p.id] || 0,
       tags: tagMap[p.id] || [],
       is_staff: p.published_as === `org:${STAFF_ORG_ID}`,
       can_edit: !!(isAuthor || isOrgMember),

@@ -202,6 +202,9 @@ function FeedCard({ post }) {
               <><span style={{ color: 'var(--text-secondary)' }}>in {post.org.name}</span><span className="mx-0.5" style={{ color: 'var(--text-faint)' }}>&middot;</span></>
             )}
             <span style={{ color: 'var(--text-secondary)' }}>{author.display_name || author.username}</span>
+            {post.co_author_count > 0 && (
+              <span style={{ color: 'var(--text-faint)' }}>+ {post.co_author_count} {post.co_author_count === 1 ? 'other' : 'others'}</span>
+            )}
           </span>
         </div>
         <div className="flex gap-6">
