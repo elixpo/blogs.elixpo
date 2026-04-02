@@ -227,7 +227,7 @@ function renderBlocksToHTML(blocks) {
   return html;
 }
 
-export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, coverPos, pageEmoji, tags, html, blocks, user, wordCount }) {
+export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, coverPos, pageEmoji, tags, html, blocks, user, org, coAuthorCount, wordCount }) {
   const contentRef = useRef(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
