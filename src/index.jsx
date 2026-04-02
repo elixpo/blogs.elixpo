@@ -238,8 +238,7 @@ function FeedCard({ post }) {
           <img
             src={post.cover_image_r2_key || generateBlogBanner(post.id || post.slug)}
             alt=""
-            className="w-[140px] h-[90px] rounded-lg flex-shrink-0 hidden sm:block"
-            style={{ objectFit: post.cover_image_r2_key ? 'cover' : 'fill' }}
+            className="w-[140px] h-[90px] rounded-lg flex-shrink-0 hidden sm:block object-cover"
           />
         </div>
       </Link>

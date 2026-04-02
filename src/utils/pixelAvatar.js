@@ -85,8 +85,8 @@ export function generateBlogBanner(seed) {
   const H = 240;
   const PX = 10;
   // Corner block size in cells
-  const CX = 7;
-  const CY = 6;
+  const CX = 10;
+  const CY = 8;
 
   // Generate one corner pattern (CX x CY), then mirror to all 4
   const bits = [];
@@ -117,12 +117,15 @@ export function generateBlogBanner(seed) {
   drawCorner(0, H, false, true);        // bottom-left
   drawCorner(W, H, true, true);         // bottom-right
 
-  // Scattered low-opacity pixels for blocksy texture (very sparse)
+  // Scattered low-opacity pixels for blocksy texture
   let bgPixels = '';
-  for (let y = 0; y < Math.floor(H / PX); y += 3) {
-    for (let x = 0; x < Math.floor(W / PX); x += 3) {
-      if (((h * (y * 53 + x * 37 + 19)) & 0xFF) > 245) {
-        bgPixels += `<rect x="${x * PX}" y="${y * PX}" width="${PX}" height="${PX}" fill="${fg}" opacity="0.06" rx="1"/>`;
+  for (let y = 0; y < Math.floor(H / PX); y += 2) {
+    for (let x = 0; x < Math.floor(W / PX); x += 2) {
+      const v = (h * (y * 53 + x * 37 + 19)) & 0xFF;
+      if (v > 220) {
+        const fill = v > 240 ? fgLight : fg;
+        const op = v > 240 ? '0.12' : '0.08';
+        bgPixels += `<rect x="${x * PX}" y="${y * PX}" width="${PX}" height="${PX}" fill="${fill}" opacity="${op}" rx="1"/>`;
       }
     }
   }
