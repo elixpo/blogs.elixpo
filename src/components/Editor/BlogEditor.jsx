@@ -397,7 +397,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
   const [aiMenuPos, setAiMenuPos] = useState({ top: 0, left: 0, anchorBlockId: null });
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiGeneratingBlockId, setAiGeneratingBlockId] = useState(null);
-  const [aiPhase, setAiPhase] = useState('idle'); // idle | thinking | writing | generating_image
+  const [aiPhase, setAiPhase] = useState('idle'); // idle | thinking | writing | generating_image | uploading
   const [aiStatusInline, setAiStatusInline] = useState(false); // true = inline status bar, false = bottom bar
   const [aiInlinePos, setAiInlinePos] = useState({ top: 0 }); // position for inline status bar
   const [aiStatusText, setAiStatusText] = useState('is thinking'); // cycling status text
@@ -1085,7 +1085,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     }
 
     try {
-      const { streamAI, getOrCreateSession } = await import('../../ai/agent');
+      const { streamAI, getOrCreateSession, reuploadImage } = await import('../../ai/agent');
       const { AGENT_SYSTEM_PROMPT, EDIT_SYSTEM_PROMPT } = await import('../../ai/prompts');
       const { parseMarkdownToBlocks } = await import('./markdownToBlocks');
 
@@ -1119,47 +1119,37 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         signal: abortController.signal,
 
         onTask: (taskText, phase) => {
-          // Update status bar with lixsearch task status
+          // Show lixsearch TASK status directly in the status bar
           if (phase === 'done') return;
 
-          setAiPhase(phase === 'generating_image' ? 'generating_image' : phase === 'searching' ? 'thinking' : 'writing');
+          // Set phase for the bottom bar icon/label
+          if (phase === 'generating_image') setAiPhase('generating_image');
+          else if (phase === 'image_ready') setAiPhase('uploading');
+          else setAiPhase(firstChunkReceived ? 'writing' : 'thinking');
 
-          // Map task text to display status
+          // Display the raw task text from lixsearch as status
+          setAiStatusText(taskText);
+
+          // Insert image placeholder skeleton when image generation starts
           const t = taskText.toLowerCase();
-          if (t.includes('generating image') || t.includes('creating your image') || t.includes('image generation')) {
-            setAiStatusText('is creating an image');
-            // Insert image placeholder skeleton
-            if (!imagePlaceholderInserted) {
-              imagePlaceholderInserted = true;
-              const afterId = currentIds[currentIds.length - 1];
-              try {
-                editor.insertBlocks([{ type: 'image', props: { _imageId: 'ai_stream_img', caption: '' } }], afterId, 'after');
-                const updDoc = editor.document;
-                const aftIdx = updDoc.findIndex((b) => b.id === afterId);
-                const imgBlock = updDoc[aftIdx + 1];
-                if (imgBlock) {
-                  currentIds.push(imgBlock.id);
-                  aiBlockIdsRef.current = new Set(currentIds);
-                  aiBlockCountRef.current = currentIds.length;
-                  requestAnimationFrame(() => {
-                    const el = wrapperRef.current?.querySelector(`[data-id="${imgBlock.id}"]`);
-                    if (el) el.classList.add('ai-image-skeleton');
-                  });
-                }
-              } catch {}
-            }
-          } else if (t.includes('image generated') || t.includes('image ready') || t.includes('image created')) {
-            setAiStatusText('is finishing up');
-          } else if (t.includes('searching') || t.includes('looking things up')) {
-            setAiStatusText('is searching');
-          } else if (t.includes('thinking') || t.includes('analyzing') || t.includes('understanding')) {
-            setAiStatusText('is thinking');
-          } else if (t.includes('preparing') || t.includes('synthesizing')) {
-            setAiStatusText('is preparing');
-          } else if (t.includes('finalizing') || t.includes('wrapping up') || t.includes('almost there')) {
-            setAiStatusText('is almost done');
-          } else {
-            setAiStatusText('is working');
+          if ((t.includes('generating image') || t.includes('creating your image') || t.includes('image generation')) && !imagePlaceholderInserted) {
+            imagePlaceholderInserted = true;
+            const afterId = currentIds[currentIds.length - 1];
+            try {
+              editor.insertBlocks([{ type: 'image', props: { _imageId: 'ai_stream_img', caption: '' } }], afterId, 'after');
+              const updDoc = editor.document;
+              const aftIdx = updDoc.findIndex((b) => b.id === afterId);
+              const imgBlock = updDoc[aftIdx + 1];
+              if (imgBlock) {
+                currentIds.push(imgBlock.id);
+                aiBlockIdsRef.current = new Set(currentIds);
+                aiBlockCountRef.current = currentIds.length;
+                requestAnimationFrame(() => {
+                  const el = wrapperRef.current?.querySelector(`[data-id="${imgBlock.id}"]`);
+                  if (el) el.classList.add('ai-image-skeleton');
+                });
+              }
+            } catch {}
           }
         },
 
@@ -1237,13 +1227,21 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         },
 
         onImage: ({ alt, url }) => {
-          // Image URL arrived in the stream — replace placeholder or insert new image block
+          // Image URL arrived in the stream — show immediately, then re-upload to Cloudinary
+          let targetBlockId = null;
+
           if (imagePlaceholderInserted) {
-            // Find and update the placeholder
             replaceImagePlaceholder('ai_stream_img', url, alt);
             imagePlaceholderInserted = false;
+            // Find the placeholder block ID for later update
+            const doc = editor.document;
+            for (const b of doc) {
+              if (b.type === 'image' && b.props?._imageId === 'ai_stream_img') {
+                targetBlockId = b.id;
+                break;
+              }
+            }
           } else {
-            // No placeholder — insert a new image block
             const afterId = currentIds[currentIds.length - 1];
             try {
               editor.insertBlocks([{ type: 'image', props: { url, caption: alt || '', previewWidth: 740 } }], afterId, 'after');
@@ -1251,6 +1249,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
               const aftIdx = updDoc.findIndex((b) => b.id === afterId);
               const imgBlock = updDoc[aftIdx + 1];
               if (imgBlock) {
+                targetBlockId = imgBlock.id;
                 currentIds.push(imgBlock.id);
                 aiBlockIdsRef.current = new Set(currentIds);
                 aiBlockCountRef.current = currentIds.length;
@@ -1261,6 +1260,24 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
               }
             } catch {}
           }
+
+          // Re-upload to Cloudinary in background (lixsearch URLs are temporary)
+          const blockIdToUpdate = targetBlockId;
+          reuploadImage(url, alt).then((uploaded) => {
+            if (!uploaded) return;
+            // Find the image block and replace URL with permanent Cloudinary URL
+            try {
+              const doc = editor.document;
+              const block = blockIdToUpdate
+                ? doc.find((b) => b.id === blockIdToUpdate)
+                : doc.find((b) => b.type === 'image' && b.props?.url === url);
+              if (block) {
+                editor.updateBlock(block.id, {
+                  props: { url: uploaded.url, _mediaId: uploaded.id },
+                });
+              }
+            } catch {}
+          });
         },
 
         onDone: (fullText) => {
@@ -1442,11 +1459,12 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
             <img src="/base-logo.png" alt="Elixpo" className="elixpo-typing-avatar" />
             <div className="elixpo-typing-text">
               <span className="elixpo-typing-name">Elixpo</span>
-              <span className="elixpo-typing-status">{
+              <span className="elixpo-typing-status">{aiStatusText || (
                 aiPhase === 'thinking' ? 'is thinking' :
                 aiPhase === 'generating_image' ? 'is creating an image' :
+                aiPhase === 'uploading' ? 'is uploading' :
                 'is writing'
-              }<span className="elixpo-typing-dots"><span /><span /><span /></span></span>
+              )}<span className="elixpo-typing-dots"><span /><span /><span /></span></span>
             </div>
             <button className="elixpo-stop-btn" onClick={handleAIStop}>
               <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">

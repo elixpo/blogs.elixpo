@@ -81,6 +81,40 @@ function extractImages(text) {
   return images;
 }
 
+// ── Image re-upload (lixsearch URL → Cloudinary for persistence) ──
+
+/**
+ * Download an image from a temporary URL, compress it, and upload to Cloudinary.
+ * Returns the permanent Cloudinary URL, or null on failure.
+ *
+ * @param {string} srcUrl - Temporary image URL from lixsearch
+ * @param {string} [alt] - Alt text / caption
+ * @returns {Promise<{ url: string, id: string } | null>}
+ */
+export async function reuploadImage(srcUrl, alt) {
+  try {
+    const imgRes = await fetch(srcUrl);
+    if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
+    const blob = await imgRes.blob();
+
+    const { compressBlogImage } = await import('../utils/compressImage');
+    const compressed = await compressBlogImage(blob);
+
+    const formData = new FormData();
+    formData.append('file', compressed.blob, `ai_${Date.now()}.webp`);
+    formData.append('type', 'image');
+
+    const uploadRes = await fetch('/api/media/upload', { method: 'POST', body: formData });
+    if (!uploadRes.ok) throw new Error('Upload failed');
+
+    const data = await uploadRes.json();
+    return { url: data.url, id: data.id || '' };
+  } catch (err) {
+    console.error('Image re-upload failed:', err);
+    return null;
+  }
+}
+
 // ── Main streaming function ──
 
 /**
