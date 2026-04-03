@@ -1,12 +1,13 @@
 export const runtime = 'edge';
-// Server-side proxy for Pollinations image generation
-// Keeps API key server-side
+// Legacy image generation proxy — kept as fallback.
+// Primary image generation now goes through lixsearch streaming (search.elixpo.com)
+// which handles image generation via tool calls in the SSE stream.
 
 import { enforceAILimits } from '../../../../lib/aiRateLimit';
 
 const POLLINATIONS_IMAGE_BASE = 'https://gen.pollinations.ai/v1/images/generations';
 
-export const maxDuration = 120; // Allow up to 2 minutes for image generation
+export const maxDuration = 120;
 
 export async function POST(request) {
   const apiKey = process.env.POLLINATIONS_IMAGE_API_KEY || process.env.POLLINATIONS_TEXT_API_KEY;
