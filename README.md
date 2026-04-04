@@ -1,11 +1,5 @@
 <div align="center">
 
-<!-- Banner -->
-<img src="public/og-image.jpg" alt="LixBlogs Banner" width="100%" style="border-radius: 12px;" />
-
-<br />
-<br />
-
 <!-- Logo & Title -->
 <img src="public/base-logo.png" alt="LixBlogs Logo" width="80" />
 
@@ -28,12 +22,16 @@ real-time collaboration, and organizations — all on the edge.
 [![Cloudflare](https://img.shields.io/badge/Cloudflare_Pages-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com)
 [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
-<br />
-
 </div>
 
-<!-- Wave separator -->
-<img width="100%" src="https://capsule-render.vercel.app/api?type=wave&color=9b7bf7&height=120&section=header&text=&fontSize=0" />
+<br />
+
+<!-- Banner -->
+<div align="center">
+<img src="public/og-image.jpg" alt="LixBlogs Banner" width="100%" style="border-radius: 12px;" />
+</div>
+
+<br />
 
 ## What is LixBlogs?
 
@@ -61,36 +59,27 @@ Whether you're writing a personal blog, publishing under your organization, or c
 <br />
 
 <!-- Wave separator -->
-<img width="100%" src="https://capsule-render.vercel.app/api?type=wave&color=60a5fa&height=100&section=header&text=&fontSize=0&reversal=true" />
+<img width="100%" src="https://capsule-render.vercel.app/api?type=wave&color=9b7bf7&height=120&section=header&text=&fontSize=0" />
 
 ## How It Works
 
-<div align="center">
+```mermaid
+graph LR
+    A["🔐 Sign Up"] -->|Elixpo OAuth| B["✍️ Write"]
+    B -->|Block Editor| C["🤖 AI Assist"]
+    C -->|Generate & Edit| D["👥 Collaborate"]
+    D -->|Real-time Sync| E["🚀 Publish"]
+    E -->|blogs.elixpo.com| F["🌍 Readers"]
 
+    style A fill:#9b7bf7,stroke:#7c5ce0,color:#fff
+    style B fill:#60a5fa,stroke:#3b82f6,color:#fff
+    style C fill:#c084fc,stroke:#a855f7,color:#fff
+    style D fill:#4ade80,stroke:#22c55e,color:#fff
+    style E fill:#f59e0b,stroke:#d97706,color:#fff
+    style F fill:#f87171,stroke:#ef4444,color:#fff
 ```
-   Sign up               Create a blog           Write with AI            Publish
-  ┌─────────┐           ┌─────────────┐         ┌──────────────┐        ┌──────────┐
-  │  Elixpo  │  ──────▶  │  Rich Block  │ ──────▶ │  AI suggests  │ ─────▶ │  Share    │
-  │ Accounts │           │   Editor     │         │  & generates  │        │  globally │
-  └─────────┘           └─────────────┘         └──────────────┘        └──────────┘
-```
-
-</div>
-
-**1. Sign up** with your Elixpo Account — one click, no forms.
-
-**2. Start writing** in a Notion-style block editor with slash commands, markdown shortcuts, and drag-to-reorder.
-
-**3. Use AI** to brainstorm, expand ideas, generate images, or edit your prose — all inline.
-
-**4. Collaborate** by inviting co-authors who can edit in real-time with conflict-free syncing.
-
-**5. Publish** under your name or your organization, with a clean reading experience for your audience.
 
 <br />
-
-<!-- Wave separator -->
-<img width="100%" src="https://capsule-render.vercel.app/api?type=wave&color=4ade80&height=100&section=header&text=&fontSize=0" />
 
 ## The Editor
 
@@ -115,8 +104,44 @@ The heart of LixBlogs is a **powerful block editor** that feels like writing in 
 
 <br />
 
-<!-- Wave separator -->
-<img width="100%" src="https://capsule-render.vercel.app/api?type=wave&color=f59e0b&height=100&section=header&text=&fontSize=0&reversal=true" />
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Client ["🖥️ Client"]
+        FE["Next.js 15 + React 19"]
+        ED["BlockNote Editor"]
+        YJS["Yjs CRDT"]
+    end
+
+    subgraph Edge ["☁️ Cloudflare Edge"]
+        CF["Pages + Workers"]
+        D1["D1 Database"]
+        DO["Durable Objects"]
+        KV["KV Cache"]
+    end
+
+    subgraph Services ["🔌 Services"]
+        AI["LixSearch AI"]
+        CLD["Cloudinary"]
+        AUTH["Elixpo Accounts"]
+    end
+
+    FE --> CF
+    ED --> YJS
+    YJS -->|WebSocket| DO
+    CF --> D1
+    CF --> KV
+    FE --> AI
+    FE --> CLD
+    FE --> AUTH
+
+    style Client fill:#1a1a2e,stroke:#9b7bf7,color:#e8edf5
+    style Edge fill:#1a1a2e,stroke:#60a5fa,color:#e8edf5
+    style Services fill:#1a1a2e,stroke:#4ade80,color:#e8edf5
+```
+
+<br />
 
 ## Built With
 
@@ -147,8 +172,6 @@ The heart of LixBlogs is a **powerful block editor** that feels like writing in 
 </tr>
 </table>
 
-</div>
-
 | Layer | Technology |
 |:---|:---|
 | **Frontend** | Next.js 15, React 19, Tailwind CSS 3.4 |
@@ -160,54 +183,9 @@ The heart of LixBlogs is a **powerful block editor** that feels like writing in 
 | **Auth** | Elixpo Accounts OAuth 2.0 |
 | **Hosting** | Cloudflare Pages + Workers (global edge) |
 
-<br />
-
-<!-- Wave separator -->
-<img width="100%" src="https://capsule-render.vercel.app/api?type=wave&color=9b7bf7&height=100&section=header&text=&fontSize=0" />
-
-## Getting Started
-
-> You can use LixBlogs right away at **[blogs.elixpo.com](https://blogs.elixpo.com)** — no installation needed.
-
-If you want to run it locally:
-
-```bash
-# Clone the repo
-git clone https://github.com/Circuit-Overtime/elixpo_blogs.git
-cd elixpo_blogs
-
-# Install dependencies
-npm install
-
-# Set up environment
-cp .env.example .env
-# Fill in your OAuth and Cloudinary credentials
-
-# Start dev server
-npm run dev
-```
-
-Open [localhost:3000](http://localhost:3000) and start writing.
+</div>
 
 <br />
-
-## Deploying
-
-```bash
-# Build & deploy to Cloudflare Pages
-./deploy.sh deploy
-
-# Deploy the collab worker
-./deploy.sh worker
-
-# Everything at once (secrets + worker + pages)
-./deploy.sh all
-```
-
-<br />
-
-<!-- Wave separator -->
-<img width="100%" src="https://capsule-render.vercel.app/api?type=wave&color=60a5fa&height=100&section=header&text=&fontSize=0&reversal=true" />
 
 ## Project Activity
 
@@ -226,23 +204,9 @@ Open [localhost:3000](http://localhost:3000) and start writing.
 
 <br />
 
-## Contributing
-
-We welcome contributions! Whether it's fixing a typo, improving the editor, or adding a new feature — every bit helps.
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b my-feature`)
-3. **Commit** your changes (`git commit -m 'Add my feature'`)
-4. **Push** to your branch (`git push origin my-feature`)
-5. **Open** a Pull Request
-
-<br />
-
 ## License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
-<br />
 
 <!-- Footer wave -->
 <img width="100%" src="https://capsule-render.vercel.app/api?type=wave&color=9b7bf7&height=120&section=footer&text=&fontSize=0" />
