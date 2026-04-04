@@ -99,7 +99,7 @@ secrets() {
 build() {
   echo "==> Building for Cloudflare Pages..."
   sudo npm version patch --no-git-tag-version
-  sudo npx @cloudflare/next-on-pages
+  sudo npm run pages:build
   echo "==> Build complete (.vercel/output/static)"
 }
 
@@ -282,7 +282,7 @@ do_release() {
 
   if $RELEASE_WEB; then
     echo "==> Building & deploying website..."
-    dry_run "cd '$SCRIPT_DIR' && sudo npx @cloudflare/next-on-pages"
+    dry_run "cd '$SCRIPT_DIR' && sudo npm run pages:build"
     dry_run "cd '$SCRIPT_DIR' && sudo npx wrangler pages deploy .vercel/output/static --project-name lixblogs --branch main"
     echo "==> Website deployed"
   fi
