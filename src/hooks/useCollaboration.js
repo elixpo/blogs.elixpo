@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 // Collab worker URL — set this to your deployed collab worker domain
-const COLLAB_WS_URL = process.env.NEXT_PUBLIC_COLLAB_URL || 'wss://collab.elixpo.com';
+const COLLAB_WS_URL = process.env.NEXT_PUBLIC_COLLAB_URL || 'wss://blog_collab.elixpo.com';
 
 export function useCollaboration({ blogId, user, enabled = false }) {
   const [isConnected, setIsConnected] = useState(false);
