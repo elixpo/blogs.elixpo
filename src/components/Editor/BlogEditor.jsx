@@ -1,6 +1,6 @@
 'use client';
 
-import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs } from '@blocknote/core';
+import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, createCodeBlockSpec } from '@blocknote/core';
 import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems, TableHandlesController } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/core/fonts/inter.css';
@@ -32,10 +32,27 @@ import { OrgMentionInline } from './blocks/OrgMentionInline';
 
 // ── Schema ──
 
+// Code block with Shiki syntax highlighting
+const codeBlockWithHighlighting = createCodeBlockSpec({
+  createHighlighter: async () => {
+    const { createHighlighter } = await import('shiki');
+    return createHighlighter({
+      themes: ['github-dark', 'github-light'],
+      langs: [
+        'javascript', 'typescript', 'python', 'java', 'c', 'cpp', 'csharp',
+        'go', 'rust', 'ruby', 'php', 'swift', 'kotlin', 'html', 'css',
+        'json', 'yaml', 'markdown', 'bash', 'shell', 'sql', 'graphql',
+        'jsx', 'tsx', 'vue', 'svelte', 'dart', 'lua', 'r', 'scala',
+      ],
+    });
+  },
+});
+
 // Block specs from createReactBlockSpec are factories — call them to get the spec
 const schema = BlockNoteSchema.create({
   blockSpecs: {
     ...defaultBlockSpecs,
+    codeBlock: codeBlockWithHighlighting,
     image: BlogImageBlock({}),
     tableOfContents: TableOfContents({}),
     blockEquation: BlockEquation({}),
