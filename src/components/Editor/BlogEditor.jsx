@@ -777,14 +777,22 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         } catch {}
       }
       setShowAIActions(true);
-      highlightAiBlocks([...ids], false);
+      // Apply highlight via DOM directly (can't use highlightAiBlocks — defined later)
+      const cls = 'ai-generated-highlight';
+      for (const id of ids) {
+        const el = wrapperRef.current?.querySelector(`[data-id="${id}"]`);
+        if (el) {
+          el.classList.remove('ai-writing-active');
+          el.classList.add(cls);
+        }
+      }
       requestAnimationFrame(() => {
         const firstId = [...ids][0];
         const el = wrapperRef.current?.querySelector(`[data-id="${firstId}"]`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
     }
-  }, [editor, highlightAiBlocks]);
+  }, [editor, hideSparkle]);
 
   // Re-apply ai-generated-highlight after BlockNote re-renders (which destroys DOM classes)
   useEffect(() => {
