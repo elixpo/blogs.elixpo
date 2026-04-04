@@ -428,56 +428,57 @@
 .ai-editor-locked .bn-editor [contenteditable] {
   pointer-events: none !important;
   user-select: none !important;
-  cursor: not-allowed !important;
+  cursor: default !important;
 }
-
-/* Grey overlay removed — only the anchor block gets the visual indicator via ai-edit-selected-block */
 
 .ai-editor-locked .bn-toolbar {
   display: none !important;
 }
 
-/* ===== AI Selected Block — shimmer skeleton while AI is thinking ===== */
+/* ===== AI Selected Block — thin single-line grey bar with shimmer, non-editable ===== */
 
 .ai-edit-selected-block {
   position: relative;
-  background: rgba(196, 181, 253, 0.10) !important;
-  border-left: 3px solid rgba(196, 181, 253, 0.4) !important;
-  border-radius: 0 6px 6px 0;
-  margin-left: -3px;
+  height: 6px !important;
+  min-height: 6px !important;
+  max-height: 6px !important;
   overflow: hidden;
+  background: rgba(196, 181, 253, 0.15) !important;
+  border-radius: 3px;
+  margin: 6px 0 !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+  user-select: none !important;
 }
 
+/* Hide all inner content — just show the bar */
+.ai-edit-selected-block .bn-block-content,
+.ai-edit-selected-block .bn-inline-content,
+.ai-edit-selected-block [contenteditable],
+.ai-edit-selected-block p,
+.ai-edit-selected-block span {
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+/* Shimmer animation across the thin bar */
 .ai-edit-selected-block::before {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     90deg,
-    transparent 25%,
-    rgba(196, 181, 253, 0.13) 50%,
-    transparent 75%
+    rgba(196, 181, 253, 0.08) 0%,
+    rgba(196, 181, 253, 0.35) 50%,
+    rgba(196, 181, 253, 0.08) 100%
   );
   background-size: 200% 100%;
   animation: aiSkeletonShimmer 1.8s ease-in-out infinite;
-  z-index: 1;
+  border-radius: 3px;
   pointer-events: none;
-  border-radius: 0 6px 6px 0;
-}
-
-.ai-edit-selected-block .bn-inline-content,
-.ai-edit-selected-block .bn-inline-content *,
-.ai-edit-selected-block [contenteditable="true"],
-.ai-edit-selected-block [contenteditable="true"] *,
-.ai-edit-selected-block p,
-.ai-edit-selected-block span,
-.ai-edit-selected-block strong,
-.ai-edit-selected-block em,
-.ai-edit-selected-block code,
-.ai-edit-selected-block a,
-.ai-edit-selected-block li {
-  color: rgba(196, 181, 253, 0.6) !important;
-  -webkit-text-fill-color: rgba(196, 181, 253, 0.6) !important;
 }
 
 /* ===== AI Placeholder Skeleton — single-line shimmer where AI will start typing ===== */
