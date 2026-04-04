@@ -179,7 +179,7 @@ export function parseMarkdownToBlocks(text) {
 
     // Horizontal rule: ---, ***, ___
     if (/^([-*_])\1{2,}$/.test(trimmed)) {
-      blocks.push({ type: 'paragraph', content: [{ type: 'text', text: '———' }] });
+      blocks.push({ type: 'divider', content: [], props: {} });
       i++; continue;
     }
 
