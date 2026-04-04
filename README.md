@@ -179,7 +179,9 @@ graph TB
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Circuit-Overtime/elixpo_blogs&type=Date)](https://star-history.com/#Circuit-Overtime/elixpo_blogs&Date)
+## Star History
+
+[![Star History Chart](https://api.star-history.com/chart?repos=Circuit-Overtime/elixpo_blogs&type=date&legend=top-left)](https://www.star-history.com/?repos=Circuit-Overtime%2Felixpo_blogs&type=date&legend=top-left)
 
 <br />
 
