@@ -316,7 +316,6 @@ export default function WritePage({ slugid }) {
   const [mode, setMode] = useState('edit');
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
-  const [coverImage, setCoverImage] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
   const [publishAs, setPublishAs] = useState('personal');
   const [tags, setTags] = useState([]);
@@ -509,11 +508,10 @@ export default function WritePage({ slugid }) {
 
   const handleCoverSelect = (dataUrl) => {
     setCoverPreview(dataUrl);
-    fetch(dataUrl).then(r => r.blob()).then(blob => setCoverImage(blob));
+    fetch(dataUrl).then(r => r.blob()).then(blob => uploadCover(blob));
   };
 
   const removeCover = () => {
-    setCoverImage(null);
     setCoverPreview(null);
   };
 
@@ -623,6 +621,27 @@ export default function WritePage({ slugid }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showOwnerDropdown]);
 
+  // Upload cover image blob to Cloudinary → set coverPreview to permanent URL
+  const uploadCover = useCallback(async (blob) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', blob, `cover_${slugid}.webp`);
+      formData.append('type', 'cover');
+      if (slugid) formData.append('blogId', slugid);
+      const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          setCoverPreview(data.url);
+          return data.url;
+        }
+      }
+    } catch (err) {
+      console.error('Cover upload failed:', err);
+    }
+    return null;
+  }, [slugid]);
+
   const handleSaveDraft = async () => {
     saveDraft(slugid, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji });
     setLastSaved(Date.now());
@@ -638,7 +657,7 @@ export default function WritePage({ slugid }) {
       const res = await fetch('/api/blogs/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, status: targetStatus, lastKnownUpdatedAt }),
+        body: JSON.stringify({ slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, coverUrl: coverPreview, status: targetStatus, lastKnownUpdatedAt }),
       });
 
       if (res.status === 409) {
@@ -1002,10 +1021,12 @@ export default function WritePage({ slugid }) {
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  setCoverImage(file);
-                                  setCoverPreview(URL.createObjectURL(file));
-                                  setCoverZoom(1);
-                                  setCoverPos({ x: 50, y: 50 });
+                                  compressCoverImage(file).then(({ blob, url }) => {
+                                    setCoverPreview(url);
+                                    setCoverZoom(1);
+                                    setCoverPos({ x: 50, y: 50 });
+                                    uploadCover(blob);
+                                  });
                                 }
                               }}
                             />
@@ -1047,9 +1068,9 @@ export default function WritePage({ slugid }) {
                                 const file = e.target.files?.[0];
                                 if (file) {
                                   compressCoverImage(file).then(({ blob, url }) => {
-                                    setCoverImage(blob);
                                     setCoverPreview(url);
                                     setShowCoverModal(false);
+                                    uploadCover(blob);
                                   });
                                 }
                               }}
@@ -1096,9 +1117,9 @@ export default function WritePage({ slugid }) {
                               canvas.toBlob((blob) => {
                                 if (blob) {
                                   const url = URL.createObjectURL(blob);
-                                  setCoverImage(blob);
                                   setCoverPreview(url);
                                   setShowCoverModal(false);
+                                  uploadCover(blob);
                                 }
                               }, 'image/webp', 0.85);
                             }}
@@ -1123,7 +1144,8 @@ export default function WritePage({ slugid }) {
                                 onChange={(e) => setCoverUrlInput(e.target.value)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' && coverUrlInput.trim()) {
-                                    setCoverPreview(coverUrlInput.trim());
+                                    const url = coverUrlInput.trim();
+                                    setCoverPreview(url);
                                     setShowCoverModal(false);
                                     setCoverUrlMode(false);
                                     setCoverUrlInput('');
@@ -1136,7 +1158,8 @@ export default function WritePage({ slugid }) {
                               <button
                                 onClick={() => {
                                   if (coverUrlInput.trim()) {
-                                    setCoverPreview(coverUrlInput.trim());
+                                    const url = coverUrlInput.trim();
+                                    setCoverPreview(url);
                                     setShowCoverModal(false);
                                     setCoverUrlMode(false);
                                     setCoverUrlInput('');
