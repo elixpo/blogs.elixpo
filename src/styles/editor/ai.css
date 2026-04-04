@@ -405,27 +405,53 @@
 .ai-quick-action-btn {
   display: flex;
   align-items: center;
-  width: 100%;
-  height: 32px;
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 400;
+  gap: 8px;
+  width: fit-content;
+  height: 30px;
+  padding: 0 14px;
+  margin-bottom: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
   color: var(--text-muted, #8b8fa3);
-  background: transparent;
-  border: none;
-  border-radius: 6px;
+  background: var(--bg-surface, rgba(20, 24, 33, 0.85));
+  border: 1px solid var(--border-default, rgba(155, 123, 247, 0.12));
+  border-radius: 15px;
   cursor: pointer;
-  text-align: left;
-  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(155, 123, 247, 0.06);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
 .ai-quick-action-btn:hover {
   background: rgba(155, 123, 247, 0.1);
+  border-color: rgba(155, 123, 247, 0.3);
   color: #c4b5fd;
+  box-shadow: 0 3px 12px rgba(155, 123, 247, 0.15), 0 1px 4px rgba(0, 0, 0, 0.2);
+  transform: translateX(2px);
 }
 
 .ai-quick-action-btn:active {
   background: rgba(155, 123, 247, 0.18);
+  transform: translateX(2px) scale(0.98);
+}
+
+.ai-quick-action-btn svg {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.ai-quick-action-btn:hover svg {
+  opacity: 0.9;
+}
+
+/* ===== AI Edit Selection Highlight — subtle border on selected blocks ===== */
+
+.ai-edit-selection-highlight {
+  background: rgba(196, 181, 253, 0.06) !important;
+  border-left: 3px solid rgba(196, 181, 253, 0.35) !important;
+  border-radius: 0 6px 6px 0;
+  margin-left: -3px;
+  transition: background 0.2s ease;
 }
 
 /* ===== AI Inline Input Container ===== */

@@ -317,8 +317,8 @@ export default function AISelectionToolbar({ editor, onTitleChange, blogId }) {
 
   const clearSelectedLavender = useCallback(() => {
     const wrapper = document.querySelector('.blog-editor-wrapper');
-    wrapper?.querySelectorAll('.ai-edit-selected-block').forEach((el) => {
-      el.classList.remove('ai-edit-selected-block');
+    wrapper?.querySelectorAll('.ai-edit-selected-block, .ai-edit-selection-highlight').forEach((el) => {
+      el.classList.remove('ai-edit-selected-block', 'ai-edit-selection-highlight');
     });
   }, []);
 
@@ -391,8 +391,8 @@ export default function AISelectionToolbar({ editor, onTitleChange, blogId }) {
     aiBlockCountRef.current = 0;
     // Clean up leftover DOM classes
     const wrapper = document.querySelector('.blog-editor-wrapper');
-    wrapper?.querySelectorAll('.ai-edit-original-block, .ai-edit-new-block, .ai-edit-selected-block, .ai-skeleton-nearby').forEach((el) => {
-      el.classList.remove('ai-edit-original-block', 'ai-edit-new-block', 'ai-edit-selected-block', 'ai-skeleton-nearby');
+    wrapper?.querySelectorAll('.ai-edit-original-block, .ai-edit-new-block, .ai-edit-selected-block, .ai-edit-selection-highlight, .ai-skeleton-nearby').forEach((el) => {
+      el.classList.remove('ai-edit-original-block', 'ai-edit-new-block', 'ai-edit-selected-block', 'ai-edit-selection-highlight', 'ai-skeleton-nearby');
     });
   }
 
@@ -557,12 +557,12 @@ export default function AISelectionToolbar({ editor, onTitleChange, blogId }) {
 
   // Quick action presets
   const quickActions = [
-    { label: 'Fix Grammar', instruction: 'Fix all grammar, spelling, and punctuation errors. Keep the original meaning and tone intact.' },
-    { label: 'Paraphrase', instruction: 'Paraphrase this text while preserving the original meaning. Use different word choices and sentence structures.' },
-    { label: 'Improve Writing', instruction: 'Improve the clarity, flow, and readability of this text. Make the language more polished and professional while keeping the original voice.' },
-    { label: 'Make Concise', instruction: 'Make this text more concise and to the point. Remove unnecessary words and redundancy without losing meaning.' },
-    { label: 'Make Formal', instruction: 'Rewrite this text in a more formal and professional tone.' },
-    { label: 'Simplify', instruction: 'Simplify this text so it is easy to understand. Use shorter sentences and simpler vocabulary.' },
+    { label: 'Fix Grammar', instruction: 'Fix all grammar, spelling, and punctuation errors. Keep the original meaning and tone intact.', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> },
+    { label: 'Paraphrase', instruction: 'Paraphrase this text while preserving the original meaning. Use different word choices and sentence structures.', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg> },
+    { label: 'Improve Writing', instruction: 'Improve the clarity, flow, and readability of this text. Make the language more polished and professional while keeping the original voice.', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"/></svg> },
+    { label: 'Make Concise', instruction: 'Make this text more concise and to the point. Remove unnecessary words and redundancy without losing meaning.', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h10"/></svg> },
+    { label: 'Make Formal', instruction: 'Rewrite this text in a more formal and professional tone.', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg> },
+    { label: 'Simplify', instruction: 'Simplify this text so it is easy to understand. Use shorter sentences and simpler vocabulary.', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg> },
   ];
 
   // Render the inline AI prompt (same style as space-trigger AICommandMenu)
@@ -621,6 +621,7 @@ export default function AISelectionToolbar({ editor, onTitleChange, blogId }) {
               onClick={() => handleQuickAction(action.instruction)}
               className="ai-quick-action-btn"
             >
+              {action.icon}
               {action.label}
             </button>
           ))}
