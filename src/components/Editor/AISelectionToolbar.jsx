@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { streamAI, getOrCreateSession } from '../../ai/agent';
 import { EDIT_SYSTEM_PROMPT } from '../../ai/prompts';
 import { parseMarkdownToBlocks } from './markdownToBlocks';
-import { computeWordDiff, diffToBlocks } from './wordDiff';
+import { computeWordDiff, diffToBlocks, diffToKeepBlocks } from './wordDiff';
 
 /**
  * AI toolbar button injected into BlockNote's native formatting toolbar.
@@ -19,6 +19,7 @@ export default function AISelectionToolbar({ editor, onTitleChange, blogId }) {
   const [selectedBlockIds, setSelectedBlockIds] = useState([]);
   const [diffBlockIds, setDiffBlockIds] = useState([]); // IDs of diff blocks that replaced originals
   const [aiResponseText, setAiResponseText] = useState(''); // AI's full response for keep
+  const [diffResult, setDiffResult] = useState(null); // word-level diff array for keep/undo
   const [promptPos, setPromptPos] = useState({ top: 0 });
   const abortRef = useRef(null);
   const promptRef = useRef(null);
@@ -329,24 +330,24 @@ export default function AISelectionToolbar({ editor, onTitleChange, blogId }) {
   }, []);
 
   const handleKeep = useCallback(() => {
-    showToolbar();
-    unlockEditor();
     removeSkeletonLoading();
     clearSelectedLavender();
 
-    // Replace diff blocks with clean AI text (parsed from markdown)
+    // Build clean blocks from diff: remove deleted words, keep additions, reset colors
     const ids = [...diffBlockIds];
-    if (ids.length > 0 && aiResponseText) {
+    if (ids.length > 0 && diffResult) {
       try {
-        const cleanBlocks = parseMarkdownToBlocks(aiResponseText);
-        if (cleanBlocks.length > 0) {
-          editor.replaceBlocks(ids, cleanBlocks);
+        const keepBlocks = diffToKeepBlocks(diffResult);
+        if (keepBlocks.length > 0) {
+          editor.replaceBlocks(ids, keepBlocks);
         }
-      } catch {}
+      } catch (err) { console.error('Keep failed:', err); }
     }
 
+    unlockEditor();
+    showToolbar();
     resetState();
-  }, [editor, diffBlockIds, aiResponseText, showToolbar, unlockEditor, removeSkeletonLoading, clearSelectedLavender]);
+  }, [editor, diffBlockIds, diffResult, showToolbar, unlockEditor, removeSkeletonLoading, clearSelectedLavender]);
 
   const handleUndo = useCallback(() => {
     abortRef.current?.abort();
@@ -373,6 +374,7 @@ export default function AISelectionToolbar({ editor, onTitleChange, blogId }) {
     setSelectedBlockIds([]);
     setDiffBlockIds([]);
     setAiResponseText('');
+    setDiffResult(null);
     savedSelectionRef.current = null;
     // Clean up leftover DOM classes
     const wrapper = document.querySelector('.blog-editor-wrapper');
