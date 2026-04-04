@@ -164,6 +164,9 @@ function renderBlocksToHTML(blocks) {
           parts.push(`<div class="preview-mermaid-block" data-diagram="${encodeURIComponent(block.props.diagram)}"></div>`);
         }
         break;
+      case 'divider':
+        parts.push('<hr class="preview-divider" />');
+        break;
       case 'codeBlock': {
         const lang = block.props?.language || '';
         const code = (block.content || []).map((c) => c.text || '').join('');

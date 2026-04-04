@@ -377,6 +377,12 @@ function doSanitize(blocks) {
       continue;
     }
 
+    // Horizontal rule: ---, ***, ___, ———, ––– etc → divider
+    if (/^([-*_])\1{2,}$/.test(text) || /^[—–]{2,}$/.test(text)) {
+      result.push({ id: block.id, type: 'divider', children: [] });
+      i++; continue;
+    }
+
     // Code fence opener: ```lang — collect until closing ```
     const fenceMatch = text.match(/^```(\w*)$/);
     if (fenceMatch) {
@@ -389,12 +395,20 @@ function doSanitize(blocks) {
         codeLines.push(nextText);
         i++;
       }
-      result.push({
-        id: block.id,
-        type: 'codeBlock',
-        props: { language: lang },
-        content: [{ type: 'text', text: codeLines.join('\n') }],
-      });
+      if (lang === 'mermaid') {
+        result.push({
+          id: block.id,
+          type: 'mermaidBlock',
+          props: { diagram: codeLines.join('\n') },
+        });
+      } else {
+        result.push({
+          id: block.id,
+          type: 'codeBlock',
+          props: { language: lang },
+          content: [{ type: 'text', text: codeLines.join('\n') }],
+        });
+      }
       continue;
     }
 
