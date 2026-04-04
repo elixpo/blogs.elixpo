@@ -124,7 +124,7 @@
 
 .blog-editor-wrapper [data-content-type="bulletListItem"],
 .blog-editor-wrapper [data-content-type="numberedListItem"] {
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 .blog-editor-wrapper [data-content-type="bulletListItem"]::before {
