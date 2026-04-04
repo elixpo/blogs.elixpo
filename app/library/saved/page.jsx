@@ -1,4 +1,4 @@
-import SavedPage from '../../../src/pages/library/saved/SavedPage';
+import SavedPage from '../../../src/views/library/saved/SavedPage';
 
 export const metadata = {
   title: 'Saved',

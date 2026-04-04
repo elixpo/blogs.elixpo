@@ -1,4 +1,4 @@
-import NotificationsPage from '../../src/pages/NotificationsPage';
+import NotificationsPage from '../../src/views/NotificationsPage';
 
 export const metadata = {
   title: 'Notifications',

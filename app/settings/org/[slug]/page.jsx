@@ -1,7 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import OrgManagePage from '../../../../src/pages/settings/OrgManagePage';
+import OrgManagePage from '../../../../src/views/settings/OrgManagePage';
 
 export default function OrgSettings({ params }) {
   const { slug } = use(params);

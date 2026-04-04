@@ -1,4 +1,4 @@
-import SettingsPage from '../../src/pages/settings/SettingsPage';
+import SettingsPage from '../../src/views/settings/SettingsPage';
 
 export const metadata = {
   title: 'Settings',

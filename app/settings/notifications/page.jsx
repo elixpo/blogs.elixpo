@@ -1,4 +1,4 @@
-import NotificationPage from '../../../src/pages/settings/notification/NotificationPage';
+import NotificationPage from '../../../src/views/settings/notification/NotificationPage';
 
 export const metadata = {
   title: 'Notification Settings',

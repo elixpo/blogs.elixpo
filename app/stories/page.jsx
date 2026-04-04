@@ -1,4 +1,4 @@
-import StoriesPage from '../../src/pages/StoriesPage';
+import StoriesPage from '../../src/views/StoriesPage';
 
 export const metadata = {
   title: 'Your Stories',

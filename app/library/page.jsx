@@ -1,4 +1,4 @@
-import LibraryPage from '../../src/pages/library/LibraryPage';
+import LibraryPage from '../../src/views/library/LibraryPage';
 
 export const metadata = {
   title: 'Library',

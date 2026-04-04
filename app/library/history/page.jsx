@@ -1,4 +1,4 @@
-import HistoryPage from '../../../src/pages/library/history/HistoryPage';
+import HistoryPage from '../../../src/views/library/history/HistoryPage';
 
 export const metadata = {
   title: 'Reading History',

@@ -1,4 +1,4 @@
-import PublisherPage from '../../../src/pages/settings/publisher/PublisherPage';
+import PublisherPage from '../../../src/views/settings/publisher/PublisherPage';
 
 export const metadata = {
   title: 'Publisher Settings',

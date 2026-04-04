@@ -1,4 +1,4 @@
-import StatsPage from '../../src/pages/StatsPage';
+import StatsPage from '../../src/views/StatsPage';
 
 export const metadata = {
   title: 'Stats',

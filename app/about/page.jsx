@@ -1,4 +1,4 @@
-import AboutPage from '../../src/pages/AboutPage';
+import AboutPage from '../../src/views/AboutPage';
 
 export const metadata = {
   title: 'About',

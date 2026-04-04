@@ -1,4 +1,4 @@
-import IntroPage from '../../src/pages/IntroPage';
+import IntroPage from '../../src/views/IntroPage';
 
 export const metadata = {
   title: 'Welcome',
