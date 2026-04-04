@@ -2,7 +2,7 @@ import './globals.css';
 import { AuthProvider } from '../src/context/AuthContext';
 import { ThemeProvider } from '../src/context/ThemeContext';
 
-const SITE_URL = 'https://lixblogs.pages.dev';
+const SITE_URL = 'https://blogs.elixpo.com';
 const SITE_NAME = 'LixBlogs';
 const SITE_DESC = 'A modern blogging platform with a rich block editor, AI writing tools, real-time collaboration, and organizations.';
 

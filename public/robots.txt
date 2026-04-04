@@ -7,4 +7,4 @@ Disallow: /intro
 Disallow: /settings
 Disallow: /callback
 
-Sitemap: https://lixblogs.pages.dev/sitemap.xml
+Sitemap: https://blogs.elixpo.com/sitemap.xml
