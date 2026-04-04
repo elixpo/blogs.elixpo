@@ -233,7 +233,8 @@
 
 /* ===== Mermaid diagram blocks ===== */
 
-.blog-editor-wrapper [data-content-type="mermaidBlock"] {
+.blog-editor-wrapper [data-content-type="mermaidBlock"],
+.blog-editor-wrapper [data-content-type="blockEquation"] {
   width: 100%;
 }
 
