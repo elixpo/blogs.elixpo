@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# LixSketch Deploy & Release
+# LixBlogs Deploy & Release
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #
 # Usage: ./deploy.sh [command ...] [options]
@@ -42,7 +42,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env"
-PAGES_PROJECT="lixsketch"
+PAGES_PROJECT="lixblogs"
 PAGES_BRANCH="main"
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -88,7 +88,7 @@ secrets() {
     [[ "$key" =~ ^(CLOUDFLARE_ACCOUNT|D1_DATABASE_ID|KV_NAMESPACE_ID)$ ]] && continue
 
     echo "  -> $key (worker)"
-    printf '%s\n' "$value" | sudo npx wrangler versions secret put "$key" --name lixsketch-collab || echo "    [warn] worker secret failed for $key"
+    printf '%s\n' "$value" | sudo npx wrangler versions secret put "$key" --name lixblogs-collab || echo "    [warn] worker secret failed for $key"
     echo "  -> $key (pages)"
     printf '%s\n' "$value" | sudo npx wrangler pages secret put "$key" --project-name "$PAGES_PROJECT" || echo "    [warn] pages secret failed for $key"
   done < "$ENV_FILE"
@@ -129,8 +129,9 @@ deploy() {
 }
 
 worker() {
-  echo "==> Deploying Worker (lixsketch-collab)..."
-  sudo npx wrangler deploy
+  echo "==> Deploying Worker (lixblogs-collab)..."
+  cd "$SCRIPT_DIR/worker/collab" && sudo npx wrangler deploy
+  cd "$SCRIPT_DIR"
   echo "==> Worker deploy complete."
 }
 
@@ -282,7 +283,7 @@ do_release() {
   if $RELEASE_WEB; then
     echo "==> Building & deploying website..."
     dry_run "cd '$SCRIPT_DIR' && sudo npx @cloudflare/next-on-pages"
-    dry_run "cd '$SCRIPT_DIR' && sudo npx wrangler pages deploy .vercel/output/static --project-name lixsketch --branch main"
+    dry_run "cd '$SCRIPT_DIR' && sudo npx wrangler pages deploy .vercel/output/static --project-name lixblogs --branch main"
     echo "==> Website deployed"
   fi
 
