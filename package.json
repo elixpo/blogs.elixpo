@@ -1,5 +1,18 @@
 {
-  "name": "elixpo-blogs",
+  "name": "lixblogs",
+  "description": "A modern blogging platform with a rich block editor, AI writing tools, real-time collaboration, and organizations — deployed on Cloudflare's edge.",
+  "author": "Circuit-Overtime <https://github.com/Circuit-Overtime>",
+  "license": "MIT",
+  "homepage": "https://blogs.elixpo.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Circuit-Overtime/elixpo_blogs"
+  },
+  "bugs": {
+    "url": "https://github.com/Circuit-Overtime/elixpo_blogs/issues"
+  },
+  "keywords": ["blog", "blogging", "editor", "ai", "collaboration", "nextjs", "cloudflare", "blocknote"],
+  "private": true,
   "type": "module",
   "dependencies": {
     "@blocknote/core": "^0.47.1",
