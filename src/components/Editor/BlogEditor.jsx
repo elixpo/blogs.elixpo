@@ -761,6 +761,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     setAiPhase('idle');
     setAiGeneratingBlockId(null);
     hideSparkle();
+    wrapperRef.current?.classList.remove('ai-editor-locked');
     wrapperRef.current?.querySelectorAll('.ai-skeleton-nearby, .ai-placeholder-skeleton, .ai-edit-selected-block, .ai-hide-placeholder, .ai-writing-active').forEach((el) => {
       el.classList.remove('ai-skeleton-nearby', 'ai-placeholder-skeleton', 'ai-edit-selected-block', 'ai-hide-placeholder', 'ai-writing-active');
     });
@@ -856,6 +857,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
 
   const handleAIKeep = useCallback(() => {
     hideSparkle();
+    wrapperRef.current?.classList.remove('ai-editor-locked');
     // Reset textColor and backgroundColor to default on all AI blocks
     for (const id of aiBlockIdsRef.current) {
       try {
@@ -877,6 +879,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
 
   const handleAIDiscard = useCallback(() => {
     hideSparkle();
+    wrapperRef.current?.classList.remove('ai-editor-locked');
     const storedIds = [...aiBlockIdsRef.current];
     if (storedIds.length > 0) {
       try { editor.removeBlocks(storedIds); } catch {
@@ -1050,6 +1053,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     setAiGenerating(true);
     setAiPhase('thinking');
     setAiGeneratingBlockId(insertedBlock.id);
+    wrapperRef.current?.classList.add('ai-editor-locked');
     const abortController = new AbortController();
     aiAbortRef.current = abortController;
 

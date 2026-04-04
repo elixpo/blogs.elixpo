@@ -281,7 +281,7 @@
 
 .elixpo-typing-status {
   font-size: 13px;
-  color: var(--text-muted);
+  color: #8b8fa3;
 }
 
 .elixpo-typing-dots {
@@ -368,7 +368,7 @@
 
 .elixpo-done-label {
   font-size: 13px;
-  color: var(--text-muted);
+  color: #c4b5fd;
 }
 
 .elixpo-done-actions {
