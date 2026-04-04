@@ -1,3 +1,4 @@
+'use client';
 import "../../../styles/history/history.css";
 
 

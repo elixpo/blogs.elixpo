@@ -11,7 +11,16 @@
   "bugs": {
     "url": "https://github.com/Circuit-Overtime/elixpo_blogs/issues"
   },
-  "keywords": ["blog", "blogging", "editor", "ai", "collaboration", "nextjs", "cloudflare", "blocknote"],
+  "keywords": [
+    "blog",
+    "blogging",
+    "editor",
+    "ai",
+    "collaboration",
+    "nextjs",
+    "cloudflare",
+    "blocknote"
+  ],
   "private": true,
   "type": "module",
   "dependencies": {
@@ -47,5 +56,5 @@
     "deploy": "npm run pages:build && npx wrangler pages deploy .vercel/output/static",
     "db:migrate": "wrangler d1 execute elixpoblogs --remote --file=migrations/0006_blog_collab_roles.sql"
   },
-  "version": "0.0.4"
+  "version": "0.0.5"
 }
