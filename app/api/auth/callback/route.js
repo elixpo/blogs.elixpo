@@ -65,7 +65,12 @@ export async function GET(request) {
   try {
     const { getDB } = await import('../../../../lib/cloudflare');
     const db = getDB();
-    const existingUser = await db.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first();
+    const existingUser = await db.prepare('SELECT id, account_status FROM users WHERE id = ?').bind(userId).first();
+
+    // Block permanently deleted accounts
+    if (existingUser?.account_status === 'removed') {
+      return NextResponse.redirect(new URL('/sign-in?error=account_deleted', redirectBase));
+    }
     const now = Math.floor(Date.now() / 1000);
 
     if (!existingUser) {
@@ -116,7 +121,7 @@ export async function GET(request) {
       } catch (e) { console.warn('Avatar mirror failed:', e.message); }
 
       await db.prepare(`
-        UPDATE users SET email = ?, display_name = ?, avatar_url = ?, updated_at = ?
+        UPDATE users SET email = ?, display_name = ?, avatar_url = ?, account_status = 'active', updated_at = ?
         WHERE id = ?
       `).bind(
         userInfo.email,

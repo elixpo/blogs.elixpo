@@ -31,6 +31,7 @@ function SignInContent() {
     invalid_state: 'Session expired. Please try again.',
     missing_code: 'Something went wrong. Please try again.',
     user_info_failed: 'Could not fetch your profile. Please try again.',
+    account_deleted: 'This account has been permanently deleted and cannot be recovered.',
   };
 
   return (
