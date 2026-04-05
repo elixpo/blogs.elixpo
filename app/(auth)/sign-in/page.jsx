@@ -17,7 +17,7 @@ function SignInContent() {
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: process.env.NEXT_PUBLIC_ELIXPO_CLIENT_ID,
-      redirect_uri: (process.env.NEXT_PUBLIC_URL || window.location.origin) + '/api/auth/callback',
+      redirect_uri: window.location.origin + '/api/auth/callback',
       state,
       scope: 'openid profile email',
     });
