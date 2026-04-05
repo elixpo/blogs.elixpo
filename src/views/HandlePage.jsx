@@ -187,7 +187,7 @@ export default function HandlePage({ path }) {
                           {b.comment_count > 0 && <span>{b.comment_count} comments</span>}
                         </div>
                       </div>
-                      <img src={b.cover_image_r2_key || generateBlogBanner(b.id || b.slug)} alt="" className="w-[120px] h-[80px] rounded-md object-cover flex-shrink-0 hidden sm:block" />
+                      <img src={b.cover_image_r2_key || generateBlogBanner(b.id || b.slug)} alt="" className={`w-[130px] rounded-md flex-shrink-0 hidden sm:block ${b.cover_image_r2_key ? 'h-[80px] object-cover' : 'h-[44px] object-contain'}`} />
                     </div>
                   </article>
                 </Link>

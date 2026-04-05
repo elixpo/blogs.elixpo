@@ -184,11 +184,18 @@ function SearchBar() {
 function FeedCard({ post }) {
   const author = post.author || {};
   return (
-    <article className="group py-6" style={{ borderBottom: '1px solid var(--divider)' }}>
+    <article
+      className="group rounded-xl p-5 mb-3 transition-all duration-200 hover:shadow-md"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        border: '1px solid var(--border-default)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      }}
+    >
       <Link href={`/${author.username || 'unknown'}/${post.slug}`} className="block cursor-pointer">
-        <div className="flex items-center gap-2 mb-2.5">
+        <div className="flex items-center gap-2 mb-3">
           {author.avatar_url ? (
-            <img src={author.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+            <img src={author.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover ring-1 ring-[var(--border-default)]" />
           ) : (
             <div className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-faint)' }}>
               {(author.display_name || author.username || '?')[0].toUpperCase()}
@@ -206,22 +213,23 @@ function FeedCard({ post }) {
               <span style={{ color: 'var(--text-faint)' }}>+ {post.co_author_count} {post.co_author_count === 1 ? 'other' : 'others'}</span>
             )}
           </span>
+          <span className="ml-auto text-[11px]" style={{ color: 'var(--text-faint)' }}>{timeAgo(post.published_at)}</span>
         </div>
-        <div className="flex gap-6">
+        <div className="flex gap-5">
           <div className="flex-1 min-w-0">
-            <h2 className="text-[19px] font-bold leading-[1.3] mb-1.5 group-hover:opacity-75 transition-opacity font-serif tracking-[-0.01em]" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-[18px] font-bold leading-[1.3] mb-1 group-hover:opacity-75 transition-opacity font-serif tracking-[-0.01em]" style={{ color: 'var(--text-primary)' }}>
+              {post.page_emoji && <span className="mr-1.5">{post.page_emoji}</span>}
               {post.title || 'Untitled'}
             </h2>
             {post.subtitle && (
-              <p className="text-[15px] leading-[1.5] line-clamp-2 mb-3" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[14px] leading-[1.55] line-clamp-2 mb-3" style={{ color: 'var(--text-muted)' }}>
                 {post.subtitle}
               </p>
             )}
-            <div className="flex items-center gap-3.5 text-[12px]" style={{ color: 'var(--text-faint)' }}>
-              {(post.tags || []).length > 0 && (
-                <span className="text-[#9b7bf7] text-[11px] bg-[#9b7bf714] px-2.5 py-0.5 rounded-full font-medium">{post.tags[0]}</span>
-              )}
-              <span>{timeAgo(post.published_at)}</span>
+            <div className="flex items-center gap-3 text-[12px] flex-wrap" style={{ color: 'var(--text-faint)' }}>
+              {(post.tags || []).slice(0, 2).map(tag => (
+                <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' }}>{tag}</span>
+              ))}
               {post.read_time_minutes > 0 && <span>{post.read_time_minutes} min read</span>}
               {post.like_count > 0 && (
                 <span className="flex items-center gap-1">
@@ -237,19 +245,24 @@ function FeedCard({ post }) {
               )}
             </div>
           </div>
-          <img
-            src={post.cover_image_r2_key || generateBlogBanner(post.id || post.slug)}
-            alt=""
-            className="w-[140px] h-[90px] rounded-lg flex-shrink-0 hidden sm:block object-cover"
-          />
+          <div
+            className="w-[140px] h-[48px] rounded-lg flex-shrink-0 hidden sm:block overflow-hidden self-center"
+            style={{ backgroundColor: post.cover_image_r2_key ? 'transparent' : 'var(--bg-elevated)' }}
+          >
+            <img
+              src={post.cover_image_r2_key || generateBlogBanner(post.id || post.slug)}
+              alt=""
+              className={`w-full h-full transition-transform duration-300 group-hover:scale-105 ${post.cover_image_r2_key ? 'object-cover' : 'object-contain'}`}
+            />
+          </div>
         </div>
       </Link>
       {post.can_edit && (
-        <div className="mt-2 flex items-center">
+        <div className="mt-3 pt-3 flex items-center" style={{ borderTop: '1px solid var(--divider)' }}>
           <Link
             href={`/edit/${post.id}`}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors"
-            style={{ color: 'var(--text-faint)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors"
+            style={{ color: 'var(--text-faint)', backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-default)' }}
             onClick={e => e.stopPropagation()}
           >
             <ion-icon name="create-outline" style={{ fontSize: '13px' }} />
@@ -449,7 +462,10 @@ export default function App() {
         <aside className="hidden xl:block w-[340px] flex-shrink-0 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto px-8 py-6 scrollbar-thin">
           {/* Top Picks */}
           <div className="mb-8">
-            <h3 className="text-[14px] font-bold pb-2 mb-1 tracking-wide" style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--divider)' }}>Top Picks</h3>
+            <h3 className="text-[13px] font-bold pb-2 mb-3 tracking-wider uppercase flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+              <ion-icon name="trophy-outline" style={{ fontSize: '14px', color: '#9b7bf7' }} />
+              Top Picks
+            </h3>
             {topPicks.length > 0 ? (
               <div>
                 {topPicks.map((pick, i) => <TopPickCard key={pick.id} post={pick} index={i} />)}
