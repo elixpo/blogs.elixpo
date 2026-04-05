@@ -301,12 +301,6 @@ function PublishingTab({ user }) {
       />
 
       <SettingRow
-        title="Allow readers to leave private notes on your stories"
-        description="Private notes are visible to you and (if left in a publication) all Editors of the publication."
-        right={<Toggle checked={privateNotes} onChange={setPrivateNotes} />}
-      />
-
-      <SettingRow
         title="Manage tipping on your stories"
         description="Readers can send you tips through the third-party platform of your choice."
         right={
@@ -346,17 +340,6 @@ function PublishingTab({ user }) {
         right={<span className="text-[13px] text-[var(--text-muted)]">{replyTo}</span>}
       />
 
-      <SettingRow
-        title="Import email subscribers"
-        description="Upload a CSV or TXT file containing up to 25,000 email addresses."
-        right={
-          <button className="text-[13px] text-[#9b7bf7] hover:text-[#b69aff] transition-colors font-medium flex items-center gap-1">
-            Import
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17L17 7M17 7H7M17 7v10" /></svg>
-          </button>
-        }
-        border={false}
-      />
     </div>
   );
 }
@@ -891,9 +874,20 @@ function OrganizationTab({ user }) {
           <h3 className="text-[15px] text-[var(--text-primary)] font-semibold">Your Organizations</h3>
           <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Create and manage organizations to publish collaboratively.</p>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] bg-[#9b7bf7] hover:bg-[#b69aff] rounded-lg transition-colors">
-          Create Organization
-        </button>
+        {(() => {
+          const orgLimit = user?.tier === 'member' ? 5 : 1;
+          const atLimit = orgs.length >= orgLimit;
+          return (
+            <button
+              onClick={() => !atLimit && setShowCreateModal(true)}
+              disabled={atLimit}
+              className="px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] bg-[#9b7bf7] hover:bg-[#b69aff] rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title={atLimit ? `Free plan allows ${orgLimit} organization. Upgrade for more.` : ''}
+            >
+              Create Organization
+            </button>
+          );
+        })()}
       </div>
 
       {loading ? (
