@@ -443,9 +443,9 @@ export default function AppShell({ children }) {
                 >
                   Sign In
                 </Link>
-                <button onClick={handleLogin} className="text-[14px] font-medium text-white bg-[#9b7bf7] hover:bg-[#8b6ae6] transition-colors rounded-full sm:px-4 sm:py-1.5 p-2">
+                <button onClick={handleLogin} className="text-[14px] font-medium text-white bg-[#9b7bf7] hover:bg-[#8b6ae6] transition-colors rounded-full px-2.5 py-2 sm:px-4 sm:py-1.5 flex items-center justify-center">
                   <span className="hidden sm:inline">Get Started</span>
-                  <ion-icon name="arrow-forward-outline" className="sm:hidden" style={{ fontSize: '16px' }} />
+                  <span className="sm:hidden"><ion-icon name="log-in-outline" style={{ fontSize: '18px' }} /></span>
                 </button>
               </>
             )}
