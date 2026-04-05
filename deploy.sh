@@ -364,7 +364,7 @@ run_command() {
     worker)  worker ;;
     secrets) secrets ;;
     build)   build ;;
-    all)     secrets; worker; deploy ;;
+    all)     worker; secrets; deploy ;;
     release) shift; do_release "$@"; exit 0 ;;
     -h|--help|help) usage ;;
     *)
