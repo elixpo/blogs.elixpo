@@ -109,6 +109,58 @@ build() {
   echo "==> Build complete (.vercel/output/static)"
 }
 
+sync_d1() {
+  echo "==> Syncing local D1 to remote..."
+  LOCAL_DB="$SCRIPT_DIR/.wrangler/state/v3/d1/miniflare-D1DatabaseObject"
+  DB_FILE=$(find "$LOCAL_DB" -name "*.sqlite" 2>/dev/null | head -1)
+
+  if [ -z "$DB_FILE" ]; then
+    echo "  [skip] No local D1 database found"
+    return
+  fi
+
+  # Get all user-created tables (exclude internal ones)
+  TABLES=$(sqlite3 "$DB_FILE" "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'sqlite_%' AND name != 'd1_migrations' ORDER BY name;")
+
+  if [ -z "$TABLES" ]; then
+    echo "  [skip] No tables to sync"
+    return
+  fi
+
+  DUMP_FILE="/tmp/d1_sync_$(date +%s).sql"
+  > "$DUMP_FILE"
+
+  for tbl in $TABLES; do
+    COUNT=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM $tbl;")
+    [ "$COUNT" -eq 0 ] && continue
+
+    COLS=$(sqlite3 "$DB_FILE" "PRAGMA table_info($tbl);" | cut -d'|' -f2 | paste -sd,)
+    sqlite3 "$DB_FILE" -separator '|' "SELECT * FROM $tbl;" | while IFS= read -r row; do
+      VALS=$(echo "$row" | awk -F'|' '{
+        for(i=1;i<=NF;i++) {
+          gsub(/\047/, "\047\047", $i)
+          if(i>1) printf ","
+          if($i=="") printf "NULL"
+          else printf "\047%s\047", $i
+        }
+      }')
+      echo "INSERT OR REPLACE INTO $tbl ($COLS) VALUES ($VALS);" >> "$DUMP_FILE"
+    done
+    echo "  -> $tbl ($COUNT rows)"
+  done
+
+  LINES=$(wc -l < "$DUMP_FILE")
+  if [ "$LINES" -eq 0 ]; then
+    echo "  [skip] No data to sync"
+    rm -f "$DUMP_FILE"
+    return
+  fi
+
+  sudo npx wrangler d1 execute elixpoblogs --remote --file="$DUMP_FILE" 2>&1 | tail -3
+  rm -f "$DUMP_FILE"
+  echo "==> D1 sync complete."
+}
+
 deploy() {
   if [ ! -d "$SCRIPT_DIR/.vercel/output/static" ]; then
     echo "==> No build found, building first..."
@@ -121,6 +173,9 @@ deploy() {
     --branch "$PAGES_BRANCH"
 
   echo "==> Pages deploy complete."
+
+  # Sync local D1 to remote
+  sync_d1
 
   VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "unknown")
   sudo git add -A
