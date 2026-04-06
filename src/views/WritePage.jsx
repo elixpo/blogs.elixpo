@@ -933,61 +933,81 @@ export default function WritePage({ slugid }) {
           </button>
 
           {/* Publish / Update split button */}
-          <div className="relative">
-            <div className="flex items-center rounded-full overflow-hidden" style={{ boxShadow: '0 2px 8px rgba(155,123,247,0.25)' }}>
-              <button
-                onClick={() => {
-                  if (isPublished) {
-                    setShowPublishConfirm(true);
-                  } else {
-                    setShowPublishPanel(!showPublishPanel);
-                  }
-                }}
-                className="px-4 py-1.5 text-white font-semibold text-[13px] transition-colors flex items-center gap-1.5"
-                style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)' }}
-              >
-                <ion-icon name={isPublished ? 'cloud-upload-outline' : 'send-outline'} style={{ fontSize: '14px' }} />
-                {isPublished ? 'Update' : 'Publish'}
-              </button>
-              <button
-                onClick={() => setShowPublishMenu(!showPublishMenu)}
-                className="px-2 py-1.5 text-white transition-colors border-l border-white/15"
-                style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)' }}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-            </div>
-
-            {showPublishMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowPublishMenu(false)} />
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl z-50 overflow-hidden py-1" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
-                  <button onClick={handleSaveDraft} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors" style={{ color: 'var(--text-secondary)' }}>
-                    <ion-icon name="save-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
-                    Save Draft
-                  </button>
-                  {isPublished ? (
-                    <button onClick={handlePublish} disabled={!title.trim()} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:opacity-40" style={{ color: 'var(--text-secondary)' }}>
-                      <ion-icon name="cloud-upload-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
-                      Update Published
+          <div className="relative group/publish">
+            {(() => {
+              const titleWords = title.trim().split(/\s+/).filter(Boolean).length;
+              const canPublish = titleWords >= 2;
+              return (
+                <>
+                  <div className="flex items-center rounded-full overflow-hidden" style={{ boxShadow: canPublish ? '0 2px 8px rgba(155,123,247,0.25)' : 'none', opacity: canPublish ? 1 : 0.5 }}>
+                    <button
+                      onClick={() => {
+                        if (!canPublish) return;
+                        if (isPublished) {
+                          setShowPublishConfirm(true);
+                        } else {
+                          setShowPublishPanel(!showPublishPanel);
+                        }
+                      }}
+                      disabled={!canPublish}
+                      className="px-4 py-1.5 text-white font-semibold text-[13px] transition-colors flex items-center gap-1.5 disabled:cursor-not-allowed"
+                      style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)' }}
+                    >
+                      <ion-icon name={isPublished ? 'cloud-upload-outline' : 'send-outline'} style={{ fontSize: '14px' }} />
+                      {isPublished ? 'Update' : 'Publish'}
                     </button>
-                  ) : (
+                    <button
+                      onClick={() => canPublish && setShowPublishMenu(!showPublishMenu)}
+                      disabled={!canPublish}
+                      className="px-2 py-1.5 text-white transition-colors border-l border-white/15 disabled:cursor-not-allowed"
+                      style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)' }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Title hint when publish is disabled */}
+                  {!canPublish && (
+                    <div className="absolute right-0 top-full mt-2 whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-medium z-50 opacity-0 group-hover/publish:opacity-100 transition-opacity pointer-events-none"
+                      style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}
+                    >
+                      Add a title (at least 2 words) to publish
+                    </div>
+                  )}
+
+                  {showPublishMenu && canPublish && (
                     <>
-                      <button onClick={handlePublish} disabled={!title.trim()} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:opacity-40" style={{ color: 'var(--text-secondary)' }}>
-                        <ion-icon name="send-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
-                        Publish
-                      </button>
-                      <button onClick={handlePublishBeta} disabled={!title.trim()} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:opacity-40" style={{ color: 'var(--text-muted)' }}>
-                        <ion-icon name="eye-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
-                        Publish Unlisted
-                      </button>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowPublishMenu(false)} />
+                      <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl z-50 overflow-hidden py-1" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
+                        <button onClick={handleSaveDraft} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                          <ion-icon name="save-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
+                          Save Draft
+                        </button>
+                        {isPublished ? (
+                          <button onClick={handlePublish} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                            <ion-icon name="cloud-upload-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
+                            Update Published
+                          </button>
+                        ) : (
+                          <>
+                            <button onClick={handlePublish} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                              <ion-icon name="send-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
+                              Publish
+                            </button>
+                            <button onClick={handlePublishBeta} className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors" style={{ color: 'var(--text-muted)' }}>
+                              <ion-icon name="eye-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
+                              Publish Unlisted
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </>
                   )}
-                </div>
-              </>
-            )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Invite collaborators */}
