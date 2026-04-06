@@ -472,12 +472,16 @@ export default function WritePage({ slugid }) {
     }
   }, [slugid]);
 
-  // Ctrl+S → save + sync
+  // Ctrl+S → save + sync, Ctrl+O → import markdown
   useEffect(() => {
     function handleKeyDown(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         syncToCloud({ showToast: true });
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+        e.preventDefault();
+        mdUploadRef.current?.click();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
