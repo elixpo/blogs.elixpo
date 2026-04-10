@@ -573,14 +573,59 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       return false;
     }
 
+    // Track whether Ctrl+A just selected all text inside a code block
+    let codeBlockAllSelected = false;
+
     function handleKeyDown(e) {
       const isEditorFocused = editorEl.contains(document.activeElement) || editorEl === document.activeElement;
       if (!isEditorFocused) return;
 
+      const cursor = editor.getTextCursorPosition();
+      const block = cursor?.block;
+
+      // Ctrl+A inside a code block → select all text in that code block
+      if (e.key === 'a' && (e.ctrlKey || e.metaKey) && block?.type === 'codeBlock') {
+        // Let the browser select all text inside the contenteditable code area
+        // Mark that next Backspace should delete the whole block
+        codeBlockAllSelected = true;
+        // Don't prevent — let browser select the text naturally
+        return;
+      }
+
+      // Backspace after Ctrl+A selected a code block → delete the entire block
+      if (e.key === 'Backspace' && codeBlockAllSelected && block?.type === 'codeBlock') {
+        e.preventDefault();
+        e.stopPropagation();
+        codeBlockAllSelected = false;
+        try { editor.removeBlocks([block.id]); } catch {}
+        return;
+      }
+
+      // Any other key resets the flag
+      if (e.key !== 'a' && e.key !== 'Control' && e.key !== 'Meta' && e.key !== 'Shift') {
+        codeBlockAllSelected = false;
+      }
+
+      // Ctrl+Enter inside a code block → exit to a new paragraph below
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && block?.type === 'codeBlock') {
+        e.preventDefault();
+        e.stopPropagation();
+        editor.insertBlocks([{ type: 'paragraph' }], block.id, 'after');
+        // Move cursor to the new block
+        requestAnimationFrame(() => {
+          try {
+            const doc = editor.document;
+            const idx = doc.findIndex(b => b.id === block.id);
+            if (idx >= 0 && idx + 1 < doc.length) {
+              editor.setTextCursorPosition(doc[idx + 1].id, 'start');
+            }
+          } catch {}
+        });
+        return;
+      }
+
       if (e.key === 'Backspace') {
-        const cursor = editor.getTextCursorPosition();
-        if (!cursor?.block) { e.stopPropagation(); return; }
-        const block = cursor.block;
+        if (!block) { e.stopPropagation(); return; }
 
         // Convert empty heading to paragraph
         if (block.type === 'heading' && isBlockEmpty(block)) {
@@ -591,15 +636,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         }
 
         // Delete empty custom blocks (mermaid, equation, AI, tabs, code, etc.)
-        if (customBlockTypes.has(block.type) && isBlockEmpty(block)) {
-          e.preventDefault();
-          e.stopPropagation();
-          try { editor.removeBlocks([block.id]); } catch {}
-          return;
-        }
-
-        // Delete empty code blocks
-        if (block.type === 'codeBlock' && isBlockEmpty(block)) {
+        if ((customBlockTypes.has(block.type) || block.type === 'codeBlock') && isBlockEmpty(block)) {
           e.preventDefault();
           e.stopPropagation();
           try { editor.removeBlocks([block.id]); } catch {}

@@ -1,3 +1,11 @@
+/* ===== Hide formatting toolbar on code/equation/mermaid blocks ===== */
+
+.blog-editor-wrapper [data-content-type="codeBlock"] .bn-inline-content ~ .bn-toolbar,
+.blog-editor-wrapper [data-content-type="blockEquation"] .bn-toolbar,
+.blog-editor-wrapper [data-content-type="mermaidBlock"] .bn-toolbar {
+  display: none !important;
+}
+
 /* ===== Code blocks ===== */
 
 .blog-editor-wrapper [data-content-type="codeBlock"] {
