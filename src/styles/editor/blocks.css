@@ -1,9 +1,25 @@
-/* ===== Hide formatting toolbar on code/equation/mermaid blocks ===== */
+/* ===== No selection outline or drag handle for custom blocks ===== */
 
-.blog-editor-wrapper [data-content-type="codeBlock"] .bn-inline-content ~ .bn-toolbar,
-.blog-editor-wrapper [data-content-type="blockEquation"] .bn-toolbar,
-.blog-editor-wrapper [data-content-type="mermaidBlock"] .bn-toolbar {
-  display: none !important;
+.blog-editor-wrapper [data-content-type="codeBlock"],
+.blog-editor-wrapper [data-content-type="blockEquation"],
+.blog-editor-wrapper [data-content-type="mermaidBlock"] {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--border-default) !important;
+}
+
+/* Remove the blue selected ring BlockNote adds */
+.blog-editor-wrapper [data-content-type="codeBlock"] *::selection,
+.blog-editor-wrapper [data-content-type="blockEquation"] *::selection,
+.blog-editor-wrapper [data-content-type="mermaidBlock"] *::selection {
+  background: transparent;
+}
+
+.blog-editor-wrapper .bn-block-outer[data-node-type="blockContainer"]:has([data-content-type="codeBlock"]) > .bn-block,
+.blog-editor-wrapper .bn-block-outer[data-node-type="blockContainer"]:has([data-content-type="blockEquation"]) > .bn-block,
+.blog-editor-wrapper .bn-block-outer[data-node-type="blockContainer"]:has([data-content-type="mermaidBlock"]) > .bn-block {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* ===== Code blocks ===== */

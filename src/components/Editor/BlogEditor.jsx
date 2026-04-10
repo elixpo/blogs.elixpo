@@ -976,6 +976,33 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     });
   }, []);
 
+  // Hide BlockNote's formatting toolbar when a custom block (code, equation, mermaid, etc.) is focused
+  const noToolbarTypes = useMemo(() => new Set(['codeBlock', 'blockEquation', 'mermaidBlock', 'image', 'tabsBlock', 'aiBlock', 'pdfEmbed', 'tableOfContents', 'buttonBlock', 'breadcrumbs']), []);
+
+  useEffect(() => {
+    function hideToolbarForCustomBlocks() {
+      try {
+        const cursor = editor.getTextCursorPosition();
+        const blockType = cursor?.block?.type;
+        if (!blockType || !noToolbarTypes.has(blockType)) return;
+        // BlockNote renders the formatting toolbar as a .bn-toolbar inside a tippy/floating container
+        document.querySelectorAll('.bn-toolbar').forEach(el => {
+          const container = el.closest('[data-tippy-root], [style*="position"]');
+          if (container) container.style.display = 'none';
+          else el.style.display = 'none';
+        });
+      } catch {}
+    }
+
+    document.addEventListener('selectionchange', hideToolbarForCustomBlocks);
+    // Also run on click (selection might not change but focus does)
+    document.addEventListener('click', hideToolbarForCustomBlocks, true);
+    return () => {
+      document.removeEventListener('selectionchange', hideToolbarForCustomBlocks);
+      document.removeEventListener('click', hideToolbarForCustomBlocks, true);
+    };
+  }, [editor, noToolbarTypes]);
+
   const handleChange = useCallback(() => {
     if (onChange) onChange(editor.document);
     requestAnimationFrame(patchCodeBlocks);
