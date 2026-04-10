@@ -399,6 +399,11 @@
   font-size: 1em;
 }
 
+/* Hide KaTeX MathML accessibility layer — it renders as visible duplicate text */
+.katex-mathml {
+  display: none !important;
+}
+
 /* ===== Inline LaTeX input popup ===== */
 
 .inline-latex-overlay {
@@ -457,11 +462,9 @@
   padding: 10px 16px;
   text-align: center;
   min-height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-bottom: 1px solid var(--border-default);
 }
+
 
 .inline-latex-actions {
   display: flex;
@@ -591,6 +594,7 @@
 .latex-live-preview .katex-display {
   margin: 0;
 }
+
 
 .mermaid-block-actions {
   display: flex;
