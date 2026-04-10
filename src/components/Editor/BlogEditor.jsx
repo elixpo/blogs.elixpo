@@ -288,10 +288,13 @@ function doSanitize(blocks) {
   const result = [];
   let i = 0;
 
-  const getText = (b) => (b.content || []).map(c => {
-    if (c.type === 'inlineEquation') return c.props?.latex || '';
-    return c.text || '';
-  }).join('').trim();
+  const getText = (b) => {
+    if (!b.content || !Array.isArray(b.content)) return '';
+    return b.content.map(c => {
+      if (c.type === 'inlineEquation') return c.props?.latex || '';
+      return c.text || '';
+    }).join('').trim();
+  };
 
   while (i < blocks.length) {
     let block = blocks[i];
@@ -627,15 +630,79 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
 
           (async () => {
             try {
-              const blocks = await editor.tryParseMarkdownToBlocks(textData);
+              // Pre-process: extract mermaid fenced blocks before BlockNote parses
+              const mermaidBlocks = [];
+              let processed = textData.replace(/```mermaid\n([\s\S]*?)```/g, (_, diagram) => {
+                const placeholder = `__MERMAID_${mermaidBlocks.length}__`;
+                mermaidBlocks.push(diagram.trim());
+                return placeholder;
+              });
+
+              // Pre-process: extract block LaTeX \[...\]
+              const blockLatex = [];
+              processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, (_, latex) => {
+                const placeholder = `__BLOCKLATEX_${blockLatex.length}__`;
+                blockLatex.push(latex.trim());
+                return placeholder;
+              });
+
+              let blocks = await editor.tryParseMarkdownToBlocks(processed);
+
+              // Post-process: replace placeholders with custom blocks, and convert inline \(...\)
+              blocks = blocks.flatMap(block => {
+                if (!block.content || !Array.isArray(block.content)) {
+                  // Check if a paragraph contains a mermaid/latex placeholder
+                  return [block];
+                }
+                const text = block.content.map(c => c.text || '').join('');
+
+                // Mermaid placeholder → mermaidBlock
+                const mermaidMatch = text.match(/^__MERMAID_(\d+)__$/);
+                if (mermaidMatch) {
+                  const idx = parseInt(mermaidMatch[1]);
+                  return [{ type: 'mermaidBlock', props: { diagram: mermaidBlocks[idx] || '' }, children: [] }];
+                }
+
+                // Block LaTeX placeholder → blockEquation
+                const latexMatch = text.match(/^__BLOCKLATEX_(\d+)__$/);
+                if (latexMatch) {
+                  const idx = parseInt(latexMatch[1]);
+                  return [{ type: 'blockEquation', props: { latex: blockLatex[idx] || '' }, children: [] }];
+                }
+
+                // Inline LaTeX \(...\) → inlineEquation
+                if (text.includes('\\(') && text.includes('\\)')) {
+                  const parts = [];
+                  const regex = /\\\((.+?)\\\)/g;
+                  let lastIdx = 0;
+                  let m;
+                  const fullText = block.content.map(c => c.text || '').join('');
+                  while ((m = regex.exec(fullText)) !== null) {
+                    if (m.index > lastIdx) {
+                      parts.push({ type: 'text', text: fullText.slice(lastIdx, m.index) });
+                    }
+                    parts.push({ type: 'inlineEquation', props: { latex: m[1].trim() } });
+                    lastIdx = m.index + m[0].length;
+                  }
+                  if (lastIdx < fullText.length) {
+                    parts.push({ type: 'text', text: fullText.slice(lastIdx) });
+                  }
+                  if (parts.length > 0) {
+                    return [{ ...block, content: parts }];
+                  }
+                }
+
+                return [block];
+              });
+
               if (blocks?.length > 0) {
                 const cursor = editor.getTextCursorPosition();
                 if (cursor?.block) {
                   editor.insertBlocks(blocks, cursor.block, 'after');
                 }
               }
-            } catch {
-              // Fallback: let BlockNote handle it normally
+            } catch (err) {
+              console.error('Markdown paste failed:', err);
               editor.insertBlocks([{
                 type: 'paragraph',
                 content: [{ type: 'text', text: textData }],
@@ -719,16 +786,59 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       if (editable) editable.spellcheck = false;
       block.style.position = 'relative';
 
-      // Language label — language attr is on the inner pre/code element
+      // Language label — clickable to change language
       if (!block.querySelector('.code-lang-label')) {
+        const blockEl = block.closest('[data-id]');
+        const blockId = blockEl?.getAttribute('data-id');
         const langEl = block.querySelector('[data-language]');
-        const lang = langEl?.getAttribute('data-language') || '';
-        if (lang && lang !== 'text') {
-          const label = document.createElement('span');
-          label.className = 'code-lang-label';
-          label.textContent = lang;
-          block.appendChild(label);
-        }
+        const lang = langEl?.getAttribute('data-language') || 'text';
+
+        const label = document.createElement('button');
+        label.className = 'code-lang-label';
+        label.textContent = lang || 'text';
+        label.title = 'Click to change language';
+        label.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); };
+        label.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Remove any existing language picker
+          document.querySelectorAll('.code-lang-picker').forEach(el => el.remove());
+
+          const langs = ['text','javascript','typescript','python','java','c','cpp','csharp','go','rust','ruby','php','swift','kotlin','html','css','json','yaml','markdown','bash','shell','sql','graphql','jsx','tsx','vue','svelte','dart','lua','r','scala'];
+          const picker = document.createElement('div');
+          picker.className = 'code-lang-picker';
+          const rect = label.getBoundingClientRect();
+          picker.style.cssText = `position:fixed;top:${rect.bottom + 4}px;right:${window.innerWidth - rect.right}px;z-index:10000;`;
+          picker.innerHTML = `<input class="code-lang-search" placeholder="Search..." autofocus /><div class="code-lang-list">${langs.map(l => `<button class="code-lang-option" data-lang="${l}">${l}</button>`).join('')}</div>`;
+
+          // Search filter
+          picker.querySelector('.code-lang-search').addEventListener('input', (ev) => {
+            const q = ev.target.value.toLowerCase();
+            picker.querySelectorAll('.code-lang-option').forEach(opt => {
+              opt.style.display = opt.dataset.lang.includes(q) ? '' : 'none';
+            });
+          });
+
+          // Select language
+          picker.addEventListener('mousedown', (ev) => {
+            const opt = ev.target.closest('.code-lang-option');
+            if (!opt || !blockId) return;
+            ev.preventDefault();
+            try {
+              editor.updateBlock(blockId, { props: { language: opt.dataset.lang } });
+              label.textContent = opt.dataset.lang;
+            } catch {}
+            picker.remove();
+          });
+
+          document.body.appendChild(picker);
+          picker.querySelector('.code-lang-search').focus();
+          setTimeout(() => {
+            const dismiss = (ev) => { if (!picker.contains(ev.target) && ev.target !== label) { picker.remove(); document.removeEventListener('mousedown', dismiss); } };
+            document.addEventListener('mousedown', dismiss);
+          }, 0);
+        };
+        block.appendChild(label);
       }
 
       // Copy button
