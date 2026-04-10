@@ -304,7 +304,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
     // Render mermaid diagrams
     const mermaidEls = contentRef.current.querySelectorAll('.preview-mermaid-block[data-diagram]');
     if (mermaidEls.length) {
-      import('mermaid').then(({ default: mermaid }) => {
+      import('mermaid/dist/mermaid.esm.mjs').then(({ default: mermaid }) => {
         if (cancelled) return;
         mermaid.initialize({
           startOnLoad: false,

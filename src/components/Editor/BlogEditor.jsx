@@ -5,7 +5,7 @@ import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuI
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
-import 'katex/dist/katex.min.css';
+import '../../styles/katex-fonts.css';
 import { useCallback, useMemo, forwardRef, useImperativeHandle, useState, useRef, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import AICommandMenu from './AICommandMenu';

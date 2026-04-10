@@ -85,7 +85,9 @@ let lastTheme = null;
 async function getMermaid(isDark) {
   if (!mermaidModule) {
     if (!mermaidLoadPromise) {
-      mermaidLoadPromise = import('mermaid').then(m => {
+      // Import the full ESM bundle — the default 'mermaid' export maps to mermaid.core.mjs
+      // which strips gitGraph, pie, timeline, etc. via lazy-loading that breaks with webpack.
+      mermaidLoadPromise = import('mermaid/dist/mermaid.esm.mjs').then(m => {
         mermaidModule = m.default;
         return mermaidModule;
       });
