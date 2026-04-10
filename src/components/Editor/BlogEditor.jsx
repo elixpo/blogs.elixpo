@@ -549,13 +549,24 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         // Always prevent browser back when focused inside the editor
         const isEditorFocused = editorEl.contains(document.activeElement) || editorEl === document.activeElement;
         if (isEditorFocused) {
-          // Convert empty heading to paragraph on backspace
           const cursor = editor.getTextCursorPosition();
+          // Convert empty heading to paragraph on backspace
           if (cursor?.block?.type === 'heading' && (!cursor.block.content || cursor.block.content.length === 0 || (cursor.block.content.length === 1 && cursor.block.content[0].text === ''))) {
             e.preventDefault();
             e.stopPropagation();
             editor.updateBlock(cursor.block.id, { type: 'paragraph', props: {} });
             return;
+          }
+          // Remove empty sub-page block on backspace
+          if (cursor?.block?.type === 'tabsBlock') {
+            let tabs = [];
+            try { tabs = JSON.parse(cursor.block.props?.tabs || '[]'); } catch {}
+            if (tabs.length === 0) {
+              e.preventDefault();
+              e.stopPropagation();
+              editor.removeBlocks([cursor.block.id]);
+              return;
+            }
           }
           // Let BlockNote handle it, but stop the event from reaching the browser
           e.stopPropagation();

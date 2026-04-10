@@ -194,6 +194,16 @@
   background: var(--border-default);
 }
 
+/* ===== Sub-Page (Tabs) Block ===== */
+
+.blog-editor-wrapper [data-content-type="tabsBlock"] {
+  user-select: none;
+}
+
+.blog-editor-wrapper [data-content-type="tabsBlock"] .bn-block-content {
+  cursor: default;
+}
+
 /* ===== Lists ===== */
 
 .blog-editor-wrapper [data-content-type="bulletListItem"],
