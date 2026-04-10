@@ -1003,26 +1003,30 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     };
   }, [editor, noToolbarTypes]);
 
+  // Track block count to detect structural changes (import, paste, AI) vs. normal typing
+  const blockCountRef = useRef(0);
+
   const handleChange = useCallback(() => {
     if (onChange) onChange(editor.document);
-    requestAnimationFrame(patchCodeBlocks);
+    // Only re-patch code blocks when the number of blocks changes (new block added/removed)
+    // This avoids running expensive DOM queries on every keystroke
+    const count = editor.document.length;
+    if (count !== blockCountRef.current) {
+      blockCountRef.current = count;
+      requestAnimationFrame(patchCodeBlocks);
+    }
   }, [onChange, editor, patchCodeBlocks]);
 
-  // Patch code blocks on initial mount + observe for new ones (file import, AI, etc)
+  // Patch code blocks on initial mount only
   useEffect(() => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        blockCountRef.current = editor.document.length;
         patchCodeBlocks();
         onReady?.();
       });
     });
-
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const observer = new MutationObserver(() => requestAnimationFrame(patchCodeBlocks));
-    observer.observe(wrapper, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [patchCodeBlocks, onReady]);
+  }, [patchCodeBlocks, onReady, editor]);
 
 
   // AI sparkle star — inline element appended to last AI text block
