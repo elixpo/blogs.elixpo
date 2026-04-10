@@ -544,39 +544,75 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     const editorEl = wrapperRef.current?.querySelector('.bn-editor');
     if (!editorEl) return;
 
-    function handleBackspace(e) {
+    // Content-none block types that should be deletable with Backspace
+    const customBlockTypes = new Set(['mermaidBlock', 'blockEquation', 'aiBlock', 'tabsBlock', 'buttonBlock', 'breadcrumbs', 'tableOfContents', 'pdfEmbed']);
+
+    function isBlockEmpty(block) {
+      if (!block) return false;
+      const type = block.type;
+      if (type === 'mermaidBlock') return !block.props?.diagram;
+      if (type === 'blockEquation') return !block.props?.latex;
+      if (type === 'aiBlock') return !block.props?.prompt;
+      if (type === 'tabsBlock') {
+        let tabs = [];
+        try { tabs = JSON.parse(block.props?.tabs || '[]'); } catch {}
+        return tabs.length === 0;
+      }
+      if (type === 'codeBlock') {
+        const code = (block.content || []).map(c => c.text || '').join('');
+        return !code.trim();
+      }
+      // For paragraph/heading: empty text
+      if (type === 'paragraph' || type === 'heading') {
+        if (!block.content || block.content.length === 0) return true;
+        if (block.content.length === 1 && block.content[0].type === 'text' && !block.content[0].text) return true;
+        return false;
+      }
+      // Other custom blocks without content prop are "always have content" (e.g. buttonBlock)
+      if (customBlockTypes.has(type)) return false;
+      return false;
+    }
+
+    function handleKeyDown(e) {
+      const isEditorFocused = editorEl.contains(document.activeElement) || editorEl === document.activeElement;
+      if (!isEditorFocused) return;
+
       if (e.key === 'Backspace') {
-        // Always prevent browser back when focused inside the editor
-        const isEditorFocused = editorEl.contains(document.activeElement) || editorEl === document.activeElement;
-        if (isEditorFocused) {
-          const cursor = editor.getTextCursorPosition();
-          // Convert empty heading to paragraph on backspace
-          if (cursor?.block?.type === 'heading' && (!cursor.block.content || cursor.block.content.length === 0 || (cursor.block.content.length === 1 && cursor.block.content[0].text === ''))) {
-            e.preventDefault();
-            e.stopPropagation();
-            editor.updateBlock(cursor.block.id, { type: 'paragraph', props: {} });
-            return;
-          }
-          // Remove empty sub-page block on backspace
-          if (cursor?.block?.type === 'tabsBlock') {
-            let tabs = [];
-            try { tabs = JSON.parse(cursor.block.props?.tabs || '[]'); } catch {}
-            if (tabs.length === 0) {
-              e.preventDefault();
-              e.stopPropagation();
-              editor.removeBlocks([cursor.block.id]);
-              return;
-            }
-          }
-          // Let BlockNote handle it, but stop the event from reaching the browser
+        const cursor = editor.getTextCursorPosition();
+        if (!cursor?.block) { e.stopPropagation(); return; }
+        const block = cursor.block;
+
+        // Convert empty heading to paragraph
+        if (block.type === 'heading' && isBlockEmpty(block)) {
+          e.preventDefault();
           e.stopPropagation();
+          editor.updateBlock(block.id, { type: 'paragraph', props: {} });
+          return;
         }
+
+        // Delete empty custom blocks (mermaid, equation, AI, tabs, code, etc.)
+        if (customBlockTypes.has(block.type) && isBlockEmpty(block)) {
+          e.preventDefault();
+          e.stopPropagation();
+          try { editor.removeBlocks([block.id]); } catch {}
+          return;
+        }
+
+        // Delete empty code blocks
+        if (block.type === 'codeBlock' && isBlockEmpty(block)) {
+          e.preventDefault();
+          e.stopPropagation();
+          try { editor.removeBlocks([block.id]); } catch {}
+          return;
+        }
+
+        e.stopPropagation();
       }
     }
 
     // Use capture phase to catch it before the browser navigation handler
-    editorEl.addEventListener('keydown', handleBackspace, { capture: true });
-    return () => editorEl.removeEventListener('keydown', handleBackspace, { capture: true });
+    editorEl.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => editorEl.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [editor]);
 
   // Inject delete button on table blocks
@@ -880,29 +916,10 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     });
   }, []);
 
-  // Auto-convert codeBlock with language "mermaid" → live mermaidBlock
-  // Converts immediately so user gets the mermaid editor right away
-  const convertMermaidCodeBlocks = useCallback(() => {
-    try {
-      const doc = editor.document;
-      for (const block of doc) {
-        if (block.type === 'codeBlock' && block.props?.language === 'mermaid') {
-          const code = (block.content || []).map(c => c.text || '').join('').trim();
-          editor.updateBlock(block.id, {
-            type: 'mermaidBlock',
-            props: { diagram: code },
-            content: undefined,
-          });
-        }
-      }
-    } catch {}
-  }, [editor]);
-
   const handleChange = useCallback(() => {
     if (onChange) onChange(editor.document);
     requestAnimationFrame(patchCodeBlocks);
-    requestAnimationFrame(convertMermaidCodeBlocks);
-  }, [onChange, editor, patchCodeBlocks, convertMermaidCodeBlocks]);
+  }, [onChange, editor, patchCodeBlocks]);
 
   // Patch code blocks on initial mount + observe for new ones (file import, AI, etc)
   useEffect(() => {

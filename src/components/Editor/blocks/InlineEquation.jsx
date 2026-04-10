@@ -3,9 +3,18 @@
 import { createReactInlineContentSpec } from '@blocknote/react';
 import katex from 'katex';
 
+function stripDelimiters(raw) {
+  let s = raw.trim();
+  if (s.startsWith('\\(') && s.endsWith('\\)')) return s.slice(2, -2).trim();
+  if (s.startsWith('\\[') && s.endsWith('\\]')) return s.slice(2, -2).trim();
+  if (s.startsWith('$$') && s.endsWith('$$')) return s.slice(2, -2).trim();
+  if (s.startsWith('$') && s.endsWith('$') && s.length > 2) return s.slice(1, -1).trim();
+  return s;
+}
+
 function renderKaTeXInline(latex) {
   try {
-    return katex.renderToString(latex, { displayMode: false, throwOnError: false });
+    return katex.renderToString(stripDelimiters(latex), { displayMode: false, throwOnError: false });
   } catch {
     return `<span style="color:#f87171">${latex}</span>`;
   }

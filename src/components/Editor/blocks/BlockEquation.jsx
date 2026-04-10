@@ -4,9 +4,19 @@ import { createReactBlockSpec } from '@blocknote/react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import katex from 'katex';
 
+// Strip \[...\], $$...$$, \(...\), $...$ delimiters — KaTeX expects the inner expression only
+function stripDelimiters(raw) {
+  let s = raw.trim();
+  if (s.startsWith('\\[') && s.endsWith('\\]')) return s.slice(2, -2).trim();
+  if (s.startsWith('$$') && s.endsWith('$$')) return s.slice(2, -2).trim();
+  if (s.startsWith('\\(') && s.endsWith('\\)')) return s.slice(2, -2).trim();
+  if (s.startsWith('$') && s.endsWith('$') && s.length > 2) return s.slice(1, -1).trim();
+  return s;
+}
+
 function renderKaTeX(latex, displayMode = true) {
   try {
-    return katex.renderToString(latex, { displayMode, throwOnError: false });
+    return katex.renderToString(stripDelimiters(latex), { displayMode, throwOnError: false });
   } catch {
     return `<span style="color:#f87171">${latex}</span>`;
   }
