@@ -880,10 +880,31 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     });
   }, []);
 
+  // Auto-convert codeBlock with language "mermaid" → live mermaidBlock
+  // Only converts blocks the cursor is NOT currently inside, so typing isn't interrupted
+  const convertMermaidCodeBlocks = useCallback(() => {
+    const cursor = editor.getTextCursorPosition();
+    const activeBlockId = cursor?.block?.id;
+    const doc = editor.document;
+    for (const block of doc) {
+      if (block.type === 'codeBlock' && block.props?.language === 'mermaid' && block.id !== activeBlockId) {
+        const code = (block.content || []).map(c => c.text || '').join('');
+        if (code.trim()) {
+          editor.updateBlock(block.id, {
+            type: 'mermaidBlock',
+            props: { diagram: code.trim() },
+            content: undefined,
+          });
+        }
+      }
+    }
+  }, [editor]);
+
   const handleChange = useCallback(() => {
     if (onChange) onChange(editor.document);
     requestAnimationFrame(patchCodeBlocks);
-  }, [onChange, editor, patchCodeBlocks]);
+    requestAnimationFrame(convertMermaidCodeBlocks);
+  }, [onChange, editor, patchCodeBlocks, convertMermaidCodeBlocks]);
 
   // Patch code blocks on initial mount + observe for new ones (file import, AI, etc)
   useEffect(() => {

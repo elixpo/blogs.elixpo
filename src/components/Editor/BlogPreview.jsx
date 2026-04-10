@@ -320,24 +320,28 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
           },
           flowchart: { useMaxWidth: false, padding: 20, nodeSpacing: 50, rankSpacing: 60 },
         });
-        mermaidEls.forEach(async (el) => {
-          try {
-            const diagram = decodeURIComponent(el.dataset.diagram);
-            const id = `preview-mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-            const { svg } = await mermaid.render(id, diagram.trim());
-            el.innerHTML = svg;
-            const svgEl = el.querySelector('svg');
-            if (svgEl) {
-              svgEl.removeAttribute('width');
-              svgEl.style.width = '100%';
-              svgEl.style.maxWidth = 'none';
-              svgEl.style.height = 'auto';
-              svgEl.style.minHeight = '180px';
+        // Render diagrams sequentially — mermaid is a singleton, concurrent renders cause conflicts
+        (async () => {
+          for (const el of mermaidEls) {
+            if (cancelled) return;
+            try {
+              const diagram = decodeURIComponent(el.dataset.diagram);
+              const id = `preview-mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+              const { svg } = await mermaid.render(id, diagram.trim());
+              el.innerHTML = svg;
+              const svgEl = el.querySelector('svg');
+              if (svgEl) {
+                svgEl.removeAttribute('width');
+                svgEl.style.width = '100%';
+                svgEl.style.maxWidth = 'none';
+                svgEl.style.height = 'auto';
+                svgEl.style.minHeight = '180px';
+              }
+            } catch (err) {
+              el.innerHTML = `<pre style="color:#f87171;font-size:12px">${err.message || 'Diagram error'}</pre>`;
             }
-          } catch (err) {
-            el.innerHTML = `<pre style="color:#f87171;font-size:12px">${err.message || 'Diagram error'}</pre>`;
           }
-        });
+        })();
       });
     }
 
