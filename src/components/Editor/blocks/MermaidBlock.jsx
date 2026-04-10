@@ -6,6 +6,7 @@ import { useTheme } from '../../../context/ThemeContext';
 
 const darkConfig = {
   startOnLoad: false,
+  securityLevel: 'loose',
   theme: 'dark',
   themeVariables: {
     primaryColor: '#232d3f',
@@ -23,13 +24,28 @@ const darkConfig = {
     clusterBorder: '#333',
     titleColor: '#c4b5fd',
     edgeLabelBackground: '#141a26',
+    git0: '#c4b5fd',
+    git1: '#7c5cbf',
+    git2: '#4ade80',
+    git3: '#f59e0b',
+    git4: '#ef4444',
+    git5: '#3b82f6',
+    git6: '#ec4899',
+    git7: '#14b8a6',
+    gitBranchLabel0: '#e4e4e7',
+    gitBranchLabel1: '#e4e4e7',
+    gitBranchLabel2: '#e4e4e7',
+    gitBranchLabel3: '#e4e4e7',
+    gitInv0: '#141a26',
   },
   flowchart: { padding: 20, nodeSpacing: 50, rankSpacing: 60, curve: 'basis', htmlLabels: true, useMaxWidth: false },
   sequence: { useMaxWidth: false, boxMargin: 10, noteMargin: 10, messageMargin: 35, mirrorActors: false },
+  gitGraph: { showBranches: true, showCommitLabel: true, mainBranchName: 'main', rotateCommitLabel: false },
 };
 
 const lightConfig = {
   startOnLoad: false,
+  securityLevel: 'loose',
   theme: 'default',
   themeVariables: {
     primaryColor: '#e8e0ff',
@@ -47,9 +63,18 @@ const lightConfig = {
     clusterBorder: '#d1d5db',
     titleColor: '#7c5cbf',
     edgeLabelBackground: '#f9fafb',
+    git0: '#7c5cbf',
+    git1: '#9b7bf7',
+    git2: '#16a34a',
+    git3: '#d97706',
+    git4: '#dc2626',
+    git5: '#2563eb',
+    git6: '#db2777',
+    git7: '#0d9488',
   },
   flowchart: { padding: 20, nodeSpacing: 50, rankSpacing: 60, curve: 'basis', htmlLabels: true, useMaxWidth: false },
   sequence: { useMaxWidth: false, boxMargin: 10, noteMargin: 10, messageMargin: 35, mirrorActors: false },
+  gitGraph: { showBranches: true, showCommitLabel: true, mainBranchName: 'main', rotateCommitLabel: false },
 };
 
 let mermaidModule = null;
