@@ -364,6 +364,54 @@
   min-height: 180px;
 }
 
+/* ===== Preview Inline TOC Block (matches editor toc-block) ===== */
+
+.blog-preview-content .preview-toc-block {
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  padding: 16px 20px;
+  margin: 0.75em 0;
+  user-select: none;
+}
+
+.blog-preview-content .preview-toc-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.blog-preview-content .preview-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.blog-preview-content .preview-toc-list li {
+  margin: 0;
+  display: block;
+}
+
+.blog-preview-content .preview-toc-link {
+  font-size: 13px;
+  color: #9b7bf7;
+  text-decoration: none;
+  display: block;
+  padding: 2px 0;
+  transition: color 0.15s;
+  cursor: pointer;
+}
+
+.blog-preview-content .preview-toc-link:hover {
+  color: #b69aff;
+}
+
 /* ===== Preview figcaption ===== */
 
 .blog-preview-content figcaption {

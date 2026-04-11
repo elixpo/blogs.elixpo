@@ -136,7 +136,7 @@ function renderBlocksToHTML(blocks) {
     const content = inlineToHTML(block.content);
     switch (block.type) {
       case 'tableOfContents':
-        // Placeholder — will be replaced with actual TOC after all headings are collected
+        // Will be replaced with actual TOC HTML after all headings are collected
         parts.push('__TOC_PLACEHOLDER__');
         break;
       case 'heading': {
@@ -217,16 +217,23 @@ function renderBlocksToHTML(blocks) {
     }
   }
 
-  // TOC is rendered as a floating sidebar in the component, not in the HTML
+  // Build inline TOC HTML matching the editor's toc-block style
   let tocHTML = '';
+  if (headings.length > 0) {
+    const tocItems = headings.map(h => {
+      const indent = (h.level - 1) * 16;
+      return `<li><a href="#${h.id}" class="preview-toc-link" style="padding-left:${indent}px">${h.text}</a></li>`;
+    }).join('');
+    tocHTML = `<div class="preview-toc-block"><p class="preview-toc-label">Table of Contents</p><ul class="preview-toc-list">${tocItems}</ul></div>`;
+  }
 
   // Wrap consecutive bullet/numbered items in lists
   let html = parts.join('\n');
   html = html.replace(/((?:<li class="preview-bullet">.*?<\/li>\n?)+)/g, '<ul>$1</ul>');
   html = html.replace(/((?:<li class="preview-numbered">.*?<\/li>\n?)+)/g, '<ol>$1</ol>');
 
-  // Remove TOC placeholder (rendered separately as floating sidebar)
-  html = html.replace('__TOC_PLACEHOLDER__', '');
+  // Replace TOC placeholder with inline TOC block
+  html = html.replace('__TOC_PLACEHOLDER__', tocHTML);
 
   return html;
 }
@@ -296,7 +303,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       }).catch((err) => console.error('KaTeX load failed:', err));
     }
 
-    // ── Mermaid diagrams ──
+    // ── Mermaid diagrams (matches editor MermaidBlock config) ──
     const mermaidEls = root.querySelectorAll('.preview-mermaid-block[data-diagram]');
     if (mermaidEls.length) {
       import('mermaid').then((mod) => {
@@ -304,6 +311,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
         const mermaid = mod.default || mod;
         mermaid.initialize({
           startOnLoad: false,
+          securityLevel: 'loose',
           theme: isDark ? 'dark' : 'default',
           themeVariables: isDark ? {
             primaryColor: '#232d3f',
@@ -314,6 +322,26 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             tertiaryColor: '#141a26',
             fontFamily: "'lixFont', sans-serif",
             fontSize: '16px',
+            nodeTextColor: '#e4e4e7',
+            nodeBorder: '#c4b5fd',
+            mainBkg: '#232d3f',
+            clusterBkg: '#1a1f2e',
+            clusterBorder: '#333',
+            titleColor: '#c4b5fd',
+            edgeLabelBackground: '#141a26',
+            git0: '#c4b5fd',
+            git1: '#7c5cbf',
+            git2: '#4ade80',
+            git3: '#f59e0b',
+            git4: '#ef4444',
+            git5: '#3b82f6',
+            git6: '#ec4899',
+            git7: '#14b8a6',
+            gitBranchLabel0: '#e4e4e7',
+            gitBranchLabel1: '#e4e4e7',
+            gitBranchLabel2: '#e4e4e7',
+            gitBranchLabel3: '#e4e4e7',
+            gitInv0: '#141a26',
           } : {
             primaryColor: '#e8e0ff',
             primaryTextColor: '#1a1a2e',
@@ -323,27 +351,64 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             tertiaryColor: '#f9fafb',
             fontFamily: "'lixFont', sans-serif",
             fontSize: '16px',
+            nodeTextColor: '#1a1a2e',
+            nodeBorder: '#7c5cbf',
+            mainBkg: '#e8e0ff',
+            clusterBkg: '#f3f0ff',
+            clusterBorder: '#d1d5db',
+            titleColor: '#7c5cbf',
+            edgeLabelBackground: '#f9fafb',
+            git0: '#7c5cbf',
+            git1: '#9b7bf7',
+            git2: '#16a34a',
+            git3: '#d97706',
+            git4: '#dc2626',
+            git5: '#2563eb',
+            git6: '#db2777',
+            git7: '#0d9488',
           },
-          flowchart: { useMaxWidth: false, padding: 20, nodeSpacing: 50, rankSpacing: 60 },
+          flowchart: { padding: 20, nodeSpacing: 50, rankSpacing: 60, curve: 'basis', htmlLabels: true, useMaxWidth: false },
+          sequence: { useMaxWidth: false, boxMargin: 10, noteMargin: 10, messageMargin: 35, mirrorActors: false },
+          gitGraph: { showBranches: true, showCommitLabel: true, mainBranchName: 'main', rotateCommitLabel: false },
         });
         (async () => {
           for (const el of mermaidEls) {
             if (cancelled) return;
+            const id = `preview-mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
             try {
-              const diagram = decodeURIComponent(el.dataset.diagram);
-              const id = `preview-mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-              const { svg } = await mermaid.render(id, diagram.trim());
-              el.innerHTML = svg;
-              const svgEl = el.querySelector('svg');
-              if (svgEl) {
-                svgEl.removeAttribute('width');
-                svgEl.style.width = '100%';
-                svgEl.style.maxWidth = 'none';
-                svgEl.style.height = 'auto';
-                svgEl.style.minHeight = '180px';
+              let diagram = decodeURIComponent(el.dataset.diagram).trim();
+              // Normalize diagram type keywords (mermaid is case-sensitive)
+              diagram = diagram.replace(/^\s*gitgraph/i, 'gitGraph');
+              diagram = diagram.replace(/^\s*sequencediagram/i, 'sequenceDiagram');
+              diagram = diagram.replace(/^\s*classDiagram/i, 'classDiagram');
+              diagram = diagram.replace(/^\s*stateDiagram/i, 'stateDiagram');
+              diagram = diagram.replace(/^\s*erDiagram/i, 'erDiagram');
+              diagram = diagram.replace(/^\s*gantt/i, 'gantt');
+
+              // Use temp offscreen div for rendering (same as editor)
+              const tempDiv = document.createElement('div');
+              tempDiv.id = 'container-' + id;
+              tempDiv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;opacity:0;pointer-events:none;z-index:-9999;';
+              document.body.appendChild(tempDiv);
+
+              const { svg } = await mermaid.render(id, diagram, tempDiv);
+              tempDiv.remove();
+
+              if (!cancelled) {
+                el.innerHTML = svg;
+                const svgEl = el.querySelector('svg');
+                if (svgEl) {
+                  svgEl.removeAttribute('width');
+                  svgEl.style.width = '100%';
+                  svgEl.style.maxWidth = 'none';
+                  svgEl.style.height = 'auto';
+                  svgEl.style.minHeight = '180px';
+                }
               }
             } catch (err) {
               el.innerHTML = `<pre style="color:#f87171;font-size:12px">${err.message || 'Diagram error'}</pre>`;
+              try { document.getElementById(id)?.remove(); } catch {}
+              try { document.getElementById('container-' + id)?.remove(); } catch {}
             }
           }
         })();
@@ -413,6 +478,16 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
         });
       }).catch((err) => console.error('Shiki load failed:', err));
     }
+
+    // ── Inline TOC smooth scroll ──
+    const tocLinks = root.querySelectorAll('.preview-toc-link');
+    tocLinks.forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = link.getAttribute('href')?.slice(1);
+        if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
 
     return () => { cancelled = true; };
   }, [renderedHTML, isDark]);
