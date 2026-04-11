@@ -510,6 +510,10 @@ export default function WritePage({ slugid }) {
         e.preventDefault();
         mdUploadRef.current?.click();
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'i' || e.key === 'I')) {
+        e.preventDefault();
+        setShowCollabPanel(true);
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
         const editor = editorRef.current?.getEditor?.();
