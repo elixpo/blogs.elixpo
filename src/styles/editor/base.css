@@ -308,6 +308,14 @@
   background: rgba(123, 168, 240, 0.06);
 }
 
+/* Ctrl/Cmd held — links become clickable, show pointer cursor */
+.blog-editor-wrapper.ctrl-held .bn-editor a,
+.blog-editor-wrapper.ctrl-held .bn-block-content a {
+  cursor: pointer;
+  text-decoration: underline !important;
+  border-bottom: none;
+}
+
 /* ===== Link Preview Tooltip ===== */
 
 .link-preview-tooltip {
