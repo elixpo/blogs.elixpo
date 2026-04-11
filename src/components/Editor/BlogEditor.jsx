@@ -556,7 +556,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     const handleMouseOut = (e) => {
       const link = e.target.closest('a[href]');
       if (!link) return;
-      editorLinkPreview.hide();
+      editorLinkPreview.cancel();
     };
 
     // Ctrl+Click (or Cmd+Click) to open link in new tab
@@ -2278,7 +2278,6 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
           anchorEl={editorLinkPreview.preview.anchorEl}
           url={editorLinkPreview.preview.url}
           onClose={editorLinkPreview.hide}
-          onKeepAlive={editorLinkPreview.keepAlive}
         />
       )}
     </div>

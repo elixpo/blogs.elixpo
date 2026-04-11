@@ -587,7 +587,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       const href = link.getAttribute('href');
       if (!href) return;
       const onEnter = () => linkPreviewRef.current.show(link, href);
-      const onLeave = () => linkPreviewRef.current.hide();
+      const onLeave = () => linkPreviewRef.current.cancel();
       link.addEventListener('mouseenter', onEnter);
       link.addEventListener('mouseleave', onLeave);
       linkHandlers.push({ el: link, onEnter, onLeave });
@@ -755,7 +755,6 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
           anchorEl={linkPreview.preview.anchorEl}
           url={linkPreview.preview.url}
           onClose={linkPreview.hide}
-          onKeepAlive={linkPreview.keepAlive}
         />
       )}
 
