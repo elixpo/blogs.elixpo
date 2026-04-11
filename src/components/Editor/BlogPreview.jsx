@@ -84,7 +84,6 @@ function FloatingTOC({ headings }) {
 
 function renderBlocksToHTML(blocks) {
   if (!blocks || !blocks.length) return '';
-  const parts = [];
 
   function inlineToHTML(content) {
     if (!content || !Array.isArray(content)) return '';
@@ -120,65 +119,67 @@ function renderBlocksToHTML(blocks) {
     }).join('');
   }
 
-  // Collect headings for TOC
+  // Collect ALL headings recursively for TOC
   const headings = [];
-  for (const block of blocks) {
-    if (block.type === 'heading') {
-      const text = (block.content || []).map(c => c.text || '').join('');
-      if (text.trim()) {
-        const id = `h-${text.trim().toLowerCase().replace(/[^\w]+/g, '-').slice(0, 40)}`;
-        headings.push({ id, text: text.trim(), level: block.props?.level || 1 });
+  function collectHeadings(blockList) {
+    for (const block of blockList) {
+      if (block.type === 'heading') {
+        const text = (block.content || []).map(c => c.text || '').join('');
+        if (text.trim()) {
+          const id = `h-${text.trim().toLowerCase().replace(/[^\w]+/g, '-').slice(0, 40)}`;
+          headings.push({ id, text: text.trim(), level: block.props?.level || 1 });
+        }
       }
+      if (block.children?.length) collectHeadings(block.children);
     }
   }
+  collectHeadings(blocks);
 
-  for (const block of blocks) {
+  // Render a single block to HTML, recursing into children
+  function renderBlock(block) {
     const content = inlineToHTML(block.content);
+    const childrenHTML = block.children?.length ? renderListGroup(block.children) : '';
+
     switch (block.type) {
       case 'tableOfContents':
-        // Will be replaced with actual TOC HTML after all headings are collected
-        parts.push('__TOC_PLACEHOLDER__');
-        break;
+        return '__TOC_PLACEHOLDER__';
       case 'heading': {
         const level = block.props?.level || 1;
         const text = (block.content || []).map(c => c.text || '').join('');
         const id = `h-${text.trim().toLowerCase().replace(/[^\w]+/g, '-').slice(0, 40)}`;
-        parts.push(`<h${level} id="${id}">${content}</h${level}>`);
-        break;
+        return `<h${level} id="${id}">${content}</h${level}>${childrenHTML}`;
       }
       case 'bulletListItem':
-        parts.push(`<li class="preview-bullet">${content}</li>`);
-        break;
+        return `<li class="preview-bullet">${content}${childrenHTML}</li>`;
       case 'numberedListItem':
-        parts.push(`<li class="preview-numbered">${content}</li>`);
-        break;
-      case 'checkListItem':
-        parts.push(`<li class="preview-check">${block.props?.checked ? '&#9745; ' : '&#9744; '}${content}</li>`);
-        break;
+        return `<li class="preview-numbered">${content}${childrenHTML}</li>`;
+      case 'checkListItem': {
+        const checked = !!block.props?.checked;
+        const checkboxHTML = `<span class="preview-checkbox${checked ? ' preview-checkbox--checked' : ''}"><span class="preview-checkbox-icon">${checked ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</span></span>`;
+        return `<li class="preview-check${checked ? ' preview-check--checked' : ''}">${checkboxHTML}<span class="preview-check-text">${content}</span>${childrenHTML}</li>`;
+      }
       case 'blockEquation':
         if (block.props?.latex) {
-          parts.push(`<div class="preview-block-equation" data-latex="${encodeURIComponent(block.props.latex)}"></div>`);
+          return `<div class="preview-block-equation" data-latex="${encodeURIComponent(block.props.latex)}"></div>${childrenHTML}`;
         }
-        break;
+        return childrenHTML;
       case 'mermaidBlock':
         if (block.props?.diagram) {
-          parts.push(`<div class="preview-mermaid-block" data-diagram="${encodeURIComponent(block.props.diagram)}"></div>`);
+          return `<div class="preview-mermaid-block" data-diagram="${encodeURIComponent(block.props.diagram)}"></div>${childrenHTML}`;
         }
-        break;
+        return childrenHTML;
       case 'divider':
-        parts.push('<hr class="preview-divider" />');
-        break;
+        return `<hr class="preview-divider" />${childrenHTML}`;
       case 'codeBlock': {
         const lang = block.props?.language || '';
         const code = (block.content || []).map((c) => c.text || '').join('');
-        parts.push(`<pre><code class="language-${lang}">${code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`);
-        break;
+        return `<pre><code class="language-${lang}">${code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>${childrenHTML}`;
       }
       case 'image':
         if (block.props?.url) {
-          parts.push(`<figure><img src="${block.props.url}" alt="${block.props?.caption || ''}" />${block.props?.caption ? `<figcaption>${block.props.caption}</figcaption>` : ''}</figure>`);
+          return `<figure><img src="${block.props.url}" alt="${block.props?.caption || ''}" />${block.props?.caption ? `<figcaption>${block.props.caption}</figcaption>` : ''}</figure>${childrenHTML}`;
         }
-        break;
+        return childrenHTML;
       case 'table': {
         const tableContent = block.content;
         const rows = tableContent?.rows || [];
@@ -189,7 +190,6 @@ function renderBlocksToHTML(blocks) {
             table += '<tr>';
             (row.cells || []).forEach((cell) => {
               const tag = ri < headerRows ? 'th' : 'td';
-              // cell can be InlineContent[] or TableCell { type, props, content }
               let cellContent;
               if (Array.isArray(cell)) {
                 cellContent = cell;
@@ -204,18 +204,58 @@ function renderBlocksToHTML(blocks) {
             table += '</tr>';
           });
           table += '</table>';
-          parts.push(table);
+          return table + childrenHTML;
         }
-        break;
+        return childrenHTML;
       }
       case 'paragraph':
       default:
         if (content) {
-          parts.push(`<p>${content}</p>`);
+          return `<p>${content}</p>${childrenHTML}`;
         }
-        break;
+        return childrenHTML || '';
     }
   }
+
+  // Group consecutive list items of the same type into proper <ul>/<ol> wrappers
+  function renderListGroup(blockList) {
+    if (!blockList || !blockList.length) return '';
+    const out = [];
+    let i = 0;
+
+    while (i < blockList.length) {
+      const block = blockList[i];
+
+      if (block.type === 'bulletListItem') {
+        let items = '';
+        while (i < blockList.length && blockList[i].type === 'bulletListItem') {
+          items += renderBlock(blockList[i]);
+          i++;
+        }
+        out.push(`<ul>${items}</ul>`);
+      } else if (block.type === 'numberedListItem') {
+        let items = '';
+        while (i < blockList.length && blockList[i].type === 'numberedListItem') {
+          items += renderBlock(blockList[i]);
+          i++;
+        }
+        out.push(`<ol>${items}</ol>`);
+      } else if (block.type === 'checkListItem') {
+        let items = '';
+        while (i < blockList.length && blockList[i].type === 'checkListItem') {
+          items += renderBlock(blockList[i]);
+          i++;
+        }
+        out.push(`<ul class="preview-checklist">${items}</ul>`);
+      } else {
+        out.push(renderBlock(block));
+        i++;
+      }
+    }
+    return out.join('\n');
+  }
+
+  let html = renderListGroup(blocks);
 
   // Build inline TOC HTML matching the editor's toc-block style
   let tocHTML = '';
@@ -226,11 +266,6 @@ function renderBlocksToHTML(blocks) {
     }).join('');
     tocHTML = `<div class="preview-toc-block"><p class="preview-toc-label">Table of Contents</p><ul class="preview-toc-list">${tocItems}</ul></div>`;
   }
-
-  // Wrap consecutive bullet/numbered items in lists
-  let html = parts.join('\n');
-  html = html.replace(/((?:<li class="preview-bullet">.*?<\/li>\n?)+)/g, '<ul>$1</ul>');
-  html = html.replace(/((?:<li class="preview-numbered">.*?<\/li>\n?)+)/g, '<ol>$1</ol>');
 
   // Replace TOC placeholder with inline TOC block
   html = html.replace('__TOC_PLACEHOLDER__', tocHTML);
