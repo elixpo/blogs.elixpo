@@ -101,6 +101,18 @@
   text-decoration: none !important;
   -webkit-text-decoration: none !important;
   -webkit-text-decorations-in-effect: none !important;
+  text-decoration-line: none !important;
+  text-decoration-style: initial !important;
+  text-underline-position: under;
+}
+
+/* Force hide spellcheck squiggles on all code elements */
+.blog-editor-wrapper code *,
+.blog-editor-wrapper [data-content-type="codeBlock"] * {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  -webkit-text-decorations-in-effect: none !important;
+  text-decoration-line: none !important;
 }
 
 [data-theme="dark"] .blog-editor-wrapper code,

@@ -651,26 +651,6 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         return;
       }
 
-      // Bare image URL on its own line — auto-embed as image block
-      const bareImgMatch = textBefore.match(/^(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|avif))$/i);
-      if (bareImgMatch) {
-        const [fullMatch, imgUrl] = bareImgMatch;
-        const from = $from.pos - fullMatch.length;
-        const tr = state.tr.delete(from, $from.pos);
-        view.dispatch(tr);
-        const cursorBlock = editor.getTextCursorPosition().block;
-        editor.insertBlocks(
-          [{ type: 'image', props: { url: imgUrl, caption: '' } }],
-          cursorBlock, 'after'
-        );
-        requestAnimationFrame(() => {
-          try {
-            const block = editor.getTextCursorPosition().block;
-            if (block?.type === 'paragraph' && !(block.content || []).some(c => c.text?.trim())) editor.removeBlocks([block.id]);
-          } catch {}
-        });
-        return;
-      }
 
       // Check for link syntax: [text](url)
       const match = textBefore.match(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
