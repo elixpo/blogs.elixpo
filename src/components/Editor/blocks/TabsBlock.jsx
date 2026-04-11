@@ -92,6 +92,11 @@ export const TabsBlock = createReactBlockSpec(
                 onKeyDown={(e) => {
                   e.stopPropagation();
                   if (e.key === 'Enter' && newPageName.trim() && !creating) { e.preventDefault(); addPage(); }
+                  if (e.key === 'Backspace' && !newPageName) {
+                    e.preventDefault();
+                    if (tabs.length === 0) { try { editor.removeBlocks([block.id]); } catch {} }
+                    else setAdding(false);
+                  }
                   if (e.key === 'Escape') {
                     if (tabs.length === 0) { try { editor.removeBlocks([block.id]); } catch {} }
                     else setAdding(false);
