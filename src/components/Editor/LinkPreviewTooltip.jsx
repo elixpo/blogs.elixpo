@@ -23,7 +23,6 @@ async function fetchPreview(url) {
 export default function LinkPreviewTooltip({ anchorEl, url, onClose, onKeepAlive }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
   const tooltipRef = useRef(null);
 
   useEffect(() => {
@@ -35,37 +34,24 @@ export default function LinkPreviewTooltip({ anchorEl, url, onClose, onKeepAlive
     });
   }, [url]);
 
-  // Position tooltip below or above the anchor using fixed positioning
-  const [above, setAbove] = useState(false);
-  useEffect(() => {
-    if (!anchorEl) return;
+  // Position tooltip below the anchor — computed once on mount, stored in ref to avoid re-render loops
+  const posRef = useRef(null);
+  if (!posRef.current && anchorEl) {
     const rect = anchorEl.getBoundingClientRect();
     const tooltipWidth = 320;
-    const tooltipHeight = 320; // max estimate with OG image
     let left = rect.left + rect.width / 2 - tooltipWidth / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - tooltipWidth - 8));
+    // Always show below — simpler and avoids the hover loop issue
+    posRef.current = { top: rect.bottom + 6, left };
+  }
 
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-
-    if (spaceBelow < tooltipHeight && spaceAbove > spaceBelow) {
-      // Show above the link
-      setAbove(true);
-      setPos({ top: rect.top - 6, left });
-    } else {
-      // Show below the link
-      setAbove(false);
-      setPos({ top: rect.bottom + 6, left });
-    }
-  }, [anchorEl]);
-
-  if (!url) return null;
+  if (!url || !posRef.current) return null;
 
   return (
     <div
       ref={tooltipRef}
       className="link-preview-tooltip"
-      style={{ top: pos.top, left: pos.left, transform: above ? 'translateY(-100%)' : 'none' }}
+      style={{ top: posRef.current.top, left: posRef.current.left }}
       onMouseEnter={onKeepAlive}
       onMouseLeave={onClose}
     >
