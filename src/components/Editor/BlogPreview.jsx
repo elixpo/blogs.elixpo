@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import '../../styles/katex-fonts.css';
 
 function FloatingTOC({ headings }) {
   const [activeId, setActiveId] = useState('');
@@ -254,9 +255,10 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
     })
     .filter(h => h.text);
 
-  // Render KaTeX equations and mermaid diagrams after mount
+  // Render KaTeX equations, mermaid diagrams, and syntax-highlighted code after mount
   useEffect(() => {
-    if (!contentRef.current) return;
+    const root = contentRef.current;
+    if (!root) return;
     let cancelled = false;
 
     // Strip \[...\], $$...$$, \(...\), $...$ wrappers — KaTeX expects inner expression only
@@ -269,11 +271,13 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       return s;
     }
 
-    // Render block equations
-    const eqEls = contentRef.current.querySelectorAll('.preview-block-equation[data-latex]');
-    if (eqEls.length) {
-      import('katex').then(({ default: katex }) => {
+    // ── KaTeX: block + inline equations ──
+    const eqEls = root.querySelectorAll('.preview-block-equation[data-latex]');
+    const inlineEls = root.querySelectorAll('.preview-inline-equation[data-latex]');
+    if (eqEls.length || inlineEls.length) {
+      import('katex').then((mod) => {
         if (cancelled) return;
+        const katex = mod.default || mod;
         eqEls.forEach((el) => {
           try {
             const latex = stripDelimiters(decodeURIComponent(el.dataset.latex));
@@ -282,14 +286,6 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             el.innerHTML = `<span style="color:#f87171">${err.message}</span>`;
           }
         });
-      });
-    }
-
-    // Render inline equations
-    const inlineEls = contentRef.current.querySelectorAll('.preview-inline-equation[data-latex]');
-    if (inlineEls.length) {
-      import('katex').then(({ default: katex }) => {
-        if (cancelled) return;
         inlineEls.forEach((el) => {
           try {
             const latex = stripDelimiters(decodeURIComponent(el.dataset.latex));
@@ -298,14 +294,15 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             el.innerHTML = `<span style="color:#f87171">${err.message}</span>`;
           }
         });
-      });
+      }).catch((err) => console.error('KaTeX load failed:', err));
     }
 
-    // Render mermaid diagrams
-    const mermaidEls = contentRef.current.querySelectorAll('.preview-mermaid-block[data-diagram]');
+    // ── Mermaid diagrams ──
+    const mermaidEls = root.querySelectorAll('.preview-mermaid-block[data-diagram]');
     if (mermaidEls.length) {
-      import('mermaid').then(({ default: mermaid }) => {
+      import('mermaid').then((mod) => {
         if (cancelled) return;
+        const mermaid = mod.default || mod;
         mermaid.initialize({
           startOnLoad: false,
           theme: isDark ? 'dark' : 'default',
@@ -330,7 +327,6 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
           },
           flowchart: { useMaxWidth: false, padding: 20, nodeSpacing: 50, rankSpacing: 60 },
         });
-        // Render diagrams sequentially — mermaid is a singleton, concurrent renders cause conflicts
         (async () => {
           for (const el of mermaidEls) {
             if (cancelled) return;
@@ -352,21 +348,20 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             }
           }
         })();
-      });
+      }).catch((err) => console.error('Mermaid load failed:', err));
     }
 
-    // Syntax-highlight code blocks with Shiki + add copy buttons + language labels
-    const codeEls = contentRef.current.querySelectorAll('pre > code[class*="language-"]');
+    // ── Code blocks: Shiki syntax highlighting + language label + copy button ──
+    const codeEls = root.querySelectorAll('pre > code[class*="language-"]');
     if (codeEls.length) {
       import('shiki').then(({ createHighlighter }) => {
         if (cancelled) return;
-        // Collect unique languages
         const langs = new Set();
         codeEls.forEach((el) => {
           const m = el.className.match(/language-(\w+)/);
           if (m && m[1] && m[1] !== 'text') langs.add(m[1]);
         });
-        createHighlighter({
+        return createHighlighter({
           themes: ['vitesse-dark'],
           langs: [...langs],
         }).then((highlighter) => {
@@ -379,7 +374,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             const lang = m?.[1] || 'text';
             const code = codeEl.textContent || '';
 
-            // Apply Shiki highlighting if language is supported
+            // Apply Shiki highlighting
             if (lang !== 'text' && langs.has(lang)) {
               try {
                 const highlighted = highlighter.codeToHtml(code, { lang, theme: 'vitesse-dark' });
@@ -387,7 +382,6 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
                 tmp.innerHTML = highlighted;
                 const shikiPre = tmp.querySelector('pre');
                 if (shikiPre) {
-                  // Copy Shiki's inline styles to our pre
                   pre.style.backgroundColor = shikiPre.style.backgroundColor || '';
                   pre.style.color = shikiPre.style.color || '';
                   codeEl.innerHTML = shikiPre.querySelector('code')?.innerHTML || codeEl.innerHTML;
@@ -395,14 +389,14 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
               } catch {}
             }
 
-            // Add language label
+            // Language label (matches editor .code-lang-label)
             pre.style.position = 'relative';
             const label = document.createElement('span');
             label.className = 'preview-code-lang-label';
             label.textContent = lang || 'text';
             pre.appendChild(label);
 
-            // Add copy button
+            // Copy button (matches editor .code-copy-btn)
             const copyIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
             const checkIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
             const btn = document.createElement('button');
@@ -418,7 +412,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             pre.appendChild(btn);
           });
         });
-      });
+      }).catch((err) => console.error('Shiki load failed:', err));
     }
 
     return () => { cancelled = true; };
