@@ -288,16 +288,18 @@
 }
 
 /* ===== Editor links — distinct styling ===== */
-.blog-editor-wrapper a {
-  color: #7ba8f0;
-  text-decoration: none;
+.blog-editor-wrapper .bn-editor a,
+.blog-editor-wrapper .bn-block-content a {
+  color: #7ba8f0 !important;
+  text-decoration: none !important;
   border-bottom: 1px solid rgba(123, 168, 240, 0.3);
   padding-bottom: 1px;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.blog-editor-wrapper a:hover {
-  color: #9dc0ff;
+.blog-editor-wrapper .bn-editor a:hover,
+.blog-editor-wrapper .bn-block-content a:hover {
+  color: #9dc0ff !important;
   border-bottom-color: rgba(157, 192, 255, 0.5);
   background: rgba(123, 168, 240, 0.06);
 }

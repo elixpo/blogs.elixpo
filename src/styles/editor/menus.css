@@ -314,9 +314,13 @@
   color: #9b7bf7 !important;
 }
 
-/* Link tooltip */
+/* Link tooltip — only show Edit link + open/unlink, hide extra formatting buttons */
 .blog-editor-wrapper .bn-link-toolbar {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: 8px;
+}
+
+.blog-editor-wrapper .bn-link-toolbar .bn-toolbar {
+  display: none;
 }
