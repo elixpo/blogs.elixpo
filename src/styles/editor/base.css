@@ -98,6 +98,8 @@
   font-family: 'lixCode', monospace;
   -webkit-hyphens: none;
   hyphens: none;
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
 }
 
 [data-theme="dark"] .blog-editor-wrapper code,
