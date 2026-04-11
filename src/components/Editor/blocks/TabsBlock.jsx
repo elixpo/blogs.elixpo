@@ -27,6 +27,37 @@ export const TabsBlock = createReactBlockSpec(
         if (!adding && tabs.length === 0 && wrapperRef.current) wrapperRef.current.focus();
       }, [adding, tabs.length]);
 
+      // Sync subpage titles from DB on mount (picks up renames from subpage editor)
+      useEffect(() => {
+        if (tabs.length === 0) return;
+        const subpageIds = tabs.filter(t => t.subpageId).map(t => t.subpageId);
+        if (subpageIds.length === 0) return;
+
+        const blogId = getBlogId();
+        if (!blogId) return;
+
+        fetch(`/api/subpages?blogId=${blogId}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (!data?.subpages) return;
+            const titleMap = {};
+            data.subpages.forEach(sp => { titleMap[sp.id] = sp.title; });
+
+            let changed = false;
+            const updated = tabs.map(t => {
+              if (t.subpageId && titleMap[t.subpageId] && titleMap[t.subpageId] !== t.title) {
+                changed = true;
+                return { ...t, title: titleMap[t.subpageId] };
+              }
+              return t;
+            });
+            if (changed) {
+              editor.updateBlock(block, { props: { tabs: JSON.stringify(updated) } });
+            }
+          })
+          .catch(() => {});
+      }, []);
+
       // Get the blog slugid from the URL
       const getBlogId = () => {
         const m = window.location.pathname.match(/\/edit\/([^/]+)/);
