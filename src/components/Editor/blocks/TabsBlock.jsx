@@ -22,10 +22,13 @@ export const TabsBlock = createReactBlockSpec(
       const [editingIdx, setEditingIdx] = useState(null);
       const [editContent, setEditContent] = useState('');
       const inputRef = useRef(null);
+      const wrapperRef = useRef(null);
 
       useEffect(() => {
         if (adding && inputRef.current) inputRef.current.focus();
-      }, [adding]);
+        // Focus wrapper when not adding so Delete key works
+        if (!adding && tabs.length === 0 && wrapperRef.current) wrapperRef.current.focus();
+      }, [adding, tabs.length]);
 
       const addPage = () => {
         const name = newPageName.trim() || 'Untitled Page';
@@ -61,7 +64,7 @@ export const TabsBlock = createReactBlockSpec(
       };
 
       return (
-        <div className="my-2" contentEditable={false} tabIndex={0} onKeyDown={handleBlockKeyDown}>
+        <div ref={wrapperRef} className="my-2" contentEditable={false} tabIndex={0} onKeyDown={handleBlockKeyDown} style={{ outline: 'none' }}>
           {/* Page list */}
           {tabs.map((tab, i) => (
             <div key={i}>
