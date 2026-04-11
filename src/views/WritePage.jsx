@@ -209,7 +209,7 @@ function HeaderProfileDropdown({ user, logout }) {
 }
 
 // ── Hamburger Menu ──
-function HamburgerMenu({ onShareDraft, onChangeCover, onChangeTitle, onChangeTopics, onRevisionHistory, onMoreSettings }) {
+function HamburgerMenu({ onShareDraft, onChangeCover, onChangeTitle, onChangeTopics, onRevisionHistory, onMoreSettings, onImport, onInvite }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -222,6 +222,8 @@ function HamburgerMenu({ onShareDraft, onChangeCover, onChangeTitle, onChangeTop
   }, [open]);
 
   const items = [
+    { label: 'Import markdown', action: onImport, icon: 'folder-open-outline' },
+    { label: 'Invite collaborators', action: onInvite, icon: 'people-outline' },
     { label: 'Copy publishable link', action: onShareDraft, icon: 'link-outline' },
     { label: 'Change featured image', action: onChangeCover, icon: 'image-outline' },
     { label: 'Change display title', action: onChangeTitle, icon: 'text-outline' },
@@ -1034,17 +1036,8 @@ export default function WritePage({ slugid }) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2.5">
-          {/* Upload .md */}
+          {/* Hidden file input for markdown import (triggered from menu) */}
           <input ref={mdUploadRef} type="file" accept=".md,.markdown,.txt" className="hidden" onChange={handleMdUpload} />
-          <button
-            onClick={() => mdUploadRef.current?.click()}
-            className="h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[12px] font-medium transition-colors"
-            style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-muted)' }}
-            title="Import markdown file"
-          >
-            <ion-icon name="folder-open-outline" style={{ fontSize: '14px' }} />
-            <span className="hidden sm:inline">Import</span>
-          </button>
 
           {/* Publish / Update split button */}
           <div className="relative group/publish">
@@ -1124,17 +1117,6 @@ export default function WritePage({ slugid }) {
             })()}
           </div>
 
-          {/* Invite collaborators */}
-          <button
-            onClick={() => setShowCollabPanel(true)}
-            className="h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-[12px] font-medium transition-colors"
-            style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-muted)' }}
-            title="Invite collaborators"
-          >
-            <ion-icon name="people-outline" style={{ fontSize: '14px' }} />
-            <span className="hidden sm:inline">Invite</span>
-          </button>
-
           {/* Shortcuts help */}
           <button
             data-shortcuts-btn
@@ -1159,6 +1141,8 @@ export default function WritePage({ slugid }) {
 
           {/* Hamburger menu */}
           <HamburgerMenu
+            onImport={() => mdUploadRef.current?.click()}
+            onInvite={() => setShowCollabPanel(true)}
             onShareDraft={() => {
               const url = `${window.location.origin}/${username}/${slug || slugid}`;
               navigator.clipboard.writeText(url).catch(() => {});
