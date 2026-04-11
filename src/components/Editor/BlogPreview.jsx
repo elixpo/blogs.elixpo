@@ -458,10 +458,11 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
           if (m && m[1] && m[1] !== 'text') langs.add(m[1]);
         });
         return createHighlighter({
-          themes: ['vitesse-dark'],
+          themes: ['vitesse-dark', 'vitesse-light'],
           langs: [...langs],
         }).then((highlighter) => {
           if (isStale()) return;
+          const shikiTheme = isDark ? 'vitesse-dark' : 'vitesse-light';
           codeEls.forEach((codeEl) => {
             const pre = codeEl.parentElement;
             if (!pre || pre.dataset.highlighted) return;
@@ -470,16 +471,14 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             const lang = m?.[1] || 'text';
             const code = codeEl.textContent || '';
 
-            // Apply Shiki highlighting
+            // Apply Shiki highlighting — use CSS vars for bg/color, only take token spans
             if (lang !== 'text' && langs.has(lang)) {
               try {
-                const highlighted = highlighter.codeToHtml(code, { lang, theme: 'vitesse-dark' });
+                const highlighted = highlighter.codeToHtml(code, { lang, theme: shikiTheme });
                 const tmp = document.createElement('div');
                 tmp.innerHTML = highlighted;
                 const shikiPre = tmp.querySelector('pre');
                 if (shikiPre) {
-                  pre.style.backgroundColor = shikiPre.style.backgroundColor || '';
-                  pre.style.color = shikiPre.style.color || '';
                   codeEl.innerHTML = shikiPre.querySelector('code')?.innerHTML || codeEl.innerHTML;
                 }
               } catch {}
