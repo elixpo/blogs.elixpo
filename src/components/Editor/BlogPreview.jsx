@@ -333,14 +333,28 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
   // Determine which HTML to use — prefer blocks-based rendering
   const renderedHTML = blocks && blocks.length > 0 ? renderBlocksToHTML(blocks) : html;
 
-  // Extract headings for floating TOC
-  const headings = (blocks || [])
-    .filter(b => b.type === 'heading' && b.content?.length > 0)
-    .map(b => {
-      const text = b.content.map(c => c.text || '').join('');
-      return { id: `h-${text.trim().toLowerCase().replace(/[^\w]+/g, '-').slice(0, 40)}`, text: text.trim(), level: b.props?.level || 1 };
-    })
-    .filter(h => h.text);
+  // Extract headings + subpages for floating TOC
+  const headings = (() => {
+    const result = [];
+    for (const b of (blocks || [])) {
+      if (b.type === 'heading' && b.content?.length > 0) {
+        const text = b.content.map(c => c.text || '').join('');
+        if (text.trim()) {
+          result.push({ id: `h-${text.trim().toLowerCase().replace(/[^\w]+/g, '-').slice(0, 40)}`, text: text.trim(), level: b.props?.level || 1 });
+        }
+      }
+      if (b.type === 'tabsBlock') {
+        let tabs = [];
+        try { tabs = JSON.parse(b.props?.tabs || '[]'); } catch {}
+        tabs.forEach(t => {
+          if (t.title) {
+            result.push({ id: `subpage-${(t.subpageId || t.title).slice(0, 20)}`, text: t.title, level: 2, isSubpage: true });
+          }
+        });
+      }
+    }
+    return result;
+  })();
 
   // Set innerHTML via ref so React never overwrites our post-processed DOM.
   // Then render KaTeX, mermaid, Shiki into the live DOM elements.
