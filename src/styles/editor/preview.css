@@ -157,7 +157,7 @@
   border-bottom: none !important;
   background: none !important;
   text-decoration: none !important;
-  padding-bottom: 0 !important;
+  padding-bottom: 10px !important;
 }
 
 /* Mention chips — match editor styling */
