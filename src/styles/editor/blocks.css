@@ -879,7 +879,7 @@
   right: 24px;
   top: 80px;
   width: 200px;
-  max-height: 70vh;
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
   z-index: 30;
   opacity: 0.5;

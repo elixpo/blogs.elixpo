@@ -296,15 +296,16 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
     })
     .filter(h => h.text);
 
-  // Render KaTeX equations, mermaid diagrams, and syntax-highlighted code after mount.
-  // Uses a generation ref instead of a cancelled boolean to survive React StrictMode
-  // double-mounting — async operations check if the element is still in the DOM
-  // rather than relying on a flag that gets set during cleanup.
+  // Set innerHTML via ref so React never overwrites our post-processed DOM.
+  // Then render KaTeX, mermaid, Shiki into the live DOM elements.
   const effectGenRef = useRef(0);
   useEffect(() => {
     const root = contentRef.current;
     if (!root) return;
     const gen = ++effectGenRef.current;
+
+    // Set the base HTML — we own the DOM from here, React won't touch it
+    root.innerHTML = renderedHTML || '';
 
     // Strip \[...\], $$...$$, \(...\), $...$ wrappers — KaTeX expects inner expression only
     function stripDelimiters(raw) {
@@ -632,7 +633,6 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
           <div
             ref={contentRef}
             className="blog-preview-content max-w-none"
-            dangerouslySetInnerHTML={{ __html: renderedHTML }}
           />
         ) : (
           <p className="text-[var(--text-faint)] italic">Start writing to see a preview...</p>

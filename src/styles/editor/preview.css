@@ -95,13 +95,13 @@
 .blog-preview-content {
   color: var(--text-primary);
   font-family: 'Source Serif 4', 'Georgia', serif;
-  font-size: 1.05em;
-  line-height: 1.85;
+  font-size: 1em;
+  line-height: 1.75;
 }
 
 .blog-preview-content h1 {
   font-family: 'Source Serif 4', 'Georgia', serif;
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 700;
   line-height: 1.3;
   margin: 1.2em 0 0.5em;
@@ -110,7 +110,7 @@
 
 .blog-preview-content h2 {
   font-family: 'Source Serif 4', 'Georgia', serif;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 650;
   line-height: 1.35;
   margin: 1em 0 0.45em;
@@ -119,7 +119,7 @@
 
 .blog-preview-content h3 {
   font-family: 'Source Serif 4', 'Georgia', serif;
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 1.4;
   margin: 0.9em 0 0.4em;
@@ -128,8 +128,8 @@
 
 .blog-preview-content p {
   color: var(--text-primary);
-  font-size: 1.05em;
-  line-height: 1.85;
+  font-size: 1em;
+  line-height: 1.75;
   margin-bottom: 0.75em;
 }
 
@@ -168,7 +168,7 @@
 
 .blog-preview-content li {
   margin-bottom: 0.35em;
-  line-height: 1.85;
+  line-height: 1.75;
   display: list-item;
 }
 
@@ -191,7 +191,7 @@
   align-items: flex-start;
   gap: 10px;
   list-style: none;
-  line-height: 1.85;
+  line-height: 1.75;
   margin-bottom: 0.35em;
 }
 
