@@ -1005,9 +1005,16 @@ export default function WritePage({ slugid }) {
           <span className="text-[var(--text-muted)] text-[13px] truncate">
             @{username}/{truncateSlug(slug || slugid)}
           </span>
-          {lastSaved && (
-            <span className="text-[var(--text-muted)] text-[11px] hidden md:block">{formatSavedTime(lastSaved)}</span>
-          )}
+          <span className="text-[var(--text-muted)] text-[11px] hidden md:flex items-center gap-1.5">
+            {isPublished ? (
+              <span className="px-1.5 py-0.5 rounded border text-[10px] font-medium" style={{ backgroundColor: '#4ade8014', color: '#4ade80', borderColor: '#4ade8030' }}>
+                {blogVersion?.isDraftAhead ? 'Edited' : 'Published'}
+              </span>
+            ) : (
+              <span className="text-[var(--text-faint)] px-1.5 py-0.5 rounded border border-[var(--border-default)] bg-[var(--bg-surface)] text-[10px] font-medium">Draft</span>
+            )}
+            {lastSaved && <span>{formatSavedTime(lastSaved)}</span>}
+          </span>
           {/* Sync status dot */}
           {syncStatus !== 'idle' && (
             <span
@@ -1027,18 +1034,6 @@ export default function WritePage({ slugid }) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2.5">
-          {/* Status badge */}
-          <span
-            className="text-[11px] px-2 py-0.5 rounded-md border"
-            style={{
-              backgroundColor: isPublished ? '#4ade8014' : 'var(--bg-surface)',
-              color: isPublished ? '#4ade80' : 'var(--text-muted)',
-              borderColor: isPublished ? '#4ade8030' : 'var(--border-default)',
-            }}
-          >
-            {isPublished ? (blogVersion?.isDraftAhead ? 'Edited' : 'Published') : 'Draft'}
-          </span>
-
           {/* Upload .md */}
           <input ref={mdUploadRef} type="file" accept=".md,.markdown,.txt" className="hidden" onChange={handleMdUpload} />
           <button
