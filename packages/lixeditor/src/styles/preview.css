@@ -1,0 +1,79 @@
+/* ===== LixPreview Styles ===== */
+
+.lix-preview-content {
+  color: var(--lix-text-primary);
+  font-family: var(--lix-font-body);
+  font-size: 1em;
+  line-height: 1.75;
+}
+
+.lix-preview-content h1 { font-family: var(--lix-font-body); font-size: 30px; font-weight: 700; line-height: 1.3; margin: 1.2em 0 0.5em; }
+.lix-preview-content h2 { font-family: var(--lix-font-body); font-size: 24px; font-weight: 650; line-height: 1.35; margin: 1em 0 0.45em; }
+.lix-preview-content h3 { font-family: var(--lix-font-body); font-size: 20px; font-weight: 600; line-height: 1.4; margin: 0.9em 0 0.4em; }
+.lix-preview-content p { font-size: 1em; line-height: 1.75; margin-bottom: 0.75em; }
+
+/* Links */
+.lix-preview-content a { color: var(--lix-link-color); text-decoration: none; border-bottom: 1px solid rgba(123, 168, 240, 0.3); cursor: pointer; transition: color 0.15s; }
+.lix-preview-content a:hover { color: var(--lix-link-hover); border-bottom-color: rgba(157, 192, 255, 0.5); background: rgba(123, 168, 240, 0.06); }
+
+/* Inline code */
+.lix-preview-content code { color: var(--lix-inline-code-color); background: var(--lix-inline-code-bg); border-radius: 4px; padding: 0.15em 0.4em; font-size: 0.82em; font-family: var(--lix-font-code); }
+.lix-preview-content pre code { color: var(--lix-code-text); background: none; padding: 0; border-radius: 0; }
+
+/* Lists */
+.lix-preview-content ul, .lix-preview-content ol { padding-left: 1.5em; margin-bottom: 0.75em; }
+.lix-preview-content ul { list-style-type: disc; }
+.lix-preview-content ol { list-style-type: decimal; }
+.lix-preview-content li { margin-bottom: 0.35em; line-height: 1.75; }
+.lix-preview-content li > ul, .lix-preview-content li > ol { margin-top: 0.25em; margin-bottom: 0.25em; }
+
+/* Checklists */
+.lix-preview-content .lix-checklist { list-style: none; padding-left: 0; }
+.lix-preview-content .lix-check { display: flex; align-items: flex-start; gap: 10px; list-style: none; line-height: 1.75; }
+.lix-checkbox { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; min-width: 18px; border-radius: 6px; border: 2px solid var(--lix-border); background: var(--lix-bg-surface); margin-top: 5px; }
+.lix-checkbox--checked { background: linear-gradient(135deg, #9b7bf7, #8b6ae6); border-color: #9b7bf7; }
+.lix-check--checked .lix-check-text { text-decoration: line-through; opacity: 0.5; }
+
+/* Code blocks */
+.lix-preview-content pre { background: var(--lix-code-bg); border: 1px solid var(--lix-border); border-radius: 10px; padding: 28px 16px 12px; overflow-x: auto; margin: 0.75em 0; position: relative; font-family: var(--lix-font-code); font-size: 0.84em; line-height: 1.7; }
+.lix-code-lang-label { position: absolute; top: 0; left: 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--lix-code-lang-text); background: var(--lix-code-lang-bg); padding: 2px 8px; border-radius: 0 0 6px 6px; z-index: 5; pointer-events: none; }
+.lix-code-copy-btn { position: absolute; top: 8px; right: 8px; z-index: 10; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: var(--lix-code-lang-bg); border: 1px solid var(--lix-border); border-radius: 6px; color: var(--lix-code-lang-text); cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+.lix-preview-content pre:hover .lix-code-copy-btn { opacity: 1; }
+
+/* Blockquote */
+.lix-preview-content blockquote { border-left: 3px solid var(--lix-link-color); padding-left: 1em; margin: 0.75em 0; color: var(--lix-text-muted); font-style: italic; }
+
+/* Tables */
+.lix-preview-content table { width: 100%; border-collapse: collapse; margin: 0.5em 0; }
+.lix-preview-content th, .lix-preview-content td { border: 1px solid var(--lix-border); padding: 8px 12px; text-align: left; }
+.lix-preview-content th { background: var(--lix-bg-surface); font-weight: 600; }
+
+/* Divider */
+.lix-preview-content hr { border: none; border-top: 1px solid var(--lix-border); margin: 1.5em 0; }
+
+/* Images */
+.lix-preview-content img { border-radius: 10px; max-width: 100%; width: 100%; margin: 1em 0; }
+.lix-preview-content figcaption { text-align: center; font-size: 0.85em; color: var(--lix-text-faint); margin-top: 6px; }
+
+/* Block equations */
+.lix-preview-content .lix-block-equation { border: 1px solid var(--lix-border); border-radius: 12px; background: var(--lix-bg-surface); padding: 20px 24px; margin: 0.75em 0; text-align: center; overflow-x: auto; }
+.lix-preview-content .lix-block-equation .katex { font-size: 1.2em; }
+
+/* Inline equations */
+.lix-preview-content .lix-inline-equation { display: inline-flex; align-items: center; padding: 1px 6px; margin: 0 2px; border-radius: 5px; color: var(--lix-accent); background: var(--lix-accent-subtle); border: 1px solid rgba(155, 123, 247, 0.15); }
+
+/* Date chips */
+.lix-date-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 5px; font-size: 13px; font-weight: 500; color: var(--lix-accent); background: var(--lix-accent-subtle); border: 1px solid rgba(155, 123, 247, 0.15); margin: 0 2px; }
+
+/* Mermaid diagrams */
+.lix-preview-content .lix-mermaid-block { border: 1px solid var(--lix-border); border-radius: 12px; background: var(--lix-bg-surface); padding: 20px; margin: 0.75em 0; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+
+/* TOC block */
+.lix-preview-content .lix-toc-block { border: 1px solid var(--lix-border); border-radius: 12px; background: var(--lix-bg-surface); padding: 16px 20px; margin: 0.75em 0; }
+.lix-preview-content .lix-toc-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--lix-text-muted); font-weight: 700; margin-bottom: 12px; }
+.lix-preview-content .lix-toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.lix-preview-content .lix-toc-link { font-size: 13px; color: var(--lix-accent); text-decoration: none; display: block; padding: 2px 0; border-bottom: none !important; background: none !important; }
+.lix-preview-content .lix-toc-link:hover { color: var(--lix-accent-hover); }
+
+/* KaTeX MathML — hide accessibility layer */
+.katex-mathml { display: none !important; }
