@@ -52,8 +52,16 @@ export const TabsBlock = createReactBlockSpec(
         editor.updateBlock(block, { props: { tabs: JSON.stringify(updated) } });
       };
 
+      const handleBlockKeyDown = (e) => {
+        if ((e.key === 'Backspace' || e.key === 'Delete') && tabs.length === 0 && !adding) {
+          e.preventDefault();
+          e.stopPropagation();
+          try { editor.removeBlocks([block.id]); } catch {}
+        }
+      };
+
       return (
-        <div className="my-2" contentEditable={false}>
+        <div className="my-2" contentEditable={false} tabIndex={0} onKeyDown={handleBlockKeyDown}>
           {/* Page list */}
           {tabs.map((tab, i) => (
             <div key={i}>
@@ -170,9 +178,14 @@ export const TabsBlock = createReactBlockSpec(
                 value={newPageName}
                 onChange={(e) => setNewPageName(e.target.value)}
                 onKeyDown={(e) => {
+                  // Stop Space, / and other keys from triggering BlockNote AI/slash menus
+                  e.stopPropagation();
                   if (e.key === 'Enter' && newPageName.trim()) { e.preventDefault(); addPage(); }
                   if (e.key === 'Escape') setAdding(false);
                 }}
+                onKeyUp={(e) => e.stopPropagation()}
+                onKeyPress={(e) => e.stopPropagation()}
+                autoFocus
                 placeholder="Page name..."
                 className="flex-1 text-[14px] bg-transparent outline-none"
                 style={{ color: 'var(--text-primary)' }}
