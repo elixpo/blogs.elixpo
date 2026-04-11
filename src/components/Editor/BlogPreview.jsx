@@ -302,7 +302,8 @@ function renderBlocksToHTML(blocks) {
   if (headings.length > 0) {
     const tocItems = headings.map(h => {
       const indent = (h.level - 1) * 16;
-      return `<li><a href="#${h.id}" class="preview-toc-link" style="padding-left:${indent}px">${h.text}</a></li>`;
+      const icon = h.isSubpage ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;margin-right:4px;vertical-align:-1px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' : '';
+      return `<li><a href="#${h.id}" class="preview-toc-link${h.isSubpage ? ' toc-subpage-link' : ''}" style="padding-left:${indent}px">${icon}${h.text}</a></li>`;
     }).join('');
     tocHTML = `<div class="preview-toc-block"><p class="preview-toc-label">Table of Contents</p><ul class="preview-toc-list">${tocItems}</ul></div>`;
   }
