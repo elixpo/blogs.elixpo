@@ -172,6 +172,64 @@
   display: list-item;
 }
 
+/* Nested lists inside list items */
+.blog-preview-content li > ul,
+.blog-preview-content li > ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* ===== Checklist Styling (matches editor checkboxes) ===== */
+
+.blog-preview-content .preview-checklist {
+  list-style: none;
+  padding-left: 0;
+}
+
+.blog-preview-content .preview-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  list-style: none;
+  line-height: 1.85;
+  margin-bottom: 0.35em;
+}
+
+.preview-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 6px;
+  border: 2px solid var(--border-default);
+  background-color: var(--bg-surface);
+  margin-top: 5px;
+}
+
+.preview-checkbox--checked {
+  background: linear-gradient(135deg, #9b7bf7, #8b6ae6);
+  border-color: #9b7bf7;
+  box-shadow: 0 1px 4px rgba(155, 123, 247, 0.3);
+}
+
+.preview-checkbox-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-check--checked .preview-check-text {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* Nested checklists */
+.blog-preview-content .preview-check > ul {
+  margin-top: 0.25em;
+}
+
 /* BlockNote HTML output uses data attributes — handle those too */
 .blog-preview-content [data-content-type="bulletListItem"] {
   display: list-item;
