@@ -296,21 +296,15 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
     })
     .filter(h => h.text);
 
-  // Debug: log rendered HTML to verify blocks are producing equations/mermaid divs
-  useEffect(() => {
-    if (renderedHTML) {
-      const hasEq = renderedHTML.includes('preview-block-equation');
-      const hasMermaid = renderedHTML.includes('preview-mermaid-block');
-      const hasInlineEq = renderedHTML.includes('preview-inline-equation');
-      console.log('[BlogPreview] rendered HTML contains:', { hasEq, hasMermaid, hasInlineEq, htmlLength: renderedHTML.length });
-    }
-  }, [renderedHTML]);
-
-  // Render KaTeX equations, mermaid diagrams, and syntax-highlighted code after mount
+  // Render KaTeX equations, mermaid diagrams, and syntax-highlighted code after mount.
+  // Uses a generation ref instead of a cancelled boolean to survive React StrictMode
+  // double-mounting — async operations check if the element is still in the DOM
+  // rather than relying on a flag that gets set during cleanup.
+  const effectGenRef = useRef(0);
   useEffect(() => {
     const root = contentRef.current;
     if (!root) return;
-    let cancelled = false;
+    const gen = ++effectGenRef.current;
 
     // Strip \[...\], $$...$$, \(...\), $...$ wrappers — KaTeX expects inner expression only
     function stripDelimiters(raw) {
@@ -322,26 +316,27 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       return s;
     }
 
+    // Check if this effect is still the current one
+    function isStale() { return effectGenRef.current !== gen; }
+
     // ── KaTeX: block + inline equations ──
     const eqEls = root.querySelectorAll('.preview-block-equation[data-latex]');
     const inlineEls = root.querySelectorAll('.preview-inline-equation[data-latex]');
-    console.log('[BlogPreview] DOM query:', { blockEqs: eqEls.length, inlineEqs: inlineEls.length, mermaidEls: root.querySelectorAll('.preview-mermaid-block[data-diagram]').length });
     if (eqEls.length || inlineEls.length) {
       import('katex').then((mod) => {
-        console.log('[BlogPreview] KaTeX loaded, cancelled:', cancelled);
-        if (cancelled) return;
+        if (isStale()) return;
         const katex = mod.default || mod;
         eqEls.forEach((el) => {
+          if (!el.isConnected) return;
           try {
             const latex = stripDelimiters(decodeURIComponent(el.dataset.latex));
-            console.log('[BlogPreview] Rendering block eq:', latex.slice(0, 50));
             el.innerHTML = katex.renderToString(latex, { displayMode: true, throwOnError: false });
           } catch (err) {
-            console.error('[BlogPreview] KaTeX block error:', err);
             el.innerHTML = `<span style="color:#f87171">${err.message}</span>`;
           }
         });
         inlineEls.forEach((el) => {
+          if (!el.isConnected) return;
           try {
             const latex = stripDelimiters(decodeURIComponent(el.dataset.latex));
             el.innerHTML = katex.renderToString(latex, { displayMode: false, throwOnError: false });
@@ -349,15 +344,14 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             el.innerHTML = `<span style="color:#f87171">${err.message}</span>`;
           }
         });
-      }).catch((err) => console.error('[BlogPreview] KaTeX load failed:', err));
+      }).catch(() => {});
     }
 
     // ── Mermaid diagrams (matches editor MermaidBlock config) ──
     const mermaidEls = root.querySelectorAll('.preview-mermaid-block[data-diagram]');
     if (mermaidEls.length) {
       import('mermaid').then((mod) => {
-        console.log('[BlogPreview] Mermaid loaded, cancelled:', cancelled);
-        if (cancelled) return;
+        if (isStale()) return;
         const mermaid = mod.default || mod;
         mermaid.initialize({
           startOnLoad: false,
@@ -379,18 +373,10 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             clusterBorder: '#333',
             titleColor: '#c4b5fd',
             edgeLabelBackground: '#141a26',
-            git0: '#c4b5fd',
-            git1: '#7c5cbf',
-            git2: '#4ade80',
-            git3: '#f59e0b',
-            git4: '#ef4444',
-            git5: '#3b82f6',
-            git6: '#ec4899',
-            git7: '#14b8a6',
-            gitBranchLabel0: '#e4e4e7',
-            gitBranchLabel1: '#e4e4e7',
-            gitBranchLabel2: '#e4e4e7',
-            gitBranchLabel3: '#e4e4e7',
+            git0: '#c4b5fd', git1: '#7c5cbf', git2: '#4ade80', git3: '#f59e0b',
+            git4: '#ef4444', git5: '#3b82f6', git6: '#ec4899', git7: '#14b8a6',
+            gitBranchLabel0: '#e4e4e7', gitBranchLabel1: '#e4e4e7',
+            gitBranchLabel2: '#e4e4e7', gitBranchLabel3: '#e4e4e7',
             gitInv0: '#141a26',
           } : {
             primaryColor: '#e8e0ff',
@@ -408,26 +394,19 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
             clusterBorder: '#d1d5db',
             titleColor: '#7c5cbf',
             edgeLabelBackground: '#f9fafb',
-            git0: '#7c5cbf',
-            git1: '#9b7bf7',
-            git2: '#16a34a',
-            git3: '#d97706',
-            git4: '#dc2626',
-            git5: '#2563eb',
-            git6: '#db2777',
-            git7: '#0d9488',
+            git0: '#7c5cbf', git1: '#9b7bf7', git2: '#16a34a', git3: '#d97706',
+            git4: '#dc2626', git5: '#2563eb', git6: '#db2777', git7: '#0d9488',
           },
           flowchart: { padding: 20, nodeSpacing: 50, rankSpacing: 60, curve: 'basis', htmlLabels: true, useMaxWidth: false },
           sequence: { useMaxWidth: false, boxMargin: 10, noteMargin: 10, messageMargin: 35, mirrorActors: false },
           gitGraph: { showBranches: true, showCommitLabel: true, mainBranchName: 'main', rotateCommitLabel: false },
         });
+        // Render all diagrams — don't bail early on stale, just skip applying to unmounted elements
         (async () => {
           for (const el of mermaidEls) {
-            if (cancelled) return;
             const id = `preview-mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
             try {
               let diagram = decodeURIComponent(el.dataset.diagram).trim();
-              // Normalize diagram type keywords (mermaid is case-sensitive)
               diagram = diagram.replace(/^\s*gitgraph/i, 'gitGraph');
               diagram = diagram.replace(/^\s*sequencediagram/i, 'sequenceDiagram');
               diagram = diagram.replace(/^\s*classDiagram/i, 'classDiagram');
@@ -435,18 +414,16 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
               diagram = diagram.replace(/^\s*erDiagram/i, 'erDiagram');
               diagram = diagram.replace(/^\s*gantt/i, 'gantt');
 
-              // Use temp offscreen div for rendering (same as editor)
               const tempDiv = document.createElement('div');
               tempDiv.id = 'container-' + id;
               tempDiv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;opacity:0;pointer-events:none;z-index:-9999;';
               document.body.appendChild(tempDiv);
 
-              console.log('[BlogPreview] Rendering mermaid:', id, diagram.slice(0, 60));
               const { svg } = await mermaid.render(id, diagram, tempDiv);
-              console.log('[BlogPreview] Mermaid rendered OK:', id);
               tempDiv.remove();
 
-              if (!cancelled) {
+              // Only apply if element is still in the DOM and this is the current effect
+              if (el.isConnected && !isStale()) {
                 el.innerHTML = svg;
                 const svgEl = el.querySelector('svg');
                 if (svgEl) {
@@ -458,20 +435,22 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
                 }
               }
             } catch (err) {
-              el.innerHTML = `<pre style="color:#f87171;font-size:12px">${err.message || 'Diagram error'}</pre>`;
+              if (el.isConnected && !isStale()) {
+                el.innerHTML = `<pre style="color:#f87171;font-size:12px">${err.message || 'Diagram error'}</pre>`;
+              }
               try { document.getElementById(id)?.remove(); } catch {}
               try { document.getElementById('container-' + id)?.remove(); } catch {}
             }
           }
         })();
-      }).catch((err) => console.error('Mermaid load failed:', err));
+      }).catch(() => {});
     }
 
     // ── Code blocks: Shiki syntax highlighting + language label + copy button ──
     const codeEls = root.querySelectorAll('pre > code[class*="language-"]');
     if (codeEls.length) {
       import('shiki').then(({ createHighlighter }) => {
-        if (cancelled) return;
+        if (isStale()) return;
         const langs = new Set();
         codeEls.forEach((el) => {
           const m = el.className.match(/language-(\w+)/);
@@ -481,7 +460,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
           themes: ['vitesse-dark'],
           langs: [...langs],
         }).then((highlighter) => {
-          if (cancelled) return;
+          if (isStale()) return;
           codeEls.forEach((codeEl) => {
             const pre = codeEl.parentElement;
             if (!pre || pre.dataset.highlighted) return;
@@ -541,7 +520,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       });
     });
 
-    return () => { cancelled = true; };
+    return () => { /* generation ref handles staleness */ };
   }, [renderedHTML, isDark]);
 
   return (
