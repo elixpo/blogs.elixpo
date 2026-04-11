@@ -637,9 +637,19 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       {/* Spacer when emoji overlaps cover */}
       {pageEmoji && coverPreview && <div className="h-8" />}
 
-      {/* Author bar — above title */}
+      {/* Title */}
+      {title && (
+        <h1 className="text-[2.2em] font-extrabold leading-tight mt-6 mb-2" style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}>{title}</h1>
+      )}
+
+      {/* Subtitle */}
+      {subtitle && (
+        <p className="text-xl mb-3" style={{ color: 'var(--text-muted)', fontFamily: "'Source Serif 4', Georgia, serif" }}>{subtitle}</p>
+      )}
+
+      {/* Author bar — under title */}
       {user && (
-        <div className="flex items-center gap-3 mt-3 mb-5">
+        <div className="flex items-center gap-3 mt-1 mb-2">
           <div className="flex -space-x-2">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-2 border-[var(--bg-app)]" />
@@ -670,7 +680,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
 
       {/* Tags — under author bar */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 mb-2">
           {tags.map((tag) => (
             <span key={tag} className="px-2.5 py-0.5 bg-[#9b7bf70a] rounded-full text-[12px] text-[#9b7bf7]">
               #{tag}
@@ -679,18 +689,10 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
         </div>
       )}
 
-      {/* Gap before title */}
-      <div style={{ height: '48px' }} />
+      {/* Gap before content */}
+      <div style={{ height: '32px' }} />
 
-      {title && (
-        <h1 className="text-[2.2em] font-extrabold leading-tight mb-2" style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}>{title}</h1>
-      )}
-
-      {subtitle && (
-        <p className="text-xl mb-5" style={{ color: 'var(--text-muted)', fontFamily: "'Source Serif 4', Georgia, serif" }}>{subtitle}</p>
-      )}
-
-      <div className="mt-4">
+      <div>
         {renderedHTML ? (
           <div
             ref={contentRef}
