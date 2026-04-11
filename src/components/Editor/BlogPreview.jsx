@@ -92,18 +92,24 @@ function renderBlocksToHTML(blocks) {
       if (c.type === 'inlineEquation' && c.props?.latex) {
         return `<span class="preview-inline-equation" data-latex="${encodeURIComponent(c.props.latex)}"></span>`;
       }
+      if (c.type === 'dateInline' && c.props?.date) {
+        let formatted;
+        try { formatted = new Date(c.props.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+        catch { formatted = c.props.date; }
+        return `<span class="preview-date-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${formatted}</span>`;
+      }
       if (c.type === 'mention' && c.props?.username) {
         const name = c.props.displayName || c.props.username;
         const avatar = c.props.avatarUrl
           ? `<img src="${c.props.avatarUrl}" alt="" class="mention-chip-avatar">`
           : `<span class="mention-chip-initial">${(name || '?')[0].toUpperCase()}</span>`;
-        return `<a href="/${c.props.username}" class="mention-chip">${avatar}@${name}</a>`;
+        return `<a href="/@${c.props.username}" class="mention-chip" data-username="${c.props.username}" data-avatar="${c.props.avatarUrl || ''}" data-displayname="${name}">${avatar}@${name}</a>`;
       }
       if (c.type === 'blogMention' && c.props?.slugid) {
         return `<a href="/${c.props.slugid}" class="mention-chip">${c.props.title || 'Untitled blog'}</a>`;
       }
       if (c.type === 'orgMention' && c.props?.slug) {
-        return `<a href="/${c.props.slug}" class="mention-chip">@${c.props.name || c.props.slug}</a>`;
+        return `<a href="/@${c.props.slug}" class="mention-chip">@${c.props.name || c.props.slug}</a>`;
       }
       let text = (c.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       if (!text) return '';
@@ -279,6 +285,10 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
   const contentRef = useRef(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const linkPreview = useLinkPreview();
+  const linkPreviewRef = useRef(linkPreview);
+  linkPreviewRef.current = linkPreview;
+  const [mentionCard, setMentionCard] = useState(null);
+  const mentionTimerRef = useRef(null);
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 400);
@@ -522,24 +532,24 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       });
     });
 
-    // ── Link preview on hover ──
+    // ── Link preview on hover (use ref to avoid stale closures) ──
     const externalLinks = root.querySelectorAll('a[href^="http"]:not(.mention-chip):not(.preview-toc-link):not(.link-preview-card)');
-    const linkEnterHandlers = [];
-    const linkLeaveHandlers = [];
+    const linkHandlers = [];
     externalLinks.forEach((link) => {
       const href = link.getAttribute('href');
       if (!href) return;
-      const onEnter = () => linkPreview.show(link, href);
-      const onLeave = () => linkPreview.hide();
+      const onEnter = () => linkPreviewRef.current.show(link, href);
+      const onLeave = () => linkPreviewRef.current.hide();
       link.addEventListener('mouseenter', onEnter);
       link.addEventListener('mouseleave', onLeave);
-      linkEnterHandlers.push({ el: link, handler: onEnter });
-      linkLeaveHandlers.push({ el: link, handler: onLeave });
+      linkHandlers.push({ el: link, onEnter, onLeave });
     });
 
     return () => {
-      linkEnterHandlers.forEach(({ el, handler }) => el.removeEventListener('mouseenter', handler));
-      linkLeaveHandlers.forEach(({ el, handler }) => el.removeEventListener('mouseleave', handler));
+      linkHandlers.forEach(({ el, onEnter, onLeave }) => {
+        el.removeEventListener('mouseenter', onEnter);
+        el.removeEventListener('mouseleave', onLeave);
+      });
     };
   }, [renderedHTML, isDark]);
 

@@ -467,6 +467,105 @@
   color: #b69aff;
 }
 
+/* ===== Preview Date Chip (matches editor DateChip) ===== */
+
+.preview-date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #9b7bf7;
+  background: rgba(155, 123, 247, 0.06);
+  border: 1px solid rgba(155, 123, 247, 0.15);
+  margin: 0 2px;
+  white-space: nowrap;
+}
+
+.preview-date-chip svg {
+  flex-shrink: 0;
+}
+
+/* ===== Preview Mention Hover Card ===== */
+
+.mention-hover-card {
+  position: fixed;
+  z-index: 1000;
+  width: 260px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  animation: linkPreviewIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 14px;
+  pointer-events: auto;
+}
+
+[data-theme="dark"] .mention-hover-card {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.mention-hover-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.mention-hover-card-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg-elevated);
+}
+
+.mention-hover-card-initial {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.mention-hover-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.mention-hover-card-username {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mention-hover-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9b7bf7;
+  text-decoration: none !important;
+  border: none !important;
+}
+
+.mention-hover-card-link:hover {
+  color: #b69aff;
+  background: none !important;
+}
+
 /* ===== Preview figcaption ===== */
 
 .blog-preview-content figcaption {
