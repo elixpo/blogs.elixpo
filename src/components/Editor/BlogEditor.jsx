@@ -10,27 +10,22 @@ import { useCallback, useMemo, forwardRef, useImperativeHandle, useState, useRef
 import { useTheme } from '../../context/ThemeContext';
 import AICommandMenu from './AICommandMenu';
 import AISelectionToolbar from './AISelectionToolbar';
-import { LinkPreviewTooltip, useLinkPreview } from '@elixpo/lixeditor';
+import LinkPreviewTooltip, { useLinkPreview } from './LinkPreviewTooltip';
 import MentionMenu from './MentionMenu';
 
-// Core blocks from @elixpo/lixeditor package
-import {
-  BlockEquation,
-  MermaidBlock,
-  TableOfContents,
-  InlineEquation,
-  DateInline,
-  ImageBlock as BlogImageBlock,
-  ButtonBlock,
-  PDFEmbedBlock,
-} from '@elixpo/lixeditor';
-
-// LixBlogs-specific blocks (not in the package)
+// Custom blocks — local versions with LixBlogs-specific styling + features
+import { TableOfContents } from './blocks/TableOfContents';
+import { BlockEquation } from './blocks/BlockEquation';
+import { ButtonBlock } from './blocks/ButtonBlock';
 import { Breadcrumbs } from './blocks/Breadcrumbs';
 import { TabsBlock } from './blocks/TabsBlock';
 import { AIBlock } from './blocks/AIBlock';
-
-// LixBlogs-specific inline content (mentions — require LixBlogs API)
+import { BlogImageBlock } from './blocks/BlogImageBlock';
+import { MermaidBlock } from './blocks/MermaidBlock';
+import { PDFEmbedBlock } from './blocks/PDFEmbedBlock';
+// Custom inline content
+import { InlineEquation } from './blocks/InlineEquation';
+import { DateInline } from './blocks/DateInline';
 import { MentionInline } from './blocks/MentionInline';
 import { BlogMentionInline } from './blocks/BlogMentionInline';
 import { OrgMentionInline } from './blocks/OrgMentionInline';
