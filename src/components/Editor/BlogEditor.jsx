@@ -897,8 +897,14 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     wrapper.querySelectorAll('[data-content-type="codeBlock"]').forEach((block) => {
+      block.setAttribute('spellcheck', 'false');
       const editable = block.querySelector('[contenteditable]');
-      if (editable) editable.spellcheck = false;
+      if (editable) {
+        editable.spellcheck = false;
+        editable.setAttribute('spellcheck', 'false');
+        editable.setAttribute('autocorrect', 'off');
+        editable.setAttribute('autocapitalize', 'off');
+      }
       block.style.position = 'relative';
 
       // Language label — clickable to change language

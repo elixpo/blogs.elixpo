@@ -32,6 +32,8 @@
   padding: 4px 0;
   margin: 12px 0;
   overflow-x: auto;
+  -webkit-hyphens: none;
+  hyphens: none;
 }
 
 /* Light mode code block vars */
@@ -60,6 +62,13 @@
 
 .blog-editor-wrapper [data-content-type="codeBlock"] [contenteditable] {
   padding: 8px 16px !important;
+  -webkit-text-decorations-in-effect: none;
+}
+
+/* Kill spellcheck red squiggles inside code blocks */
+.blog-editor-wrapper [data-content-type="codeBlock"] [contenteditable] * {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
 }
 
 /* Shiki syntax highlighting — let inline styles override default color */
