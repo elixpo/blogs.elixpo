@@ -583,16 +583,13 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
   // Auto-convert [text](url) to a link as you type
   useEffect(() => {
     if (!editor) return;
-    const pmEditor = editor._tiptapEditor;
-    if (!pmEditor) return;
+    const tiptap = editor._tiptapEditor;
+    if (!tiptap) return;
 
-    // Watch for the closing ) of [text](url) pattern
     const handleInput = () => {
-      const { state } = pmEditor;
+      const { state, view } = tiptap;
       const { $from } = state.selection;
-      // Get text of current text block up to cursor
       const textBefore = $from.parent.textBetween(0, $from.parentOffset, undefined, '\ufffc');
-      // Match [text](url) at the end
       const match = textBefore.match(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
       if (!match) return;
 
@@ -600,17 +597,16 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       const from = $from.pos - fullMatch.length;
       const to = $from.pos;
 
-      // Replace the markdown syntax with a link
       const linkMark = state.schema.marks.link.create({ href: url });
       const tr = state.tr
         .delete(from, to)
         .insertText(linkText, from)
         .addMark(from, from + linkText.length, linkMark);
-      pmEditor.dispatch(tr);
+      view.dispatch(tr);
     };
 
-    pmEditor.on('update', handleInput);
-    return () => pmEditor.off('update', handleInput);
+    tiptap.on('update', handleInput);
+    return () => tiptap.off('update', handleInput);
   }, [editor]);
 
   // Seed Yjs doc from existing content when collab starts on a blog that already has content
