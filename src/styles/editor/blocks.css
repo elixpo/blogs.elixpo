@@ -261,8 +261,17 @@
 }
 
 .subpage-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  width: 100%;
+  box-sizing: border-box;
   cursor: pointer;
   border-bottom: 1px solid var(--divider);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
 }
 
 .subpage-item:last-child {
