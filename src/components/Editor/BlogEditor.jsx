@@ -10,6 +10,7 @@ import { useCallback, useMemo, forwardRef, useImperativeHandle, useState, useRef
 import { useTheme } from '../../context/ThemeContext';
 import AICommandMenu from './AICommandMenu';
 import AISelectionToolbar from './AISelectionToolbar';
+import LinkPreviewTooltip, { useLinkPreview } from './LinkPreviewTooltip';
 import MentionMenu from './MentionMenu';
 
 
@@ -535,6 +536,36 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
   const [showInlineLatex, setShowInlineLatex] = useState(false);
   const [inlineLatexValue, setInlineLatexValue] = useState('');
   const inlineLatexRef = useRef(null);
+  const editorLinkPreview = useLinkPreview();
+
+  // Link preview hover listeners on editor links
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const handleMouseOver = (e) => {
+      const link = e.target.closest('a[href]');
+      if (!link || link.closest('.bn-link-toolbar') || link.closest('.bn-toolbar')) return;
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('http')) {
+        editorLinkPreview.show(link, href);
+      }
+    };
+
+    const handleMouseOut = (e) => {
+      const link = e.target.closest('a[href]');
+      if (!link) return;
+      editorLinkPreview.cancel();
+      setTimeout(() => editorLinkPreview.hide(), 300);
+    };
+
+    wrapper.addEventListener('mouseover', handleMouseOver);
+    wrapper.addEventListener('mouseout', handleMouseOut);
+    return () => {
+      wrapper.removeEventListener('mouseover', handleMouseOver);
+      wrapper.removeEventListener('mouseout', handleMouseOut);
+    };
+  }, []);
 
   const sanitizedContent = useMemo(() => sanitizeInitialContent(initialContent), [initialContent]);
 
@@ -2176,6 +2207,15 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
             </div>
           </div>
         </div>
+      )}
+
+      {/* Link preview tooltip */}
+      {editorLinkPreview.preview && (
+        <LinkPreviewTooltip
+          anchorEl={editorLinkPreview.preview.anchorEl}
+          url={editorLinkPreview.preview.url}
+          onClose={editorLinkPreview.hide}
+        />
       )}
     </div>
   );
