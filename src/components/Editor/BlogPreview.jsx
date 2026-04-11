@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import LinkPreviewTooltip, { useLinkPreview } from './LinkPreviewTooltip';
 
 function FloatingTOC({ headings }) {
   const [activeId, setActiveId] = useState('');
@@ -277,6 +278,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
   const { isDark } = useTheme();
   const contentRef = useRef(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const linkPreview = useLinkPreview();
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 400);
