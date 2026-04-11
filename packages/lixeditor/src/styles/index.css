@@ -1,0 +1,14 @@
+/**
+ * @lixblogs/editor styles
+ *
+ * Import this in your app:
+ *   import '@lixblogs/editor/styles';
+ *
+ * All colors use CSS custom properties prefixed with --lix-
+ * Override them to customize the theme.
+ */
+
+@import './variables.css';
+@import './editor.css';
+@import './preview.css';
+@import './blocks.css';

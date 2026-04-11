@@ -1,0 +1,41 @@
+/**
+ * @lixblogs/editor — A rich WYSIWYG block editor and renderer.
+ *
+ * Usage:
+ *   import { LixEditor, LixPreview, LixThemeProvider } from '@lixblogs/editor';
+ *   import '@lixblogs/editor/styles';
+ *
+ *   <LixThemeProvider>
+ *     <LixEditor
+ *       initialContent={blocks}
+ *       onChange={(editor) => save(editor.getBlocks())}
+ *       features={{ equations: true, mermaid: true }}
+ *     />
+ *   </LixThemeProvider>
+ *
+ *   <LixPreview blocks={blocks} />
+ */
+
+// Core components
+export { default as LixEditor } from './editor/LixEditor';
+export { default as LixPreview } from './preview/LixPreview';
+
+// Theme
+export { LixThemeProvider, useLixTheme } from './hooks/useLixTheme';
+
+// Block specs — for consumers who want to build custom schemas
+export {
+  BlockEquation,
+  InlineEquation,
+  DateInline,
+  MermaidBlock,
+  TableOfContents,
+  ButtonBlock,
+  PDFEmbedBlock,
+  ImageBlock,
+} from './blocks/index';
+
+// Utilities
+export { renderBlocksToHTML } from './preview/renderBlocks';
+export { default as LinkPreviewTooltip, useLinkPreview } from './editor/LinkPreviewTooltip';
+export { default as KeyboardShortcutsModal } from './editor/KeyboardShortcutsModal';
