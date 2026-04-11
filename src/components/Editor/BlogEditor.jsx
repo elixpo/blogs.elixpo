@@ -326,13 +326,14 @@ function sanitizeInitialContent(blocks) {
   if (typeof blocks === 'string') {
     try { blocks = JSON.parse(blocks); } catch { return undefined; }
   }
-  if (!blocks || !Array.isArray(blocks)) return blocks;
+  if (!blocks || !Array.isArray(blocks) || blocks.length === 0) return undefined;
 
   // Filter out unknown block types (e.g. removed custom blocks)
   const filtered = blocks.filter((b) => !b.type || KNOWN_BLOCK_TYPES.has(b.type));
+  if (filtered.length === 0) return undefined;
 
   const sanitized = doSanitize(filtered);
-  return sanitized;
+  return sanitized?.length ? sanitized : undefined;
 }
 
 function doSanitize(blocks) {

@@ -33,11 +33,12 @@ export default function SubpageClient({ params }) {
       .then(r => r.ok ? r.json() : r.json().then(d => { throw new Error(d.error); }))
       .then(data => {
         setTitle(data.title || 'Untitled');
-        let parsed = [];
-        try { parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content || []; } catch {}
-        setContent(parsed);
+        let parsed;
+        try { parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content; } catch {}
+        // BlockNote needs undefined or a non-empty array — empty array crashes it
+        setContent(parsed?.length ? parsed : undefined);
       })
-      .catch(() => setContent([]))
+      .catch(() => setContent(undefined))
       .finally(() => setLoading(false));
   }, [subpageId]);
 
@@ -156,7 +157,7 @@ export default function SubpageClient({ params }) {
 
           {/* BlockNote editor */}
           <div className="min-h-[60vh] pb-[100px]">
-            {content !== null && (
+            {!loading && (
               <BlockNoteEditor
                 ref={editorRef}
                 onChange={handleEditorChange}
