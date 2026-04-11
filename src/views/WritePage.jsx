@@ -312,7 +312,7 @@ function EditorOutline({ editorContent }) {
     return () => window.removeEventListener('scroll', onScroll);
   }, [headings]);
 
-  // Update slider position
+  // Update slider position and auto-scroll TOC to keep active item visible
   useEffect(() => {
     if (!activeId || !listRef.current) return;
     const item = itemRefs.current[activeId];
@@ -320,6 +320,7 @@ function EditorOutline({ editorContent }) {
     const listRect = listRef.current.getBoundingClientRect();
     const itemRect = item.getBoundingClientRect();
     setSliderStyle({ top: itemRect.top - listRect.top, height: itemRect.height });
+    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [activeId]);
 
   if (headings.length === 0) return null;

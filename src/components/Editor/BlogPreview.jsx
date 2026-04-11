@@ -28,7 +28,7 @@ function FloatingTOC({ headings }) {
     return () => window.removeEventListener('scroll', onScroll);
   }, [headings]);
 
-  // Update slider position based on active item's DOM position
+  // Update slider position and auto-scroll TOC to keep active item visible
   useEffect(() => {
     if (!activeId || !listRef.current) return;
     const item = itemRefs.current[activeId];
@@ -39,6 +39,8 @@ function FloatingTOC({ headings }) {
       top: itemRect.top - listRect.top,
       height: itemRect.height,
     });
+    // Scroll the TOC list so the active item stays visible
+    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [activeId]);
 
   return (
@@ -545,11 +547,42 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
       linkHandlers.push({ el: link, onEnter, onLeave });
     });
 
+    // ── Mention hover cards ──
+    const mentionChips = root.querySelectorAll('.mention-chip[data-username]');
+    const mentionHandlers = [];
+    mentionChips.forEach((chip) => {
+      const onEnter = () => {
+        clearTimeout(mentionTimerRef.current);
+        mentionTimerRef.current = setTimeout(() => {
+          const rect = chip.getBoundingClientRect();
+          setMentionCard({
+            username: chip.dataset.username,
+            displayName: chip.dataset.displayname || chip.dataset.username,
+            avatar: chip.dataset.avatar || '',
+            top: rect.bottom + 6,
+            left: Math.max(8, Math.min(rect.left, window.innerWidth - 268)),
+          });
+        }, 300);
+      };
+      const onLeave = () => {
+        clearTimeout(mentionTimerRef.current);
+        mentionTimerRef.current = setTimeout(() => setMentionCard(null), 200);
+      };
+      chip.addEventListener('mouseenter', onEnter);
+      chip.addEventListener('mouseleave', onLeave);
+      mentionHandlers.push({ el: chip, onEnter, onLeave });
+    });
+
     return () => {
       linkHandlers.forEach(({ el, onEnter, onLeave }) => {
         el.removeEventListener('mouseenter', onEnter);
         el.removeEventListener('mouseleave', onLeave);
       });
+      mentionHandlers.forEach(({ el, onEnter, onLeave }) => {
+        el.removeEventListener('mouseenter', onEnter);
+        el.removeEventListener('mouseleave', onLeave);
+      });
+      clearTimeout(mentionTimerRef.current);
     };
   }, [renderedHTML, isDark]);
 
@@ -676,6 +709,34 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
           onClose={linkPreview.hide}
           onKeepAlive={linkPreview.keepAlive}
         />
+      )}
+
+      {/* Mention hover card */}
+      {mentionCard && (
+        <div
+          className="mention-hover-card"
+          style={{ top: mentionCard.top, left: mentionCard.left }}
+          onMouseEnter={() => clearTimeout(mentionTimerRef.current)}
+          onMouseLeave={() => { mentionTimerRef.current = setTimeout(() => setMentionCard(null), 150); }}
+        >
+          <div className="mention-hover-card-header">
+            {mentionCard.avatar ? (
+              <img src={mentionCard.avatar} alt="" className="mention-hover-card-avatar" />
+            ) : (
+              <div className="mention-hover-card-initial">
+                {(mentionCard.displayName || '?')[0].toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div className="mention-hover-card-name">{mentionCard.displayName}</div>
+              <div className="mention-hover-card-username">@{mentionCard.username}</div>
+            </div>
+          </div>
+          <a href={`/@${mentionCard.username}`} className="mention-hover-card-link">
+            View profile
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17l9.2-9.2M17 17V7H7"/></svg>
+          </a>
+        </div>
       )}
     </div>
   );
