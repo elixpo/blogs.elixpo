@@ -150,7 +150,6 @@
 }
 
 /* Mention chips, TOC links, subpage items have their own styling */
-.blog-preview-content a.mention-chip,
 .blog-preview-content a.preview-toc-link,
 .blog-preview-content a.link-preview-card,
 .blog-preview-content a.subpage-item {
@@ -158,7 +157,32 @@
   border-bottom: none !important;
   background: none !important;
   text-decoration: none !important;
-  padding-bottom: 10px !important;
+  padding-bottom: 0 !important;
+}
+
+/* Mention chips — match editor styling */
+.blog-preview-content a.mention-chip {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+/* Blog mention links — blue with link icon, like the editor */
+.blog-preview-content .blog-mention-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #60a5fa !important;
+  border-bottom: none !important;
+  background: none !important;
+  text-decoration: none !important;
+  padding-bottom: 0 !important;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.blog-preview-content .blog-mention-link:hover {
+  color: #93c5fd !important;
+  background: none !important;
 }
 
 .blog-preview-content a.subpage-item:hover {
