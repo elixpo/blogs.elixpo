@@ -35,20 +35,28 @@ export default function LinkPreviewTooltip({ anchorEl, url, onClose, onKeepAlive
     });
   }, [url]);
 
-  // Position tooltip directly below the anchor using fixed positioning
+  // Position tooltip below or above the anchor using fixed positioning
+  const [above, setAbove] = useState(false);
   useEffect(() => {
     if (!anchorEl) return;
     const rect = anchorEl.getBoundingClientRect();
     const tooltipWidth = 320;
+    const tooltipHeight = 320; // max estimate with OG image
     let left = rect.left + rect.width / 2 - tooltipWidth / 2;
-    // Clamp to viewport
     left = Math.max(8, Math.min(left, window.innerWidth - tooltipWidth - 8));
-    let top = rect.bottom + 6;
-    // If tooltip would overflow bottom, show above the link
-    if (top + 200 > window.innerHeight) {
-      top = rect.top - 8; // will be adjusted by transform in CSS
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    if (spaceBelow < tooltipHeight && spaceAbove > spaceBelow) {
+      // Show above the link
+      setAbove(true);
+      setPos({ top: rect.top - 6, left });
+    } else {
+      // Show below the link
+      setAbove(false);
+      setPos({ top: rect.bottom + 6, left });
     }
-    setPos({ top, left });
   }, [anchorEl]);
 
   if (!url) return null;
@@ -57,7 +65,7 @@ export default function LinkPreviewTooltip({ anchorEl, url, onClose, onKeepAlive
     <div
       ref={tooltipRef}
       className="link-preview-tooltip"
-      style={{ top: pos.top, left: pos.left }}
+      style={{ top: pos.top, left: pos.left, transform: above ? 'translateY(-100%)' : 'none' }}
       onMouseEnter={onKeepAlive}
       onMouseLeave={onClose}
     >
