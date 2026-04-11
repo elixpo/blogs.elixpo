@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import '../../styles/katex-fonts.css';
 
 function FloatingTOC({ headings }) {
   const [activeId, setActiveId] = useState('');
