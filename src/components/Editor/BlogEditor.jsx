@@ -654,21 +654,69 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
 
       // Check for link syntax: [text](url)
       const match = textBefore.match(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
-      if (!match) return;
+      if (match) {
+        const [fullMatch, linkText, url] = match;
+        const from = $from.pos - fullMatch.length;
+        const linkMark = state.schema.marks.link.create({ href: url });
+        const tr = state.tr
+          .delete(from, $from.pos)
+          .insertText(linkText, from)
+          .addMark(from, from + linkText.length, linkMark);
+        view.dispatch(tr);
+        return;
+      }
 
-      const [fullMatch, linkText, url] = match;
-      const from = $from.pos - fullMatch.length;
-
-      const linkMark = state.schema.marks.link.create({ href: url });
-      const tr = state.tr
-        .delete(from, $from.pos)
-        .insertText(linkText, from)
-        .addMark(from, from + linkText.length, linkMark);
-      view.dispatch(tr);
+      // Auto-convert bare URL followed by space to a link chip
+      // Match: "https://example.com " (URL ending with a space)
+      const urlMatch = textBefore.match(/(https?:\/\/[^\s]+)\s$/);
+      if (urlMatch) {
+        const [fullMatch, url] = urlMatch;
+        const from = $from.pos - fullMatch.length;
+        const to = $from.pos - 1; // exclude the trailing space
+        const linkMark = state.schema.marks.link.create({ href: url });
+        const tr = state.tr.addMark(from, to, linkMark);
+        view.dispatch(tr);
+        return;
+      }
     };
 
     tiptap.on('update', handleInput);
     return () => tiptap.off('update', handleInput);
+  }, [editor]);
+
+  // Ctrl+K — create link from selection
+  useEffect(() => {
+    if (!editor) return;
+    const tiptap = editor._tiptapEditor;
+    if (!tiptap) return;
+
+    const handleCtrlK = (e) => {
+      if (!((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K'))) return;
+      e.preventDefault();
+
+      const { state, view } = tiptap;
+      const { from, to, empty } = state.selection;
+      if (empty) return; // no selection
+
+      const selectedText = state.doc.textBetween(from, to);
+      const isUrl = /^https?:\/\/\S+$/.test(selectedText.trim());
+
+      if (isUrl) {
+        // Selected text IS a URL — make it both the href and anchor text
+        const linkMark = state.schema.marks.link.create({ href: selectedText.trim() });
+        view.dispatch(state.tr.addMark(from, to, linkMark));
+      } else {
+        // Selected text is regular text — prompt for URL
+        const url = prompt('Enter URL:', 'https://');
+        if (url && url.trim() && url.trim() !== 'https://') {
+          const linkMark = state.schema.marks.link.create({ href: url.trim() });
+          view.dispatch(state.tr.addMark(from, to, linkMark));
+        }
+      }
+    };
+
+    tiptap.view.dom.addEventListener('keydown', handleCtrlK);
+    return () => tiptap.view.dom.removeEventListener('keydown', handleCtrlK);
   }, [editor]);
 
   // Seed Yjs doc from existing content when collab starts on a blog that already has content
@@ -878,8 +926,24 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       const items = e.clipboardData?.items;
       if (!items) return;
 
-      // Check for plain text with markdown first
       const textData = e.clipboardData.getData('text/plain');
+
+      // If pasting a bare URL, convert to a link inline
+      if (textData && /^https?:\/\/\S+$/.test(textData.trim()) && !e.clipboardData.getData('text/html')) {
+        const url = textData.trim();
+        e.preventDefault();
+        const tiptap = editor._tiptapEditor;
+        if (tiptap) {
+          const { state, view } = tiptap;
+          const { from } = state.selection;
+          const linkMark = state.schema.marks.link.create({ href: url });
+          const tr = state.tr.insertText(url, from).addMark(from, from + url.length, linkMark);
+          view.dispatch(tr);
+        }
+        return;
+      }
+
+      // Check for plain text with markdown
       if (textData && looksLikeMarkdown(textData)) {
         // Only intercept if there's no HTML (which means it's raw markdown, not rich copy)
         const htmlData = e.clipboardData.getData('text/html');
