@@ -296,6 +296,16 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
     })
     .filter(h => h.text);
 
+  // Debug: log rendered HTML to verify blocks are producing equations/mermaid divs
+  useEffect(() => {
+    if (renderedHTML) {
+      const hasEq = renderedHTML.includes('preview-block-equation');
+      const hasMermaid = renderedHTML.includes('preview-mermaid-block');
+      const hasInlineEq = renderedHTML.includes('preview-inline-equation');
+      console.log('[BlogPreview] rendered HTML contains:', { hasEq, hasMermaid, hasInlineEq, htmlLength: renderedHTML.length });
+    }
+  }, [renderedHTML]);
+
   // Render KaTeX equations, mermaid diagrams, and syntax-highlighted code after mount
   useEffect(() => {
     const root = contentRef.current;
@@ -315,6 +325,7 @@ export default function BlogPreview({ title, subtitle, coverPreview, coverZoom, 
     // ── KaTeX: block + inline equations ──
     const eqEls = root.querySelectorAll('.preview-block-equation[data-latex]');
     const inlineEls = root.querySelectorAll('.preview-inline-equation[data-latex]');
+    console.log('[BlogPreview] DOM query:', { blockEqs: eqEls.length, inlineEqs: inlineEls.length, mermaidEls: root.querySelectorAll('.preview-mermaid-block[data-diagram]').length });
     if (eqEls.length || inlineEls.length) {
       import('katex').then((mod) => {
         if (cancelled) return;
