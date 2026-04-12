@@ -216,6 +216,11 @@ function LixEditorApp() {
 
 // ── Editor ──
 function EditorView({ initialContent, isDark, onChange }) {
+  const editorWrapperRef = useRef(null);
+  const linkPreview = useLinkPreview();
+  const linkPreviewRef = useRef(linkPreview);
+  linkPreviewRef.current = linkPreview;
+
   const editor = useCreateBlockNote({
     schema,
     initialContent: initialContent || undefined,
@@ -284,6 +289,29 @@ function EditorView({ initialContent, isDark, onChange }) {
     return () => { try { dom.removeEventListener('keydown', handleKeyDown); } catch {} };
   }, [editor]);
 
+  // Link preview on hover
+  useEffect(() => {
+    const wrapper = editorWrapperRef.current;
+    if (!wrapper) return;
+
+    const handleMouseOver = (e) => {
+      const link = e.target.closest('a[href]');
+      if (!link || link.closest('.bn-toolbar')) return;
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('http')) linkPreviewRef.current.show(link, href);
+    };
+    const handleMouseOut = (e) => {
+      if (e.target.closest('a[href]')) linkPreviewRef.current.cancel();
+    };
+
+    wrapper.addEventListener('mouseover', handleMouseOver);
+    wrapper.addEventListener('mouseout', handleMouseOut);
+    return () => {
+      wrapper.removeEventListener('mouseover', handleMouseOver);
+      wrapper.removeEventListener('mouseout', handleMouseOut);
+    };
+  }, []);
+
   const handleEditorChange = useCallback(() => { onChange(editor); }, [editor, onChange]);
 
   const getItems = useCallback(async (query) => {
@@ -293,11 +321,19 @@ function EditorView({ initialContent, isDark, onChange }) {
   }, [editor]);
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '8px 16px 100px', minHeight: 'calc(100vh - 44px)' }}>
+    <div ref={editorWrapperRef} style={{ maxWidth: 720, margin: '0 auto', padding: '8px 16px 100px', minHeight: 'calc(100vh - 44px)', position: 'relative' }}>
       <BlockNoteView editor={editor} onChange={handleEditorChange} theme={isDark ? 'dark' : 'light'} slashMenu={false}>
         <SuggestionMenuController triggerCharacter="/" getItems={getItems} />
         <TableHandlesController />
       </BlockNoteView>
+
+      {linkPreview.preview && (
+        <LinkPreviewTooltip
+          anchorEl={linkPreview.preview.anchorEl}
+          url={linkPreview.preview.url}
+          onClose={linkPreview.hide}
+        />
+      )}
     </div>
   );
 }

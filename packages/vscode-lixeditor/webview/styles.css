@@ -347,6 +347,33 @@ a:hover { text-decoration: underline; }
   line-height: 1.6 !important;
 }
 
+/* ===== Link Preview Tooltip ===== */
+.link-preview-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: 300px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--vscode-editorWidget-background, #1e1e1e);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: lixFadeIn 0.15s ease-out;
+}
+
+@keyframes lixFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.link-preview-card { display: block; text-decoration: none !important; border: none !important; color: inherit; }
+.link-preview-image { width: 100%; height: 120px; overflow: hidden; background: var(--vscode-editorWidget-background); }
+.link-preview-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.link-preview-body { padding: 10px 12px; }
+.link-preview-title { font-size: 12px; font-weight: 600; color: var(--vscode-foreground); line-height: 1.4; margin-bottom: 4px; }
+.link-preview-desc { font-size: 11px; color: var(--vscode-descriptionForeground, #aaa); line-height: 1.4; margin-bottom: 6px; }
+.link-preview-domain { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--vscode-descriptionForeground, #888); }
+.link-preview-favicon { width: 12px; height: 12px; border-radius: 2px; }
+.link-preview-loading { padding: 12px; }
+.link-preview-skeleton { background: var(--vscode-editorWidget-background, #2a2a2a); border-radius: 3px; height: 10px; animation: lixPulse 1.2s ease-in-out infinite; }
+@keyframes lixPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+
 /* Kill BlockNote's default file panel — we have our own image UI */
 .bn-file-panel,
 [class*="mantine-Popover-dropdown"]:has([data-test="embed-input"]),
