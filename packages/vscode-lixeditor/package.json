@@ -2,7 +2,7 @@
   "name": "lixeditor",
   "displayName": "LixEditor — Rich WYSIWYG Editor",
   "description": "A rich block editor for .lixeditor files — LaTeX equations, Mermaid diagrams, syntax-highlighted code, and more.",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "publisher": "elixpo",
   "icon": "media/icon.png",
   "engines": {
@@ -26,7 +26,10 @@
     "onCommand:lixeditor.newDocument",
     "onLanguage:lixeditor"
   ],
-  "extensionKind": ["workspace", "ui"],
+  "extensionKind": [
+    "workspace",
+    "ui"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "customEditors": [
@@ -44,8 +47,12 @@
     "languages": [
       {
         "id": "lixeditor",
-        "extensions": [".lixeditor"],
-        "aliases": ["LixEditor Document"],
+        "extensions": [
+          ".lixeditor"
+        ],
+        "aliases": [
+          "LixEditor Document"
+        ],
         "icon": {
           "light": "media/icon.png",
           "dark": "media/icon.png"

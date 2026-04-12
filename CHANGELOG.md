@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.5.2 (2026-04-12)
+
+7c9aea0 Refactor code structure for improved readability and maintainability
+7bcb3cb Implement feature X to enhance user experience and fix bug Y in module Z
+ca4603f feat: prevent link preview conflicts by checking for active link toolbar
+6eaecd2 feat: enhance link preview behavior in EditorView to prevent conflicts with link toolbar
+4e3ecbf feat: add support for version bumping and publishing VS Code extension in deployment script
+b21e230 feat: enhance token validation in deployment script
+0f2e609 Refactor code structure for improved readability and maintainability
+150ce63 feat: implement link preview functionality with tooltip in editor
+a16e9b8 feat: add LinkPreviewTooltip and useLinkPreview to editor-src.jsx
+85a0223 Hide BlockNote's default file panel to implement custom image UI in VS Code editor
+1df3e76 feat: add export functionality for Markdown in LixEditor
+1168e2e style: update dropdown styles for improved appearance and usability in VS Code
+e1ddc32 Refactor code structure for improved readability and maintainability
+0fa4510 Enhance VS Code integration with updated styles for date chips, code block language selector, and image blocks
+757de10 feat: add save and import functionality to LixEditor
+48f2e73 Refactor code structure for improved readability and maintainability
+74b6a35 feat: add header bar and help modal to LixEditor with date inline support
+b24fc89 Add image block styles to VS Code webview CSS
+6e4bfa0 feat: update imports in BlogEditor and BlogPreview components for local LinkPreviewTooltip
+2cdf021 Refactor code structure for improved readability and maintainability
+
+# Changelog
+
 ## v2.5.5 (2026-04-12)
 
 36e7aae release: v2.5.4
