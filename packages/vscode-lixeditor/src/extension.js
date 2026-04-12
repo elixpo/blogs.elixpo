@@ -80,10 +80,11 @@ class LixEditorProvider {
           vscode.window.showSaveDialog({
             filters: { 'Markdown': ['md'] },
             saveLabel: 'Export Markdown',
-          }).then(uri => {
+          }).then(async (uri) => {
             if (uri && message.markdown) {
-              vscode.workspace.fs.writeFile(uri, Buffer.from(message.markdown, 'utf8'));
-              vscode.window.showInformationMessage('Exported as Markdown');
+              const encoder = new TextEncoder();
+              await vscode.workspace.fs.writeFile(uri, encoder.encode(message.markdown));
+              vscode.window.showInformationMessage('Exported as Markdown: ' + uri.fsPath);
             }
           });
           break;
