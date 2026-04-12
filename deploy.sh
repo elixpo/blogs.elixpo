@@ -392,7 +392,7 @@ usage() {
   echo ""
   echo "Release Commands:"
   echo "  release [targets]   Full release with version bump + changelog + publish"
-  echo "                      Targets: editor, web, all (default: all)"
+  echo "                      Targets: editor (npm+github), npm, github, web, all"
   echo ""
   echo "Release Options:"
   echo "  --patch             Patch version bump (default)"
@@ -409,6 +409,8 @@ usage() {
   echo "  ./deploy.sh deploy                     # Quick website deploy"
   echo "  ./deploy.sh release all --minor        # Release everything"
   echo "  ./deploy.sh release editor --patch     # Publish lixeditor to npm + GitHub"
+  echo "  ./deploy.sh release npm --patch        # Publish lixeditor to npm only"
+  echo "  ./deploy.sh release github --patch     # Publish lixeditor to GitHub Packages only"
   echo "  ./deploy.sh release all --dry-run      # Preview full release"
 }
 
