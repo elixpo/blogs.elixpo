@@ -486,6 +486,30 @@ export default function WritePage({ slugid }) {
     draftDataRef.current = { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji };
   }, [title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji]);
 
+  // Sync any buffered subpage drafts from localStorage to cloud
+  const syncSubpageDrafts = useCallback(async () => {
+    try {
+      const prefix = 'lixblogs_subpage_';
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(prefix)) continue;
+        const subpageId = key.slice(prefix.length);
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const draft = JSON.parse(raw);
+        if (!draft.editorContent && !draft.title) continue;
+        const payload = { id: subpageId };
+        if (draft.title) payload.title = draft.title;
+        if (draft.editorContent) payload.content = draft.editorContent;
+        fetch('/api/subpages', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(() => {});
+      }
+    } catch {}
+  }, []);
+
   // Cloud sync function — saves localStorage then pushes to cloud
   const syncToCloud = useCallback(async ({ showToast = false, silent = false } = {}) => {
     const data = draftDataRef.current;
@@ -496,6 +520,9 @@ export default function WritePage({ slugid }) {
     setLastSaved(Date.now());
 
     if (!silent) setSyncStatus('syncing');
+
+    // Also sync any buffered subpage drafts
+    syncSubpageDrafts();
 
     try {
       const res = await fetch('/api/blogs/draft', {
@@ -525,7 +552,7 @@ export default function WritePage({ slugid }) {
         setTimeout(() => setSyncStatus('idle'), 5000);
       }
     }
-  }, [slugid]);
+  }, [slugid, syncSubpageDrafts]);
 
   // Ctrl+S → save + sync, Ctrl+O → import markdown, Ctrl+D → insert date
   useEffect(() => {

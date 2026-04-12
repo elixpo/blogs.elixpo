@@ -5,6 +5,7 @@ import { useAuth } from '../../../../src/context/AuthContext';
 import { useTheme } from '../../../../src/context/ThemeContext';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import '../../../../src/styles/editor/editor.css';
@@ -64,6 +65,15 @@ export default function SubpageClient({ params }) {
   useEffect(() => {
     draftDataRef.current = { title, editorContent };
   }, [title, editorContent]);
+
+  const formatSavedTime = (ts) => {
+    if (!ts) return null;
+    const diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 10) return 'Just saved';
+    if (diff < 60) return `Saved ${diff}s ago`;
+    if (diff < 3600) return `Saved ${Math.floor(diff / 60)}m ago`;
+    return `Saved ${Math.floor(diff / 3600)}h ago`;
+  };
 
   // Fetch subpage data — check localStorage first, then cloud
   useEffect(() => {
@@ -220,7 +230,6 @@ export default function SubpageClient({ params }) {
           const payload = { id: subpageId };
           if (data.title) payload.title = data.title;
           if (data.editorContent) payload.content = data.editorContent;
-          // Use fetch with keepalive (sendBeacon only sends POST, but subpages update needs PUT)
           fetch('/api/subpages', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -263,13 +272,6 @@ export default function SubpageClient({ params }) {
     { key: 'preview', icon: 'eye-outline', label: 'Preview' },
   ], []);
 
-  // Sync status label
-  const syncLabel = syncStatus === 'syncing' ? 'Syncing...'
-    : syncStatus === 'synced' ? 'Saved to cloud'
-    : syncStatus === 'local' ? 'Saved locally'
-    : hasUnsavedEdits ? 'Unsaved changes'
-    : lastSaved ? 'Saved' : '';
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
@@ -280,14 +282,6 @@ export default function SubpageClient({ params }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] edit-page">
-      {/* Saved toast */}
-      {showSavedToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg text-[13px] font-medium shadow-lg"
-          style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: '#4ade80' }}>
-          Saved to cloud
-        </div>
-      )}
-
       {/* Header */}
       <header className="fixed top-0 left-0 w-full h-14 border-b border-[var(--border-default)] flex items-center justify-between px-5 bg-[var(--bg-app)]/95 backdrop-blur-md z-50">
         {/* Left: back + breadcrumb */}
@@ -320,29 +314,32 @@ export default function SubpageClient({ params }) {
               </span>
             )}
           </div>
-          {/* Sync status */}
-          <span className={`text-[11px] flex-shrink-0 ${syncStatus === 'synced' ? 'text-[#4ade80]' : syncStatus === 'local' ? 'text-[#fbbf24]' : 'text-[var(--text-faint)]'}`}>
-            {syncLabel}
+          {/* Draft badge + saved time + sync dot — matches parent page */}
+          <span className="text-[var(--text-muted)] text-[11px] hidden md:flex items-center gap-1.5">
+            <span className="text-[var(--text-faint)] px-1.5 py-0.5 rounded border border-[var(--border-default)] bg-[var(--bg-surface)] text-[10px] font-medium">
+              {hasUnsavedEdits ? 'Unsaved' : 'Draft'}
+            </span>
+            {lastSaved && <span>{formatSavedTime(lastSaved)}</span>}
           </span>
+          {/* Sync status dot */}
+          {syncStatus !== 'idle' && (
+            <span
+              className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${
+                syncStatus === 'syncing' ? 'bg-yellow-400 animate-pulse' :
+                syncStatus === 'synced' ? 'bg-green-400' :
+                syncStatus === 'local' ? 'bg-yellow-500' : ''
+              }`}
+              title={
+                syncStatus === 'syncing' ? 'Syncing to cloud...' :
+                syncStatus === 'synced' ? 'Saved to cloud' :
+                syncStatus === 'local' ? 'Saved locally' : ''
+              }
+            />
+          )}
         </div>
 
         {/* Right: actions */}
         <div className="flex items-center gap-2">
-          {/* Save button */}
-          <button
-            onClick={() => syncToCloud({ showToast: true })}
-            className="h-8 px-3 rounded-lg flex items-center gap-1.5 text-[12px] font-medium transition-colors"
-            style={{ backgroundColor: 'rgba(155,123,247,0.1)', border: '1px solid rgba(155,123,247,0.25)', color: '#9b7bf7' }}
-            title="Save (Ctrl+S)"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-              <polyline points="17 21 17 13 7 13 7 21"/>
-              <polyline points="7 3 7 8 15 8"/>
-            </svg>
-            <span className="hidden sm:inline">Save</span>
-          </button>
-
           {/* Mode tabs */}
           <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-surface)' }}>
             {modeTabs.map(tab => (
@@ -428,6 +425,23 @@ export default function SubpageClient({ params }) {
 
       {/* Keyboard shortcuts modal */}
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
+
+      {/* Saved to cloud toast — matches parent page */}
+      <AnimatePresence>
+        {showSavedToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-green-500/20 bg-[var(--bg-surface)]/90 backdrop-blur-lg shadow-2xl"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span className="text-[13px] text-green-300 font-medium">Saved to cloud</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
