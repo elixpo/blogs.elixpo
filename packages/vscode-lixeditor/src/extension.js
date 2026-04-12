@@ -76,6 +76,17 @@ class LixEditorProvider {
             document.save();
           });
           break;
+        case 'exportMarkdown':
+          vscode.window.showSaveDialog({
+            filters: { 'Markdown': ['md'] },
+            saveLabel: 'Export Markdown',
+          }).then(uri => {
+            if (uri && message.markdown) {
+              vscode.workspace.fs.writeFile(uri, Buffer.from(message.markdown, 'utf8'));
+              vscode.window.showInformationMessage('Exported as Markdown');
+            }
+          });
+          break;
         case 'import':
           vscode.window.showOpenDialog({
             canSelectMany: false,
