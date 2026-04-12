@@ -715,8 +715,10 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       }
     };
 
-    tiptap.view.dom.addEventListener('keydown', handleCtrlK);
-    return () => tiptap.view.dom.removeEventListener('keydown', handleCtrlK);
+    const dom = tiptap.view?.dom;
+    if (!dom) return;
+    dom.addEventListener('keydown', handleCtrlK);
+    return () => { try { dom.removeEventListener('keydown', handleCtrlK); } catch {} };
   }, [editor]);
 
   // Seed Yjs doc from existing content when collab starts on a blog that already has content
