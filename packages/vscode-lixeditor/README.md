@@ -83,10 +83,10 @@ The editor includes a minimal header with:
 
 | Icon | Action |
 |:----:|:-------|
-| :page_facing_up: | Document title (click to rename) |
-| :open_file_folder: | Open / import a file |
-| :arrow_down: | Export as Markdown (.md) |
-| :floppy_disk: | Save to disk |
+| 📄 | Document title (click to rename) |
+| 📂 | Open / import a file |
+| ⬇️ | Export as Markdown (.md) |
+| 💾 | Save to disk |
 | **?** | Keyboard shortcuts reference |
 
 ---
