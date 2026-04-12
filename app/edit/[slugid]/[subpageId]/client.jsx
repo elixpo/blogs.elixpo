@@ -14,6 +14,30 @@ const BlockNoteEditor = dynamic(() => import('../../../../src/components/Editor/
 const BlogPreview = dynamic(() => import('../../../../src/components/Editor/BlogPreview'), { ssr: false });
 const KeyboardShortcutsModal = dynamic(() => import('../../../../src/components/Editor/KeyboardShortcutsModal'), { ssr: false });
 
+const STORAGE_KEY_PREFIX = 'lixblogs_subpage_';
+
+function getDraftKey(subpageId) {
+  return STORAGE_KEY_PREFIX + subpageId;
+}
+
+function loadDraft(subpageId) {
+  try {
+    const raw = localStorage.getItem(getDraftKey(subpageId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(subpageId, data) {
+  try {
+    localStorage.setItem(getDraftKey(subpageId), JSON.stringify({
+      ...data,
+      savedAt: Date.now(),
+    }));
+  } catch { /* storage full */ }
+}
+
 export default function SubpageClient({ params }) {
   const { slugid, subpageId } = use(params);
   const { user } = useAuth();
@@ -23,46 +47,99 @@ export default function SubpageClient({ params }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('idle'); // idle | syncing | synced | local
   const [lastSaved, setLastSaved] = useState(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [mode, setMode] = useState('edit'); // edit | preview
   const [previewBlocks, setPreviewBlocks] = useState([]);
   const [editorContent, setEditorContent] = useState(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showSavedToast, setShowSavedToast] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
   const titleInputRef = useRef(null);
-  const saveTimerRef = useRef(null);
 
-  // Fetch subpage data
+  // Ref to always hold latest draft data (avoids stale closures in intervals/beforeunload)
+  const draftDataRef = useRef({ title, editorContent });
   useEffect(() => {
+    draftDataRef.current = { title, editorContent };
+  }, [title, editorContent]);
+
+  // Fetch subpage data — check localStorage first, then cloud
+  useEffect(() => {
+    const localDraft = loadDraft(subpageId);
+
     fetch(`/api/subpages?id=${subpageId}`)
       .then(r => r.ok ? r.json() : r.json().then(d => { throw new Error(d.error); }))
       .then(data => {
-        setTitle(data.title || 'Untitled');
         let parsed;
         try { parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content; } catch {}
-        setContent(parsed?.length ? parsed : undefined);
+
+        // Use local draft if it's newer than cloud
+        if (localDraft && localDraft.savedAt && data.updated_at && localDraft.savedAt > data.updated_at * 1000) {
+          setTitle(localDraft.title || data.title || 'Untitled');
+          setContent(localDraft.editorContent?.length ? localDraft.editorContent : parsed?.length ? parsed : undefined);
+        } else {
+          setTitle(data.title || 'Untitled');
+          setContent(parsed?.length ? parsed : undefined);
+        }
       })
-      .catch(() => setContent(undefined))
+      .catch(() => {
+        // Offline — try localStorage
+        if (localDraft) {
+          setTitle(localDraft.title || 'Untitled');
+          setContent(localDraft.editorContent?.length ? localDraft.editorContent : undefined);
+        } else {
+          setContent(undefined);
+        }
+      })
       .finally(() => setLoading(false));
   }, [subpageId]);
 
-  // Auto-save content
-  const saveContent = useCallback(async (blocks) => {
-    clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      setSaving(true);
-      try {
-        await fetch('/api/subpages', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: subpageId, content: blocks }),
-        });
-        setLastSaved(new Date());
-      } catch {}
-      setSaving(false);
-    }, 1500);
+  // Cloud sync function — saves localStorage first then pushes to cloud
+  const syncToCloud = useCallback(async ({ showToast = false, silent = false } = {}) => {
+    const data = draftDataRef.current;
+    if (!data.title && !data.editorContent) return;
+
+    // Always save to localStorage first
+    saveDraft(subpageId, data);
+    setLastSaved(Date.now());
+
+    if (!silent) setSyncStatus('syncing');
+
+    try {
+      const payload = { id: subpageId };
+      if (data.title) payload.title = data.title;
+      if (data.editorContent) payload.content = data.editorContent;
+
+      const res = await fetch('/api/subpages', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setHasUnsavedEdits(false);
+        if (!silent) {
+          setSyncStatus('synced');
+          if (showToast) {
+            setShowSavedToast(true);
+            setTimeout(() => setShowSavedToast(false), 3000);
+          }
+          setTimeout(() => setSyncStatus('idle'), 5000);
+        }
+      } else {
+        if (!silent) {
+          setSyncStatus('local');
+          setTimeout(() => setSyncStatus('idle'), 5000);
+        }
+      }
+    } catch {
+      if (!silent) {
+        setSyncStatus('local');
+        setTimeout(() => setSyncStatus('idle'), 5000);
+      }
+    }
   }, [subpageId]);
 
   // Compute word count
@@ -81,9 +158,11 @@ export default function SubpageClient({ params }) {
       const blocks = editorRef.current.getBlocks();
       setEditorContent(blocks);
       setWordCount(computeWordCount(blocks));
-      saveContent(blocks);
+      setHasUnsavedEdits(true);
+      // Buffer to localStorage on every change
+      saveDraft(subpageId, { title: draftDataRef.current.title, editorContent: blocks });
     } catch {}
-  }, [saveContent, computeWordCount]);
+  }, [computeWordCount, subpageId]);
 
   // Switch mode
   const switchMode = useCallback(async (newMode) => {
@@ -97,23 +176,75 @@ export default function SubpageClient({ params }) {
     setMode(newMode);
   }, []);
 
-  // Ctrl+Shift+P → toggle edit/preview
+  // Keyboard shortcuts — same as parent blog
+  // Ctrl+S → save + sync, Ctrl+D → insert date, Ctrl+Shift+P → toggle preview
   useEffect(() => {
-    function handleKey(e) {
+    function handleKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        syncToCloud({ showToast: true });
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        const editor = editorRef.current?.getEditor?.();
+        if (editor) {
+          try {
+            editor.insertInlineContent([{ type: 'dateInline', props: { date: new Date().toISOString().split('T')[0] } }]);
+          } catch {}
+        }
+      }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault();
         switchMode(mode === 'edit' ? 'preview' : 'edit');
       }
     }
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [switchMode, mode]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [syncToCloud, switchMode, mode]);
+
+  // Sync on page load (after data loads)
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => syncToCloud({ silent: true }), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, syncToCloud]);
+
+  // Sync before page unload + save draft (fallback for hard browser close)
+  useEffect(() => {
+    function handleBeforeUnload(e) {
+      const data = draftDataRef.current;
+      if (data.title || data.editorContent) {
+        saveDraft(subpageId, data);
+        try {
+          const payload = { id: subpageId };
+          if (data.title) payload.title = data.title;
+          if (data.editorContent) payload.content = data.editorContent;
+          // Use fetch with keepalive (sendBeacon only sends POST, but subpages update needs PUT)
+          fetch('/api/subpages', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true,
+          }).catch(() => {});
+        } catch {}
+      }
+      if (hasUnsavedEdits) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [subpageId, hasUnsavedEdits]);
 
   // Save title
   const saveTitle = useCallback(async (newTitle) => {
     const t = newTitle.trim() || 'Untitled';
     setTitle(t);
     setEditingTitle(false);
+    setHasUnsavedEdits(true);
+    saveDraft(subpageId, { ...draftDataRef.current, title: t });
     try {
       await fetch('/api/subpages', {
         method: 'PUT',
@@ -132,6 +263,13 @@ export default function SubpageClient({ params }) {
     { key: 'preview', icon: 'eye-outline', label: 'Preview' },
   ], []);
 
+  // Sync status label
+  const syncLabel = syncStatus === 'syncing' ? 'Syncing...'
+    : syncStatus === 'synced' ? 'Saved to cloud'
+    : syncStatus === 'local' ? 'Saved locally'
+    : hasUnsavedEdits ? 'Unsaved changes'
+    : lastSaved ? 'Saved' : '';
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
@@ -142,6 +280,14 @@ export default function SubpageClient({ params }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] edit-page">
+      {/* Saved toast */}
+      {showSavedToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg text-[13px] font-medium shadow-lg"
+          style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: '#4ade80' }}>
+          Saved to cloud
+        </div>
+      )}
+
       {/* Header */}
       <header className="fixed top-0 left-0 w-full h-14 border-b border-[var(--border-default)] flex items-center justify-between px-5 bg-[var(--bg-app)]/95 backdrop-blur-md z-50">
         {/* Left: back + breadcrumb */}
@@ -174,14 +320,29 @@ export default function SubpageClient({ params }) {
               </span>
             )}
           </div>
-          {/* Save status */}
-          <span className="text-[11px] text-[var(--text-faint)] flex-shrink-0">
-            {saving ? 'Saving...' : lastSaved ? 'Saved' : ''}
+          {/* Sync status */}
+          <span className={`text-[11px] flex-shrink-0 ${syncStatus === 'synced' ? 'text-[#4ade80]' : syncStatus === 'local' ? 'text-[#fbbf24]' : 'text-[var(--text-faint)]'}`}>
+            {syncLabel}
           </span>
         </div>
 
         {/* Right: actions */}
         <div className="flex items-center gap-2">
+          {/* Save button */}
+          <button
+            onClick={() => syncToCloud({ showToast: true })}
+            className="h-8 px-3 rounded-lg flex items-center gap-1.5 text-[12px] font-medium transition-colors"
+            style={{ backgroundColor: 'rgba(155,123,247,0.1)', border: '1px solid rgba(155,123,247,0.25)', color: '#9b7bf7' }}
+            title="Save (Ctrl+S)"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span className="hidden sm:inline">Save</span>
+          </button>
+
           {/* Mode tabs */}
           <div className="flex items-center rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-surface)' }}>
             {modeTabs.map(tab => (
@@ -236,7 +397,7 @@ export default function SubpageClient({ params }) {
                 {title}
               </h1>
 
-              {/* Editor — always mounted, hidden when not active */}
+              {/* Editor — blogId passed so Cloudinary uploads go to the parent blog's folder */}
               <div className="min-h-[60vh] pb-[100px]">
                 {!loading && (
                   <BlockNoteEditor
