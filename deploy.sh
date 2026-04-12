@@ -34,8 +34,8 @@ set -euo pipefail
 # Examples:
 #   ./deploy.sh deploy                    # Quick website deploy
 #   ./deploy.sh release all --minor       # Release everything with minor bump
-#   ./deploy.sh release engine --patch    # Publish npm package only
-#   ./deploy.sh release vscode            # Publish VS Code extension only
+#   ./deploy.sh release editor --patch   # Publish lixeditor to npm + GitHub
+#   ./deploy.sh release web               # Deploy website only
 #   ./deploy.sh release all --dry-run     # Preview full release
 #   ./deploy.sh all                       # Infra: secrets + worker + deploy
 
@@ -378,7 +378,7 @@ usage() {
   echo ""
   echo "Release Commands:"
   echo "  release [targets]   Full release with version bump + changelog + publish"
-  echo "                      Targets: engine, editor, vscode, web, all (default: all)"
+  echo "                      Targets: editor, web, all (default: all)"
   echo ""
   echo "Release Options:"
   echo "  --patch             Patch version bump (default)"
@@ -389,15 +389,12 @@ usage() {
   echo ""
   echo "Auth (auto-loaded from .env):"
   echo "  NPM_TOKEN           npm publish authentication"
-  echo "  VSCE_PAT            VS Code Marketplace publish"
   echo "  GITHUB_ACCESS_TOKEN GitHub release creation"
   echo ""
   echo "Examples:"
   echo "  ./deploy.sh deploy                     # Quick website deploy"
   echo "  ./deploy.sh release all --minor        # Release everything"
-  echo "  ./deploy.sh release engine --patch     # Publish lixsketch to npm"
   echo "  ./deploy.sh release editor --patch     # Publish lixeditor to npm + GitHub"
-  echo "  ./deploy.sh release vscode             # Publish VS Code extension"
   echo "  ./deploy.sh release all --dry-run      # Preview full release"
 }
 
