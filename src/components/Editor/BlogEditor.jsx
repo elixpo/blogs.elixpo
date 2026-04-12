@@ -547,6 +547,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
     const handleMouseOver = (e) => {
       const link = e.target.closest('a[href]');
       if (!link || link.closest('.bn-link-toolbar') || link.closest('.bn-toolbar')) return;
+      if (document.querySelector('.bn-link-toolbar')) return;
       const href = link.getAttribute('href');
       if (href && href.startsWith('http')) {
         editorLinkPreview.show(link, href);
