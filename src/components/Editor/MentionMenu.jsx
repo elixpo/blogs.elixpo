@@ -53,20 +53,29 @@ export default function MentionMenu({ editor, query, onClose }) {
   const insertMention = useCallback((item) => {
     if (!editor) return;
 
-    // Delete the @query text before inserting mention
+    // Delete the @query text before inserting mention — preserve existing inline nodes
     try {
       const cursor = editor.getTextCursorPosition();
       if (cursor?.block) {
         const block = cursor.block;
-        const fullText = (block.content || []).map(c => c.text || '').join('');
-        const lastAt = fullText.lastIndexOf('@');
-        if (lastAt !== -1) {
-          // Replace block content: text before @, then the mention, then text after query
-          const before = fullText.slice(0, lastAt);
-          const afterQuery = ''; // cursor is at the end of the query
-          const beforeContent = before ? [{ type: 'text', text: before, styles: {} }] : [];
-          const afterContent = afterQuery ? [{ type: 'text', text: afterQuery, styles: {} }] : [];
+        const contentArr = block.content || [];
 
+        // Find the last text node that contains '@'
+        let atNodeIdx = -1;
+        let atPosInNode = -1;
+        for (let i = contentArr.length - 1; i >= 0; i--) {
+          const c = contentArr[i];
+          if (c.type === 'text' && c.text) {
+            const idx = c.text.lastIndexOf('@');
+            if (idx !== -1) {
+              atNodeIdx = i;
+              atPosInNode = idx;
+              break;
+            }
+          }
+        }
+
+        if (atNodeIdx !== -1) {
           let mentionNode;
           if (item._type === 'user') {
             mentionNode = { type: 'mention', props: { username: item.username, displayName: item.display_name || item.username, avatarUrl: item.avatar_url || '' } };
@@ -76,9 +85,18 @@ export default function MentionMenu({ editor, query, onClose }) {
             mentionNode = { type: 'blogMention', props: { title: item.title, slugid: item.slugid } };
           }
 
-          editor.updateBlock(block, {
-            content: [...beforeContent, mentionNode, { type: 'text', text: ' ', styles: {} }, ...afterContent],
-          });
+          // Rebuild content: everything before the @ node, the text before @ in that node, mention, space, rest
+          const newContent = [];
+          // Keep all nodes before the @ node
+          for (let i = 0; i < atNodeIdx; i++) newContent.push(contentArr[i]);
+          // Text before @ in the same node
+          const textBefore = contentArr[atNodeIdx].text.slice(0, atPosInNode);
+          if (textBefore) newContent.push({ type: 'text', text: textBefore, styles: contentArr[atNodeIdx].styles || {} });
+          // Insert mention + space
+          newContent.push(mentionNode);
+          newContent.push({ type: 'text', text: ' ', styles: {} });
+
+          editor.updateBlock(block, { content: newContent });
         }
       }
     } catch {
