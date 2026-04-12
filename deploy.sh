@@ -247,6 +247,7 @@ do_release() {
   local SKIP_CHANGELOG=false
   local RELEASE_NPM=false
   local RELEASE_GITHUB=false
+  local RELEASE_VSCODE=false
   local RELEASE_WEB=false
   local TARGETS=()
 
@@ -261,6 +262,7 @@ do_release() {
       editor) TARGETS+=("editor") ;;
       npm)    TARGETS+=("npm") ;;
       github) TARGETS+=("github") ;;
+      vscode) TARGETS+=("vscode") ;;
       web)    TARGETS+=("web") ;;
       all)    TARGETS+=("all") ;;
     esac
@@ -276,8 +278,9 @@ do_release() {
       editor) RELEASE_NPM=true; RELEASE_GITHUB=true ;;
       npm)    RELEASE_NPM=true ;;
       github) RELEASE_GITHUB=true ;;
+      vscode) RELEASE_VSCODE=true ;;
       web)    RELEASE_WEB=true ;;
-      all)    RELEASE_NPM=true; RELEASE_GITHUB=true; RELEASE_WEB=true ;;
+      all)    RELEASE_NPM=true; RELEASE_GITHUB=true; RELEASE_VSCODE=true; RELEASE_WEB=true ;;
     esac
   done
 
@@ -352,6 +355,16 @@ do_release() {
     set -e
   fi
 
+  # ── Publish VS Code Extension ──
+  if $RELEASE_VSCODE; then
+    echo ""
+    echo "==> Building & publishing LixEditor VS Code extension..."
+    set +e
+    dry_run "cd '$SCRIPT_DIR/packages/vscode-lixeditor' && npm install && npm run build && npx @vscode/vsce package --no-dependencies && npx @vscode/vsce publish --no-dependencies --pat '$_GH_TOKEN'"
+    if [ $? -eq 0 ]; then echo "    ✓ VS Code extension published"; else echo "    ✗ VS Code extension publish failed"; fi
+    set -e
+  fi
+
   if $RELEASE_WEB; then
     echo "==> Building & deploying website..."
     dry_run "cd '$SCRIPT_DIR' && sudo npm run pages:build"
@@ -374,6 +387,7 @@ do_release() {
   echo ""
   $RELEASE_NPM    && echo "  - @elixpo/lixeditor published to npm"
   $RELEASE_GITHUB && echo "  - @elixpo/lixeditor published to GitHub Packages"
+  $RELEASE_VSCODE && echo "  - LixEditor VS Code extension published"
   $RELEASE_WEB    && echo "  - Website deployed to Cloudflare Pages"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
