@@ -1436,24 +1436,22 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         const block = cursor.block;
         if (!block.content || !Array.isArray(block.content)) { setShowMentionMenu(false); return; }
 
-        // Build text from only text nodes — skip already-resolved mention/inline nodes
-        let fullText = '';
-        let lastAtPos = -1;
-        for (const c of block.content) {
-          if (c.type === 'text' && c.text) {
-            const atIdx = c.text.lastIndexOf('@');
-            if (atIdx !== -1) lastAtPos = fullText.length + atIdx;
-            fullText += c.text;
-          } else {
-            // Non-text node (mention, equation, date, etc.) — use placeholder
-            fullText += '\ufffc';
+        // Find @ in the last text node only — ignore resolved mention nodes
+        let lastTextNode = null;
+        for (let i = block.content.length - 1; i >= 0; i--) {
+          if (block.content[i].type === 'text' && block.content[i].text) {
+            lastTextNode = block.content[i];
+            break;
           }
         }
 
-        if (lastAtPos === -1) { setShowMentionMenu(false); return; }
+        if (!lastTextNode) { setShowMentionMenu(false); return; }
 
-        const afterAt = fullText.slice(lastAtPos + 1);
-        if (afterAt.includes(' ') || afterAt.includes('\ufffc') || afterAt.length > 30) { setShowMentionMenu(false); return; }
+        const atIdx = lastTextNode.text.lastIndexOf('@');
+        if (atIdx === -1) { setShowMentionMenu(false); return; }
+
+        const afterAt = lastTextNode.text.slice(atIdx + 1);
+        if (afterAt.includes(' ') || afterAt.length > 30) { setShowMentionMenu(false); return; }
 
         const domSel = window.getSelection();
         if (domSel && domSel.rangeCount > 0) {
@@ -1470,7 +1468,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
 
         setMentionQuery(afterAt);
         setShowMentionMenu(true);
-        mentionStartRef.current = lastAtPos;
+        mentionStartRef.current = atIdx;
       } catch { setShowMentionMenu(false); }
     }
 
