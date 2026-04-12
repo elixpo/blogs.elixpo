@@ -309,6 +309,8 @@ do_release() {
 
   if $RELEASE_NPM || $RELEASE_GITHUB; then
     NEW_VERSION=$(node -p "require('./packages/lixeditor/package.json').version" 2>/dev/null || echo "0.0.0")
+  elif $RELEASE_VSCODE; then
+    NEW_VERSION=$(node -p "require('./packages/vscode-lixeditor/package.json').version" 2>/dev/null || echo "0.0.0")
   else
     NEW_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
   fi
@@ -364,10 +366,22 @@ do_release() {
   # ── Publish VS Code Extension ──
   if $RELEASE_VSCODE; then
     echo ""
-    echo "==> Building & publishing LixEditor VS Code extension..."
+    echo "==> [1/3] Bumping VS Code extension version ($BUMP)..."
+    dry_run "cd '$SCRIPT_DIR/packages/vscode-lixeditor' && sudo npm version $BUMP --no-git-tag-version && cd '$SCRIPT_DIR'"
+
+    local VSCODE_VERSION
+    VSCODE_VERSION=$(node -p "require('./packages/vscode-lixeditor/package.json').version" 2>/dev/null || echo "0.0.0")
+    echo "    Extension version: $VSCODE_VERSION"
+
+    echo ""
+    echo "==> [2/3] Building VS Code extension..."
+    dry_run "cd '$SCRIPT_DIR/packages/vscode-lixeditor' && npm run build"
+
+    echo ""
+    echo "==> [3/3] Publishing LixEditor to VS Code Marketplace..."
     set +e
-    dry_run "cd '$SCRIPT_DIR/packages/vscode-lixeditor' && npm install && npm run build && npx @vscode/vsce package --no-dependencies && npx @vscode/vsce publish --no-dependencies --pat '$_GH_TOKEN'"
-    if [ $? -eq 0 ]; then echo "    ✓ VS Code extension published"; else echo "    ✗ VS Code extension publish failed"; fi
+    dry_run "cd '$SCRIPT_DIR/packages/vscode-lixeditor' && npx @vscode/vsce package --no-dependencies && npx @vscode/vsce publish --no-dependencies --pat '$_VSCE_PAT'"
+    if [ $? -eq 0 ]; then echo "    ✓ VS Code extension v$VSCODE_VERSION published"; else echo "    ✗ VS Code extension publish failed"; fi
     set -e
   fi
 
