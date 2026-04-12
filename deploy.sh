@@ -372,7 +372,8 @@ do_release() {
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "  Release v${NEW_VERSION} complete!"
   echo ""
-  $RELEASE_EDITOR && echo "  - @elixpo/lixeditor published to npm + GitHub"
+  $RELEASE_NPM    && echo "  - @elixpo/lixeditor published to npm"
+  $RELEASE_GITHUB && echo "  - @elixpo/lixeditor published to GitHub Packages"
   $RELEASE_WEB    && echo "  - Website deployed to Cloudflare Pages"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
