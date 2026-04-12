@@ -59,6 +59,7 @@ export default function SubpageClient({ params }) {
   const [wordCount, setWordCount] = useState(0);
   const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
   const hadUserGestureRef = useRef(false);
+  const draftTimerRef = useRef(null);
   const titleInputRef = useRef(null);
 
   // Track user gesture so beforeunload dialog only fires after interaction
@@ -178,8 +179,11 @@ export default function SubpageClient({ params }) {
       setEditorContent(blocks);
       setWordCount(computeWordCount(blocks));
       setHasUnsavedEdits(true);
-      // Buffer to localStorage on every change
-      saveDraft(subpageId, { title: draftDataRef.current.title, editorContent: blocks });
+      // Debounce localStorage writes — serializing full content on every keystroke is expensive
+      clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = setTimeout(() => {
+        saveDraft(subpageId, { title: draftDataRef.current.title, editorContent: blocks });
+      }, 1000);
     } catch {}
   }, [computeWordCount, subpageId]);
 
