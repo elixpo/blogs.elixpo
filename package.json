@@ -1,6 +1,6 @@
 {
   "name": "lixblogs",
-  "version": "4.6.0",
+  "version": "4.8.0",
   "description": "A modern blogging platform with a rich block editor, AI writing tools, real-time collaboration, and organizations — deployed on Cloudflare's edge.",
   "author": "Circuit-Overtime <https://github.com/Circuit-Overtime>",
   "license": "MIT",
