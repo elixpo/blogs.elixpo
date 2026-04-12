@@ -14,6 +14,7 @@ real-time collaboration, and organizations — all on the edge.
 [![Live](https://img.shields.io/badge/Live-blogs.elixpo.com-9b7bf7?style=for-the-badge&logo=googlechrome&logoColor=white)](https://blogs.elixpo.com)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/elixpo/lixblogs)
 [![npm](https://img.shields.io/npm/v/@elixpo/lixeditor?style=for-the-badge&color=cb3837&logo=npm&logoColor=white&label=@elixpo/lixeditor)](https://www.npmjs.com/package/@elixpo/lixeditor)
+[![VS Code](https://img.shields.io/badge/VS_Code-Extension-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=elixpo.lixeditor)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 [![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -118,6 +119,38 @@ Every feature is toggleable. Override CSS variables to match your brand:
 ```
 
 :point_right: **[Full documentation →](packages/lixeditor/README.md)**
+
+<br />
+
+## LixEditor for VS Code
+
+Write `.lixeditor` documents with a rich WYSIWYG editor — right inside VS Code.
+
+<div align="center">
+
+[![Install from Marketplace](https://img.shields.io/badge/Install-VS_Code_Marketplace-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=elixpo.lixeditor)
+
+</div>
+
+| | Feature |
+|:---:|:---|
+| :writing_hand: | Rich block editor — headings, lists, tables, checklists |
+| :art: | Syntax-highlighted code blocks (25+ languages via Shiki) |
+| :link: | Smart links — auto-convert `[text](url)`, hover preview |
+| :framed_picture: | Image blocks — upload, embed URL, paste, drag & drop |
+| :calendar: | Date stamps — `Ctrl+D` to insert |
+| :zap: | Slash commands — type `/` to insert any block |
+| :floppy_disk: | Auto-save + manual save + Markdown export |
+| :art: | Adapts to your VS Code theme (light/dark) |
+
+```
+1. Install the extension from the VS Code Marketplace
+2. Create a file: notes.lixeditor
+3. Open it — the rich editor loads automatically
+4. Type / for commands, write with markdown shortcuts
+```
+
+:point_right: **[Extension docs →](packages/vscode-lixeditor/README.md)**
 
 <br />
 
@@ -235,6 +268,6 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 **Made with :purple_heart: by [Elixpo](https://github.com/elixpo)**
 
-[Website](https://blogs.elixpo.com) · [Editor Package](https://www.npmjs.com/package/@elixpo/lixeditor) · [Report Bug](https://github.com/elixpo/lixblogs/issues) · [Request Feature](https://github.com/elixpo/lixblogs/issues)
+[Website](https://blogs.elixpo.com) · [npm Package](https://www.npmjs.com/package/@elixpo/lixeditor) · [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=elixpo.lixeditor) · [Report Bug](https://github.com/elixpo/lixblogs/issues) · [Request Feature](https://github.com/elixpo/lixblogs/issues)
 
 </div>
