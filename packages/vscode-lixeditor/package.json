@@ -22,7 +22,9 @@
     "blocknote"
   ],
   "activationEvents": [
-    "onCustomEditor:lixeditor.editor"
+    "onCustomEditor:lixeditor.editor",
+    "onCommand:lixeditor.newDocument",
+    "onLanguage:lixeditor"
   ],
   "main": "./out/extension.js",
   "contributes": {
