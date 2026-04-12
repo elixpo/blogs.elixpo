@@ -216,49 +216,26 @@ generate_changelog() {
 
   echo "==> Generating changelog..."
 
-  LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-  if [ -z "$LAST_TAG" ]; then
-    RANGE="HEAD"
-  else
-    RANGE="${LAST_TAG}..HEAD"
-  fi
-
   local DATE
   DATE=$(date +%Y-%m-%d)
 
-  FEATS=$(git log "$RANGE" --oneline --format='%s' 2>/dev/null | { grep -E '^feat' || true; } | sed 's/^feat(\([^)]*\)): /- **\1**: /' | sed 's/^feat: /- /')
-  FIXES=$(git log "$RANGE" --oneline --format='%s' 2>/dev/null | { grep -E '^fix' || true; } | sed 's/^fix(\([^)]*\)): /- **\1**: /' | sed 's/^fix: /- /')
-  OTHER=$(git log "$RANGE" --oneline --format='%s' 2>/dev/null | { grep -vE '^(feat|fix|docs|chore|ci|style|refactor|test)' || true; })
+  # Simple changelog — just list recent commits
+  local COMMITS
+  COMMITS=$(git log --oneline -20 2>/dev/null || echo "No commits found")
 
-  {
-    echo ""
-    echo "## v${NEW_VERSION} ($DATE)"
-    echo ""
-    if [ -n "$FEATS" ]; then
-      echo "### Features"
-      echo "$FEATS"
-      echo ""
-    fi
-    if [ -n "$FIXES" ]; then
-      echo "### Fixes"
-      echo "$FIXES"
-      echo ""
-    fi
-    if [ -n "$OTHER" ] && [ "$(echo "$OTHER" | wc -l)" -gt 0 ]; then
-      echo "### Other"
-      echo "$OTHER" | head -10 | sed 's/^/- /'
-      echo ""
-    fi
-  } > /tmp/changelog_entry.md
+  local ENTRY
+  ENTRY="
+## v${NEW_VERSION} ($DATE)
+
+${COMMITS}
+"
 
   if [ -f "$SCRIPT_DIR/CHANGELOG.md" ]; then
-    head -1 "$SCRIPT_DIR/CHANGELOG.md" > /tmp/cl_head.md
-    cat /tmp/changelog_entry.md > /tmp/cl_new.md
-    tail -n +2 "$SCRIPT_DIR/CHANGELOG.md" > /tmp/cl_tail.md
-    cat /tmp/cl_head.md /tmp/cl_new.md /tmp/cl_tail.md > "$SCRIPT_DIR/CHANGELOG.md"
+    local EXISTING
+    EXISTING=$(cat "$SCRIPT_DIR/CHANGELOG.md")
+    printf "# Changelog\n%s\n%s" "$ENTRY" "$EXISTING" > "$SCRIPT_DIR/CHANGELOG.md"
   else
-    echo "# Changelog" > "$SCRIPT_DIR/CHANGELOG.md"
-    cat /tmp/changelog_entry.md >> "$SCRIPT_DIR/CHANGELOG.md"
+    printf "# Changelog\n%s\n" "$ENTRY" > "$SCRIPT_DIR/CHANGELOG.md"
   fi
 
   echo "==> Changelog updated"
