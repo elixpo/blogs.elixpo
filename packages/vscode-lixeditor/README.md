@@ -3,7 +3,7 @@
 A rich WYSIWYG block editor for `.lixeditor` files — right inside VS Code.
 
 <div align="center">
-  <img src="media/icon.png" alt="LixEditor" width="80" />
+  <img src="https://avatars.githubusercontent.com/u/161109909?s=200&v=4" alt="LixEditor" width="80" />
   <br /><br />
 
   [![VS Code](https://img.shields.io/badge/VS_Code-Extension-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=elixpo.lixeditor)

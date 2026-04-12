@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.5.3 (2026-04-12)
+
+387e2e0 Add VS Code extension section to README and update links
+ebbd520 deploy: v4.9.4
+a132919 release: v2.5.7
+e16bcf4 release: v2.5.6
+8415d70 release: v2.5.2
+7c9aea0 Refactor code structure for improved readability and maintainability
+7bcb3cb Implement feature X to enhance user experience and fix bug Y in module Z
+ca4603f feat: prevent link preview conflicts by checking for active link toolbar
+6eaecd2 feat: enhance link preview behavior in EditorView to prevent conflicts with link toolbar
+4e3ecbf feat: add support for version bumping and publishing VS Code extension in deployment script
+b21e230 feat: enhance token validation in deployment script
+0f2e609 Refactor code structure for improved readability and maintainability
+150ce63 feat: implement link preview functionality with tooltip in editor
+a16e9b8 feat: add LinkPreviewTooltip and useLinkPreview to editor-src.jsx
+85a0223 Hide BlockNote's default file panel to implement custom image UI in VS Code editor
+1df3e76 feat: add export functionality for Markdown in LixEditor
+1168e2e style: update dropdown styles for improved appearance and usability in VS Code
+e1ddc32 Refactor code structure for improved readability and maintainability
+0fa4510 Enhance VS Code integration with updated styles for date chips, code block language selector, and image blocks
+757de10 feat: add save and import functionality to LixEditor
+
+# Changelog
+
 ## v2.5.7 (2026-04-12)
 
 e16bcf4 release: v2.5.6
