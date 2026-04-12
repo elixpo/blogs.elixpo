@@ -306,13 +306,22 @@ a:hover { text-decoration: underline; }
   color: var(--vscode-dropdown-foreground, #ccc) !important;
   border: 1px solid var(--vscode-dropdown-border, #444) !important;
   border-radius: 4px !important;
-  padding: 2px 8px !important;
-  font-size: 11px !important;
+  padding: 1px 6px !important;
+  font-size: 10px !important;
   font-family: var(--vscode-editor-fontFamily, monospace) !important;
   cursor: pointer;
   outline: none;
   margin: 4px 8px;
-  appearance: auto;
+  height: 22px !important;
+  line-height: 20px !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 4px center !important;
+  background-size: 8px !important;
+  padding-right: 16px !important;
 }
 
 [data-content-type="codeBlock"] select:focus {
@@ -320,9 +329,11 @@ a:hover { text-decoration: underline; }
 }
 
 [data-content-type="codeBlock"] select option {
-  background: var(--vscode-dropdown-background, #2d2d2d);
-  color: var(--vscode-dropdown-foreground, #ccc);
-  padding: 4px 8px;
+  background: var(--vscode-dropdown-background, #1e1e1e) !important;
+  color: var(--vscode-dropdown-foreground, #ccc) !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  line-height: 1.6 !important;
 }
 
 /* ===== Image block overrides for VS Code ===== */
