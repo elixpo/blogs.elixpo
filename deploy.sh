@@ -245,7 +245,8 @@ do_release() {
   local BUMP="patch"
   local DRY_RUN=false
   local SKIP_CHANGELOG=false
-  local RELEASE_EDITOR=false
+  local RELEASE_NPM=false
+  local RELEASE_GITHUB=false
   local RELEASE_WEB=false
   local TARGETS=()
 
@@ -258,6 +259,8 @@ do_release() {
       --dry-run) DRY_RUN=true ;;
       --skip-changelog) SKIP_CHANGELOG=true ;;
       editor) TARGETS+=("editor") ;;
+      npm)    TARGETS+=("npm") ;;
+      github) TARGETS+=("github") ;;
       web)    TARGETS+=("web") ;;
       all)    TARGETS+=("all") ;;
     esac
@@ -270,9 +273,11 @@ do_release() {
 
   for t in "${TARGETS[@]}"; do
     case "$t" in
-      editor) RELEASE_EDITOR=true ;;
+      editor) RELEASE_NPM=true; RELEASE_GITHUB=true ;;
+      npm)    RELEASE_NPM=true ;;
+      github) RELEASE_GITHUB=true ;;
       web)    RELEASE_WEB=true ;;
-      all)    RELEASE_EDITOR=true; RELEASE_WEB=true ;;
+      all)    RELEASE_NPM=true; RELEASE_GITHUB=true; RELEASE_WEB=true ;;
     esac
   done
 
