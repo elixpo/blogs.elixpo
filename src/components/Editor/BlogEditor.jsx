@@ -542,6 +542,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
   const [inlineLatexValue, setInlineLatexValue] = useState('');
   const inlineLatexRef = useRef(null);
   const editorLinkPreview = useLinkPreview();
+  const [linkEditor, setLinkEditor] = useState(null); // { anchorText, url, pos, linkEl, range }
 
   // Link preview hover listeners on editor links
   useEffect(() => {
@@ -1599,7 +1600,7 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
       // Don't close on click elsewhere — user must explicitly Keep or Undo
     }
 
-    const wrapper = wrapperRef.current;
+    const wrapper = wrapperRef.current; 
     wrapper?.addEventListener('click', handleClick);
     return () => wrapper?.removeEventListener('click', handleClick);
   }, [aiBlockIds]);
