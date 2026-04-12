@@ -123,7 +123,16 @@ function getNonce() {
 }
 
 function activate(context) {
-  context.subscriptions.push(LixEditorProvider.register(context));
+  console.log('LixEditor extension activating...');
+  vscode.window.showInformationMessage('LixEditor extension activated!');
+
+  try {
+    context.subscriptions.push(LixEditorProvider.register(context));
+    console.log('LixEditor custom editor provider registered');
+  } catch (err) {
+    console.error('LixEditor registration failed:', err);
+    vscode.window.showErrorMessage('LixEditor failed to register: ' + err.message);
+  }
 
   // Register "New Document" command
   context.subscriptions.push(

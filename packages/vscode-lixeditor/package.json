@@ -26,6 +26,7 @@
     "onCommand:lixeditor.newDocument",
     "onLanguage:lixeditor"
   ],
+  "extensionKind": ["workspace", "ui"],
   "main": "./out/extension.js",
   "contributes": {
     "customEditors": [
