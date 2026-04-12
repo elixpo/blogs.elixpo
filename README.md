@@ -14,7 +14,7 @@ real-time collaboration, and organizations — all on the edge.
 
 <!-- Badges -->
 [![Live](https://img.shields.io/badge/Live-blogs.elixpo.com-9b7bf7?style=for-the-badge&logo=googlechrome&logoColor=white)](https://blogs.elixpo.com)
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Circuit-Overtime/elixpo_blogs)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/elixpo/lixblogs)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 [![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -181,14 +181,14 @@ graph TB
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/chart?repos=Circuit-Overtime/elixpo_blogs&type=date&legend=top-left)](https://www.star-history.com/?repos=Circuit-Overtime%2Felixpo_blogs&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/chart?repos=elixpo/lixblogs&type=date&legend=top-left)](https://www.star-history.com/?repos=elixpo%2Flixblogs&type=date&legend=top-left)
 
 <br />
 
-![GitHub stars](https://img.shields.io/github/stars/Circuit-Overtime/elixpo_blogs?style=for-the-badge&color=9b7bf7&logo=github)
-![GitHub forks](https://img.shields.io/github/forks/Circuit-Overtime/elixpo_blogs?style=for-the-badge&color=60a5fa&logo=github)
-![GitHub issues](https://img.shields.io/github/issues/Circuit-Overtime/elixpo_blogs?style=for-the-badge&color=4ade80&logo=github)
-![GitHub last commit](https://img.shields.io/github/last-commit/Circuit-Overtime/elixpo_blogs?style=for-the-badge&color=f59e0b&logo=github)
+![GitHub stars](https://img.shields.io/github/stars/elixpo/lixblogs?style=for-the-badge&color=9b7bf7&logo=github)
+![GitHub forks](https://img.shields.io/github/forks/elixpo/lixblogs?style=for-the-badge&color=60a5fa&logo=github)
+![GitHub issues](https://img.shields.io/github/issues/elixpo/lixblogs?style=for-the-badge&color=4ade80&logo=github)
+![GitHub last commit](https://img.shields.io/github/last-commit/elixpo/lixblogs?style=for-the-badge&color=f59e0b&logo=github)
 
 </div>
 
@@ -203,8 +203,8 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 <div align="center">
 
-**Made with :purple_heart: by [Circuit-Overtime](https://github.com/Circuit-Overtime)**
+**Made with :purple_heart: by [Elixpo](https://github.com/elixpo)**
 
-[Website](https://blogs.elixpo.com) · [Report Bug](https://github.com/Circuit-Overtime/elixpo_blogs/issues) · [Request Feature](https://github.com/Circuit-Overtime/elixpo_blogs/issues)
+[Website](https://blogs.elixpo.com) · [Report Bug](https://github.com/elixpo/lixblogs/issues) · [Request Feature](https://github.com/elixpo/lixblogs/issues)
 
 </div>
