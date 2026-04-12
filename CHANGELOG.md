@@ -1,5 +1,30 @@
 # Changelog
 
+## v2.5.8 (2026-04-12)
+
+b313e6f Update icons in README for action items to enhance visual clarity
+ab5031c Implement debounced localStorage writes for draft saving to optimize performance
+1a3501c Optimize toolbar button injection by using selectionchange event to reduce CPU/memory usage
+85d7431 adjusted the bloat and also the query params
+d8ed349 Flush buffered subpage drafts on unload and update dependencies in WritePage
+545c842 Add saved time formatting and animated toast for cloud save confirmation in SubpageClient
+81a9e02 Implement local draft saving and cloud sync for SubpageClient
+8197f4d Add data attributes and spellCheck to InlineEquationChip for improved parsing and handling
+b53c246 Add data attributes for blog, user, and org mentions to improve parsing and handling
+d59c501 Add spellCheck={false} to mention and org mention inline components
+2c91b28 Improve mention insertion logic to preserve text after query in MentionMenu
+c9698cd Enhance mention handling in BlogEditor and MentionMenu to improve text node preservation and cursor position detection
+a883dde Refactor mention menu logic in BlogEditor to improve text node handling
+246881d Fix mention insertion logic to preserve existing inline nodes in MentionMenu
+1552e4f Fix mention menu logic in BlogEditor to handle text nodes correctly
+09996cf Remove custom link editor interception from BlogEditor component
+9a23cf9 release: v2.5.3
+387e2e0 Add VS Code extension section to README and update links
+ebbd520 deploy: v4.9.4
+a132919 release: v2.5.7
+
+# Changelog
+
 ## v2.5.3 (2026-04-12)
 
 387e2e0 Add VS Code extension section to README and update links
