@@ -95,6 +95,8 @@ export default function MentionMenu({ editor, query, onClose }) {
           // Insert mention + space
           newContent.push(mentionNode);
           newContent.push({ type: 'text', text: ' ', styles: {} });
+          // Preserve any content nodes after the @ node (e.g. subsequent mentions or text)
+          for (let i = atNodeIdx + 1; i < contentArr.length; i++) newContent.push(contentArr[i]);
 
           editor.updateBlock(block, { content: newContent });
         }

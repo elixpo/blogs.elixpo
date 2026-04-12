@@ -1436,34 +1436,29 @@ const BlogEditor = forwardRef(function BlogEditor({ onChange, initialContent, on
         const block = cursor.block;
         if (!block.content || !Array.isArray(block.content)) { setShowMentionMenu(false); return; }
 
-        // Find @ in the last text node only — ignore resolved mention nodes
-        let lastTextNode = null;
-        for (let i = block.content.length - 1; i >= 0; i--) {
-          if (block.content[i].type === 'text' && block.content[i].text) {
-            lastTextNode = block.content[i];
-            break;
-          }
-        }
+        // Use DOM selection to find @ at the actual cursor position
+        // This works regardless of which text node the cursor is in
+        const domSel = window.getSelection();
+        if (!domSel || domSel.rangeCount === 0 || !domSel.anchorNode) { setShowMentionMenu(false); return; }
 
-        if (!lastTextNode) { setShowMentionMenu(false); return; }
+        const anchorNode = domSel.anchorNode;
+        if (anchorNode.nodeType !== Node.TEXT_NODE) { setShowMentionMenu(false); return; }
 
-        const atIdx = lastTextNode.text.lastIndexOf('@');
+        const textUpToCursor = anchorNode.textContent.slice(0, domSel.anchorOffset);
+        const atIdx = textUpToCursor.lastIndexOf('@');
         if (atIdx === -1) { setShowMentionMenu(false); return; }
 
-        const afterAt = lastTextNode.text.slice(atIdx + 1);
+        const afterAt = textUpToCursor.slice(atIdx + 1);
         if (afterAt.includes(' ') || afterAt.length > 30) { setShowMentionMenu(false); return; }
 
-        const domSel = window.getSelection();
-        if (domSel && domSel.rangeCount > 0) {
-          const range = domSel.getRangeAt(0);
-          const rect = range.getBoundingClientRect();
-          const wrapperRect = wrapperRef.current?.getBoundingClientRect();
-          if (wrapperRect && rect.height > 0) {
-            setMentionPos({
-              top: rect.bottom - wrapperRect.top + 6,
-              left: rect.left - wrapperRect.left,
-            });
-          }
+        const range = domSel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const wrapperRect = wrapperRef.current?.getBoundingClientRect();
+        if (wrapperRect && rect.height > 0) {
+          setMentionPos({
+            top: rect.bottom - wrapperRect.top + 6,
+            left: rect.left - wrapperRect.left,
+          });
         }
 
         setMentionQuery(afterAt);
