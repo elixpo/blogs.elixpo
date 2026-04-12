@@ -2,15 +2,23 @@
   "name": "@elixpo/lixeditor",
   "version": "2.1.6",
   "description": "A rich WYSIWYG block editor and renderer built on BlockNote — equations, mermaid diagrams, code highlighting, and more.",
-  "main": "src/index.js",
-  "module": "src/index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
   "exports": {
-    ".": "./src/index.js",
-    "./styles": "./src/styles/index.css"
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles": "./dist/styles/index.css"
   },
   "files": [
+    "dist",
     "src"
   ],
+  "scripts": {
+    "build": "node build.mjs",
+    "prepublishOnly": "npm run build"
+  },
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
@@ -22,6 +30,9 @@
     "katex": "^0.16.0",
     "mermaid": "^11.0.0",
     "shiki": "^3.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
   },
   "keywords": [
     "editor",
