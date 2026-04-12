@@ -166,43 +166,7 @@
   padding-bottom: 0 !important;
 }
 
-/* Blog mention links — blue with link icon, like the editor */
-.blog-preview-content .blog-mention-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #60a5fa !important;
-  border-bottom: none !important;
-  background: none !important;
-  text-decoration: none !important;
-  padding-bottom: 0 !important;
-  font-weight: 500;
-  transition: color 0.15s;
-}
-
-.blog-preview-content .blog-mention-link:hover {
-  color: #93c5fd !important;
-  background: none !important;
-}
-
-/* Org mention links — blue with group icon, like the editor */
-.blog-preview-content .org-mention-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #60a5fa !important;
-  border-bottom: none !important;
-  background: none !important;
-  text-decoration: none !important;
-  padding-bottom: 0 !important;
-  font-weight: 500;
-  transition: color 0.15s;
-}
-
-.blog-preview-content .org-mention-link:hover {
-  color: #93c5fd !important;
-  background: none !important;
-}
+/* All mention types (user, blog, org) use .mention-chip — styled in mentions.css */
 
 .blog-preview-content a.subpage-item:hover {
   color: inherit !important;

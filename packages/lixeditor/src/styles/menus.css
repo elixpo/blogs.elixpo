@@ -114,6 +114,20 @@
   color: var(--text-muted);
 }
 
+/* Link create button — highlight it */
+.blog-editor-wrapper .bn-toolbar [data-test="createLink"] {
+  color: var(--text-muted);
+}
+
+.blog-editor-wrapper .bn-toolbar [data-test="createLink"]:hover {
+  color: #7ba8f0;
+  background: rgba(123, 168, 240, 0.1);
+}
+
+.blog-editor-wrapper .bn-toolbar [data-test="createLink"][data-active="true"] {
+  color: #7ba8f0;
+}
+
 .blog-editor-wrapper .bn-toolbar button:hover {
   color: #7ba8f0;
   background: var(--border-default);
@@ -353,7 +367,8 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
-.blog-editor-wrapper .bn-form-popover .bn-text-input {
+.blog-editor-wrapper .bn-form-popover .bn-text-input,
+.blog-editor-wrapper .bn-popover-content input {
   width: 100%;
   padding: 8px 10px;
   font-size: 13px;
@@ -365,10 +380,139 @@
   margin-bottom: 6px;
 }
 
-.blog-editor-wrapper .bn-form-popover .bn-text-input:focus {
+.blog-editor-wrapper .bn-form-popover .bn-text-input:focus,
+.blog-editor-wrapper .bn-popover-content input:focus {
   border-color: #9b7bf7;
 }
 
-.blog-editor-wrapper .bn-form-popover .bn-text-input::placeholder {
+.blog-editor-wrapper .bn-form-popover .bn-text-input::placeholder,
+.blog-editor-wrapper .bn-popover-content input::placeholder {
   color: var(--text-faint);
+}
+
+/* Style the create link popover */
+.blog-editor-wrapper .bn-popover-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  min-width: 280px;
+}
+
+[data-theme="dark"] .blog-editor-wrapper .bn-popover-content {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ===== Custom Link Editor Popup ===== */
+
+.link-editor-popup {
+  position: fixed;
+  z-index: 99;
+  width: 320px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: confirmDialogIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .link-editor-popup {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.link-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.link-editor-fields {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.link-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.link-editor-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+}
+
+.link-editor-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.link-editor-input:focus {
+  border-color: #9b7bf7;
+}
+
+.link-editor-input::placeholder {
+  color: var(--text-faint);
+}
+
+.link-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--divider);
+}
+
+.link-editor-cancel {
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.link-editor-cancel:hover {
+  color: var(--text-primary);
+}
+
+.link-editor-save {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  background: #9b7bf7;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.link-editor-save:hover {
+  background: #8b6ae6;
+}
+
+.link-editor-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

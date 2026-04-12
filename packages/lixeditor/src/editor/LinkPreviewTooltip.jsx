@@ -5,7 +5,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 // Client-side cache to avoid refetching the same URL
 const previewCache = new Map();
 
-// Configurable endpoint — consumers can override
 let linkPreviewEndpoint = '/api/link-preview';
 export function setLinkPreviewEndpoint(endpoint) { linkPreviewEndpoint = endpoint; }
 
