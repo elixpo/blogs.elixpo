@@ -1,0 +1,29 @@
+name: Publish lixeditor VS Code Extension
+
+on:
+  push:
+    tags:
+      - 'vscode-lixeditor@*'
+
+jobs:
+  publish-vsce:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vscode-lixeditor
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npx @vscode/vsce publish --no-dependencies
+        env:
+          VSCE_PAT: ${{ secrets.VSCODE_LIXSKETCH_EXT_PUBLISH_TOKEN }}
