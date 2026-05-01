@@ -9,8 +9,18 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./styles": "./dist/styles/index.css"
+    "./styles": {
+      "style": "./dist/styles/index.css",
+      "default": "./dist/styles/index.css"
+    },
+    "./styles/*.css": "./dist/styles/*.css",
+    "./styles/*": "./dist/styles/*.css",
+    "./package.json": "./package.json"
   },
+  "style": "dist/styles/index.css",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "files": [
     "dist",
     "src"
