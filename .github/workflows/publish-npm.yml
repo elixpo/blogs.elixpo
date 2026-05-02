@@ -99,6 +99,18 @@ jobs:
           scope: '@elixpo'
 
       - name: Publish to GitHub Packages
+        # Non-blocking: GitHub Packages requires the org to grant
+        # write:packages to the default GITHUB_TOKEN AND to link the
+        # package to this repo. If either is missing the PUT 403's.
+        # Until that's set up, npmjs (above) is the canonical registry.
+        # To enable the mirror:
+        #   1. Org → Settings → Actions → General → Workflow permissions
+        #      → "Read and write permissions"
+        #   2. Org → Packages → @elixpo/lixeditor → Settings →
+        #      Manage Actions access → Add this repo with Write role
+        # Or replace `secrets.GITHUB_TOKEN` with a PAT that has the
+        # `write:packages` scope.
+        continue-on-error: true
         working-directory: packages/lixeditor
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -110,7 +122,11 @@ jobs:
             pkg.repository = { type: 'git', url: 'git+https://github.com/${{ github.repository }}.git' };
             fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-          npm publish --access public --registry https://npm.pkg.github.com
+          if npm publish --access public --registry https://npm.pkg.github.com; then
+            echo "::notice::Published to GitHub Packages."
+          else
+            echo "::warning::GitHub Packages publish failed (likely permission_denied: write_package). The npmjs publish above is canonical; this mirror is best-effort. See the comment in this step for how to fix the org permissions."
+          fi
           node -e "
             const fs = require('fs');
             const pkg = require('./package.json');
