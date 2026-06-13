@@ -1480,7 +1480,7 @@ export default function WritePage({ slugid }) {
               const canPublish = titleWords >= 2;
               return (
                 <>
-                  <div className="flex items-center rounded-full overflow-hidden" style={{ boxShadow: canPublish ? '0 2px 8px rgba(155,123,247,0.25)' : 'none', opacity: canPublish ? 1 : 0.5 }}>
+                  <div className="flex items-stretch rounded-full overflow-hidden" style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)', boxShadow: canPublish ? '0 2px 8px rgba(155,123,247,0.25)' : 'none', opacity: canPublish ? 1 : 0.5 }}>
                     <button
                       onClick={() => {
                         if (!canPublish) return;
@@ -1498,8 +1498,7 @@ export default function WritePage({ slugid }) {
                         }
                       }}
                       disabled={!canPublish}
-                      className="px-4 py-1.5 text-white font-semibold text-[13px] transition-colors flex items-center gap-1.5 disabled:cursor-not-allowed"
-                      style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)' }}
+                      className="px-4 py-1.5 text-white font-semibold text-[13px] transition-colors flex items-center gap-1.5 disabled:cursor-not-allowed hover:bg-black/10 active:bg-black/20"
                     >
                       <ion-icon name={isPublished ? 'cloud-upload-outline' : 'send-outline'} style={{ fontSize: '14px' }} />
                       {isPublished ? 'Update' : 'Publish'}
@@ -1507,8 +1506,7 @@ export default function WritePage({ slugid }) {
                     <button
                       onClick={() => canPublish && setShowPublishMenu(!showPublishMenu)}
                       disabled={!canPublish}
-                      className="px-2 py-1.5 text-white transition-colors border-l border-white/15 disabled:cursor-not-allowed"
-                      style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)' }}
+                      className="px-2.5 py-1.5 text-white transition-colors border-l border-white/15 disabled:cursor-not-allowed flex items-center justify-center hover:bg-black/10 active:bg-black/20"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="6 9 12 15 18 9" />
