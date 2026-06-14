@@ -7,7 +7,7 @@ import AppShell from '../../components/AppShell';
 import TabBar from '../../components/TabBar';
 import Link from 'next/link';
 import { generatePixelAvatar } from '../../utils/pixelAvatar';
-import { compressImage } from '../../utils/compressImage';
+import ImageCropModal from '../../components/ImageCropModal';
 import { isHttpsUrl } from '../../../lib/validate';
 
 const ROLE_LABELS = { admin: 'Admin', maintain: 'Maintain', write: 'Write', read: 'Read' };
@@ -73,9 +73,12 @@ export default function OrgManagePage({ slug }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const logoInputRef = useRef(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState('');
+  const [showLogoModal, setShowLogoModal] = useState(false);
+  const [showOrgBannerModal, setShowOrgBannerModal] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerError, setBannerError] = useState('');
 
   // Invite state
   const [inviteRole, setInviteRole] = useState('write');
@@ -199,26 +202,42 @@ export default function OrgManagePage({ slug }) {
     setDeleteConfirm(false);
   };
 
-  const handleLogoFile = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // allow re-selecting the same file
-    if (!file || !org) return;
-    setLogoError('');
-    setLogoUploading(true);
+  const uploadOrgImage = async (blob, type, filename) => {
+    const form = new FormData();
+    form.append('file', blob, filename);
+    form.append('type', type);
+    form.append('orgId', org.id);
+    const res = await fetch('/api/media/upload', { method: 'POST', body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || 'Upload failed');
+    return data.url;
+  };
+
+  const handleLogoSave = async (blob) => {
+    setShowLogoModal(false);
+    if (!blob || !org) return;
+    setLogoError(''); setLogoUploading(true);
     try {
-      const { blob } = await compressImage(file, { maxWidth: 400, maxHeight: 400 });
-      const form = new FormData();
-      form.append('file', blob, 'logo.webp');
-      form.append('type', 'org_avatar');
-      form.append('orgId', org.id);
-      const res = await fetch('/api/media/upload', { method: 'POST', body: form });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || 'Upload failed');
-      if (data.url) setOrg(prev => ({ ...prev, logo_url: data.url }));
+      const url = await uploadOrgImage(blob, 'org_avatar', 'logo.webp');
+      if (url) setOrg(prev => ({ ...prev, logo_url: url }));
     } catch (err) {
       setLogoError(err?.message || 'Failed to update logo');
     } finally {
       setLogoUploading(false);
+    }
+  };
+
+  const handleOrgBannerSave = async (blob) => {
+    setShowOrgBannerModal(false);
+    if (!blob || !org) return;
+    setBannerError(''); setBannerUploading(true);
+    try {
+      const url = await uploadOrgImage(blob, 'org_banner', 'banner.webp');
+      if (url) setOrg(prev => ({ ...prev, banner_url: url }));
+    } catch (err) {
+      setBannerError(err?.message || 'Failed to update banner');
+    } finally {
+      setBannerUploading(false);
     }
   };
 
@@ -390,10 +409,9 @@ export default function OrgManagePage({ slug }) {
           <Link href="/settings" className="text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors p-1">
             <ion-icon name="arrow-back" style={{ fontSize: '18px' }} />
           </Link>
-          <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoFile} />
           <button
             type="button"
-            onClick={() => logoInputRef.current?.click()}
+            onClick={() => setShowLogoModal(true)}
             disabled={logoUploading}
             className="relative group h-10 w-10 rounded-xl overflow-hidden flex-shrink-0"
             title="Change organization logo"
@@ -421,6 +439,27 @@ export default function OrgManagePage({ slug }) {
           <p className="text-[12px] text-red-400 mb-3 -mt-3">{logoError}</p>
         )}
 
+        {showLogoModal && (
+          <ImageCropModal
+            title="Edit organization logo"
+            aspectRatio={1}
+            outputWidth={512}
+            quality={0.85}
+            onSave={handleLogoSave}
+            onClose={() => setShowLogoModal(false)}
+          />
+        )}
+        {showOrgBannerModal && (
+          <ImageCropModal
+            title="Edit organization banner"
+            aspectRatio={16 / 5}
+            outputWidth={1200}
+            quality={0.6}
+            onSave={handleOrgBannerSave}
+            onClose={() => setShowOrgBannerModal(false)}
+          />
+        )}
+
         <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} keyField="key" />
 
         {/* ═══════════ Profile Tab ═══════════ */}
@@ -430,6 +469,34 @@ export default function OrgManagePage({ slug }) {
             <section>
               <h3 className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-widest mb-4">Identity</h3>
               <div className="space-y-4">
+                {/* Banner */}
+                <div>
+                  <label className="text-[13px] text-[var(--text-primary)] mb-2 block font-medium">Banner</label>
+                  {(() => {
+                    const orgBannerSrc = org.banner_url || (org.banner_r2_key ? `/api/media/${org.banner_r2_key}` : null);
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setShowOrgBannerModal(true)}
+                        disabled={bannerUploading}
+                        className="group relative w-full rounded-xl overflow-hidden border border-[var(--border-default)] block"
+                        style={{ aspectRatio: `${16 / 5}` }}
+                        title="Change banner"
+                      >
+                        {orgBannerSrc
+                          ? <img src={orgBannerSrc} alt="" className="w-full h-full object-cover" />
+                          : <div className="w-full h-full bg-[var(--bg-elevated)]" />}
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                          <span className="flex items-center gap-2 px-3 py-1.5 bg-black/60 rounded-lg text-[12px] text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ion-icon name={bannerUploading ? 'hourglass-outline' : 'image-outline'} style={{ fontSize: '14px' }} />
+                            {orgBannerSrc ? 'Change banner' : 'Add banner'}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })()}
+                  {bannerError && <p className="text-[12px] text-red-400 mt-2">{bannerError}</p>}
+                </div>
                 <Input label="Organization name" value={name} onChange={e => setName(e.target.value)} placeholder="My Organization" />
                 <div>
                   <label className="text-[13px] text-[var(--text-primary)] mb-1 block font-medium">Handle</label>

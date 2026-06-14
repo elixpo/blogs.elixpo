@@ -16,10 +16,12 @@ export default function ImageCropModal({
   quality = 0.6,
   round = false,          // circular crop guide (avatars)
   currentImage = null,    // shows a "Remove" action when set
+  initialSrc = null,      // open straight into crop with this image (skips the source tabs)
   onSave,
   onClose,
 }) {
   const outputHeight = Math.round(outputWidth / aspectRatio);
+  const isSquare = Math.abs(aspectRatio - 1) < 0.01;
 
   const [tab, setTab] = useState('upload');
   const [imageSrc, setImageSrc] = useState(null);
@@ -54,6 +56,11 @@ export default function ImageCropModal({
     img.onerror = () => setUrlError('Failed to load image');
     img.src = src;
   }, []);
+
+  // Caller pre-selected an image (e.g. a device file) — load it straight away.
+  useEffect(() => {
+    if (initialSrc) loadImage(initialSrc);
+  }, [initialSrc, loadImage]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -271,12 +278,12 @@ export default function ImageCropModal({
           {/* Crop + stylise */}
           {imageSrc && (
             <div className="space-y-5">
-              <div className={round ? 'flex justify-center' : ''}>
+              <div className={isSquare ? 'flex justify-center' : ''}>
                 <div
                   ref={containerRef}
-                  className={`relative overflow-hidden border border-[var(--border-default)] cursor-grab active:cursor-grabbing select-none ${round ? 'rounded-full' : 'rounded-xl w-full'}`}
-                  style={round
-                    ? { width: 'min(260px, 70vw)', aspectRatio: '1 / 1' }
+                  className={`relative overflow-hidden border border-[var(--border-default)] cursor-grab active:cursor-grabbing select-none ${round ? 'rounded-full' : 'rounded-xl'} ${isSquare ? '' : 'w-full'}`}
+                  style={isSquare
+                    ? { width: 'min(280px, 75vw)', aspectRatio: '1 / 1' }
                     : { width: '100%', aspectRatio: `${aspectRatio}` }}
                   onMouseDown={handleMouseDown}
                   onTouchStart={handleTouchStart}
