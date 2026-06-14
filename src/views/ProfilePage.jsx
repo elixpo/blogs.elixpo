@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AppShell from '../components/AppShell';
 import TabBar from '../components/TabBar';
-import BannerUploadModal from '../components/BannerUploadModal';
+import ImageCropModal from '../components/ImageCropModal';
 import FollowListModal from '../components/FollowListModal';
 import Link from 'next/link';
 
@@ -33,6 +33,9 @@ export default function ProfilePage() {
   const [showBannerModal, setShowBannerModal] = useState(false);
   const [localBanner, setLocalBanner] = useState(null);
   const [bannerError, setBannerError] = useState(null);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [localAvatar, setLocalAvatar] = useState(null);
+  const [avatarError, setAvatarError] = useState(null);
   const [usage, setUsage] = useState(null);
   const [usageLoading, setUsageLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
@@ -129,6 +132,30 @@ export default function ProfilePage() {
     }
   }
 
+  const avatarSrc = localAvatar || user.avatar_url || null;
+
+  async function handleAvatarSave(blob) {
+    if (!blob) { setLocalAvatar(null); setShowAvatarModal(false); return; }
+    const previewUrl = URL.createObjectURL(blob);
+    setLocalAvatar(previewUrl);
+    setShowAvatarModal(false);
+    setAvatarError(null);
+    try {
+      const form = new FormData();
+      form.append('file', blob, 'avatar.webp');
+      form.append('type', 'avatar');
+      const res = await fetch('/api/media/upload', { method: 'POST', body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Upload failed');
+      if (data.url) setLocalAvatar(data.url);
+    } catch (e) {
+      setAvatarError(e?.message || 'Failed to update avatar');
+      setLocalAvatar(null);
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+    }
+  }
+
   const tierLabel = usage?.tier === 'member' ? 'Member' : 'Free';
   const tierColor = usage?.tier === 'member' ? '#a78bfa' : '#9ca3af';
 
@@ -160,11 +187,25 @@ export default function ProfilePage() {
             </div>
           )}
           <div className="absolute -bottom-12 left-6">
-            {user.avatar_url ? (
-              <img src={user.avatar_url} alt="" className="h-24 w-24 rounded-full border-4 border-[var(--bg-app)] object-cover" />
-            ) : (
-              <div className="h-24 w-24 rounded-full border-4 border-[var(--bg-app)] bg-[var(--bg-elevated)] flex items-center justify-center text-3xl text-[var(--text-muted)] font-bold">
-                {(user.display_name || user.username || '?')[0].toUpperCase()}
+            <button
+              onClick={() => setShowAvatarModal(true)}
+              className="group/av relative h-24 w-24 rounded-full border-4 border-[var(--bg-app)] overflow-hidden block"
+              title={avatarSrc ? 'Change photo' : 'Add photo'}
+            >
+              {avatarSrc ? (
+                <img src={avatarSrc} alt="" className="h-full w-full rounded-full object-cover" />
+              ) : (
+                <div className="h-full w-full rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-3xl text-[var(--text-muted)] font-bold">
+                  {(user.display_name || user.username || '?')[0].toUpperCase()}
+                </div>
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/av:bg-black/45 transition-colors">
+                <ion-icon name="camera-outline" style={{ fontSize: '22px', color: '#fff' }} className="opacity-0 group-hover/av:opacity-100 transition-opacity" />
+              </span>
+            </button>
+            {avatarError && (
+              <div className="absolute left-28 bottom-2 whitespace-nowrap px-3 py-1.5 rounded-lg text-[12px] font-medium bg-red-500/15 text-red-400 border border-red-500/25">
+                {avatarError}
               </div>
             )}
           </div>
@@ -351,12 +392,30 @@ export default function ProfilePage() {
         })()}
       </div>
 
-      {/* Banner Upload Modal */}
+      {/* Banner crop + stylise */}
       {showBannerModal && (
-        <BannerUploadModal
+        <ImageCropModal
+          title="Edit banner"
+          aspectRatio={16 / 5}
+          outputWidth={1200}
+          quality={0.6}
+          currentImage={bannerSrc}
           onSave={handleBannerSave}
           onClose={() => setShowBannerModal(false)}
-          currentBanner={bannerSrc}
+        />
+      )}
+
+      {/* Avatar crop + stylise (square, circular guide) */}
+      {showAvatarModal && (
+        <ImageCropModal
+          title="Edit photo"
+          aspectRatio={1}
+          outputWidth={512}
+          quality={0.85}
+          round
+          currentImage={avatarSrc}
+          onSave={handleAvatarSave}
+          onClose={() => setShowAvatarModal(false)}
         />
       )}
     </AppShell>
