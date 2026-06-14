@@ -1160,7 +1160,7 @@ export default function WritePage({ slugid }) {
   }, [title, draftLoading, editorReady]);
 
   // Serialized publish-settings, used to detect "nothing changed" on Update.
-  const settingsKey = () => JSON.stringify({ title, subtitle, tags, publishAs, pageEmoji, coverPreview, coverPos, coverZoom, slug });
+  const settingsKey = () => JSON.stringify({ title, subtitle, tags, publishAs, collectionId, pageEmoji, coverPreview, coverPos, coverZoom, slug });
   // Capture a baseline once the blog has finished loading.
   useEffect(() => {
     if (!draftLoading && settingsSnapshotRef.current === '') settingsSnapshotRef.current = settingsKey();
@@ -1181,7 +1181,7 @@ export default function WritePage({ slugid }) {
       const res = await fetch('/api/blogs/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugid: blogId, title, subtitle, tags, publishAs, editorContent, pageEmoji, coverUrl: coverPreview, coverPos, coverZoom, slug, status: targetStatus, lastKnownUpdatedAt }),
+        body: JSON.stringify({ slugid: blogId, title, subtitle, tags, publishAs, collectionId, editorContent, pageEmoji, coverUrl: coverPreview, coverPos, coverZoom, slug, status: targetStatus, lastKnownUpdatedAt }),
       });
 
       if (res.status === 409) {
@@ -1232,7 +1232,7 @@ export default function WritePage({ slugid }) {
       await fetch('/api/blogs/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugid: blogId, title, subtitle, tags, publishAs, editorContent, pageEmoji, slug, status: 'unlisted', lastKnownUpdatedAt }),
+        body: JSON.stringify({ slugid: blogId, title, subtitle, tags, publishAs, collectionId, editorContent, pageEmoji, slug, status: 'unlisted', lastKnownUpdatedAt }),
       });
       setShowPublishPanel(false);
     } catch { /* silent */ }
@@ -2226,7 +2226,7 @@ export default function WritePage({ slugid }) {
                   <div className="absolute top-full mt-1 left-0 right-0 rounded-lg shadow-xl z-10 overflow-hidden" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
                     <div className="px-3 py-2 text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)', borderBottom: '1px solid var(--divider)' }}>Choose an owner</div>
                     <button
-                      onClick={() => { setPublishAs('personal'); setShowOwnerDropdown(false); }}
+                      onClick={() => { setPublishAs('personal'); setCollectionId(null); setShowOwnerDropdown(false); }}
                       className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] transition-colors"
                       style={{ backgroundColor: publishAs === 'personal' ? 'var(--bg-hover)' : 'transparent' }}
                     >
@@ -2243,7 +2243,7 @@ export default function WritePage({ slugid }) {
                     {userOrgs.map(org => (
                       <button
                         key={org.id}
-                        onClick={() => { setPublishAs(`org:${org.id}`); setShowOwnerDropdown(false); }}
+                        onClick={() => { setPublishAs(`org:${org.id}`); setCollectionId(null); setShowOwnerDropdown(false); }}
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] transition-colors"
                         style={{ backgroundColor: publishAs === `org:${org.id}` ? 'var(--bg-hover)' : 'transparent' }}
                       >
@@ -2257,6 +2257,33 @@ export default function WritePage({ slugid }) {
               </div>
             )}
           </div>
+
+          {/* Collection — only when publishing under an org. Files the post under
+              an org collection (URL becomes /org/collection/slug). Optional. */}
+          {publishAs.startsWith('org:') && (
+            <div>
+              <label className="text-[12px] font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>
+                Collection <span className="font-normal" style={{ color: 'var(--text-faint)' }}>— optional, files this post under a collection</span>
+              </label>
+              <select
+                value={collectionId || ''}
+                onChange={(e) => setCollectionId(e.target.value || null)}
+                disabled={isPublished && !isOwner}
+                className="w-full rounded-lg px-3 py-2.5 text-[13px] outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+              >
+                <option value="">No collection (org root)</option>
+                {orgCollections.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <p className="text-[11px] mt-1" style={{ color: 'var(--text-faint)' }}>
+                {orgCollections.length === 0
+                  ? 'This org has no collections yet — create one in the org settings.'
+                  : 'Collaborators stay scoped to this post regardless of collection.'}
+              </p>
+            </div>
+          )}
 
           {/* URL slug — editable before publish; after publish only the owner can
               change it (destructive — old links break). Non-owners see it locked. */}
