@@ -10,7 +10,6 @@ import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 import '../styles/editor/editor.css';
 import '../styles/katex-fonts.css';
-import { compressCoverImage } from '../utils/compressImage';
 import { readTimeFromWords } from '../../lib/readTime';
 import { IMAGE_ACCEPT_ATTR, isAllowedImage } from '../utils/allowedImageTypes';
 import { generatePixelAvatar } from '../utils/pixelAvatar';
@@ -45,8 +44,8 @@ const BlogCodeView = dynamic(
   { ssr: false }
 );
 
-const CoverUploadModal = dynamic(
-  () => import('../components/Editor/CoverUploadModal'),
+const ImageCropModal = dynamic(
+  () => import('../components/ImageCropModal'),
   { ssr: false }
 );
 
@@ -416,6 +415,7 @@ export default function WritePage({ slugid }) {
   });
   const [showPublishMenu, setShowPublishMenu] = useState(false);
   const [showCoverModal, setShowCoverModal] = useState(false);
+  const [coverCropSrc, setCoverCropSrc] = useState(null); // device image awaiting crop+stylise
   const [coverUrlMode, setCoverUrlMode] = useState(false);
   const [coverUrlInput, setCoverUrlInput] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -1006,6 +1006,25 @@ export default function WritePage({ slugid }) {
     }
     return null;
   }, [blogId]);
+
+  // Read a chosen device file into a data URL and open the crop+stylise modal.
+  const openCoverCropper = useCallback((file) => {
+    if (!file || !isAllowedImage(file)) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setCoverCropSrc(ev.target.result);
+    reader.readAsDataURL(file);
+  }, []);
+
+  // Cropped + stylised cover → optimistic preview, then upload.
+  const handleCoverCropSave = useCallback((blob) => {
+    setCoverCropSrc(null);
+    setShowCoverModal(false);
+    if (!blob) return;
+    setCoverPreview(URL.createObjectURL(blob));
+    setCoverZoom(1);
+    setCoverPos({ x: 50, y: 50 });
+    uploadCover(blob);
+  }, [uploadCover]);
 
   const handleSaveDraft = async () => {
     saveDraft(blogId, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, coverPos, coverZoom });
@@ -1742,17 +1761,7 @@ export default function WritePage({ slugid }) {
                               type="file"
                               accept={IMAGE_ACCEPT_ATTR}
                               className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file && isAllowedImage(file)) {
-                                  compressCoverImage(file).then(({ blob, url }) => {
-                                    setCoverPreview(url);
-                                    setCoverZoom(1);
-                                    setCoverPos({ x: 50, y: 50 });
-                                    uploadCover(blob);
-                                  });
-                                }
-                              }}
+                              onChange={(e) => { openCoverCropper(e.target.files?.[0]); e.target.value = ''; }}
                             />
                           </label>
                           {/* Remove */}
@@ -1788,16 +1797,7 @@ export default function WritePage({ slugid }) {
                               type="file"
                               accept={IMAGE_ACCEPT_ATTR}
                               className="hidden"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file && isAllowedImage(file)) {
-                                  compressCoverImage(file).then(({ blob, url }) => {
-                                    setCoverPreview(url);
-                                    setShowCoverModal(false);
-                                    uploadCover(blob);
-                                  });
-                                }
-                              }}
+                              onChange={(e) => { openCoverCropper(e.target.files?.[0]); e.target.value = ''; }}
                             />
                           </label>
                           <button
@@ -1906,6 +1906,19 @@ export default function WritePage({ slugid }) {
                         </button>
                       </div>
                     ) : null}
+
+                    {/* Cover crop + stylise (opens when a device image is chosen) */}
+                    {coverCropSrc && (
+                      <ImageCropModal
+                        title="Crop cover"
+                        aspectRatio={16 / 5}
+                        outputWidth={1600}
+                        quality={0.7}
+                        initialSrc={coverCropSrc}
+                        onSave={handleCoverCropSave}
+                        onClose={() => setCoverCropSrc(null)}
+                      />
+                    )}
 
                     {/* Emoji overlapping banner bottom-left */}
                     {pageEmoji && (
