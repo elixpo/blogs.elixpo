@@ -435,6 +435,8 @@ export default function WritePage({ slugid }) {
   const [blogVersion, setBlogVersion] = useState(null);
   const [lastKnownUpdatedAt, setLastKnownUpdatedAt] = useState(null);
   const [userOrgs, setUserOrgs] = useState([]);
+  const [collectionId, setCollectionId] = useState(null); // org collection to file under (null = org root)
+  const [orgCollections, setOrgCollections] = useState([]); // collections of the selected org
   const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
   const settingsSnapshotRef = useRef(''); // publish-settings as of load / last publish — for the no-change Update shortcut
   const titleTextareaRef = useRef(null);
@@ -559,10 +561,10 @@ export default function WritePage({ slugid }) {
   }, []);
 
   // Refs to always hold latest draft data (avoids stale closures in intervals/beforeunload)
-  const draftDataRef = useRef({ title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, coverPos, coverZoom });
+  const draftDataRef = useRef({ title, subtitle, tags, publishAs, collectionId, coverPreview, editorContent, pageEmoji, coverPos, coverZoom });
   useEffect(() => {
-    draftDataRef.current = { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, coverPos, coverZoom };
-  }, [title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, coverPos, coverZoom]);
+    draftDataRef.current = { title, subtitle, tags, publishAs, collectionId, coverPreview, editorContent, pageEmoji, coverPos, coverZoom };
+  }, [title, subtitle, tags, publishAs, collectionId, coverPreview, editorContent, pageEmoji, coverPos, coverZoom]);
 
   // Sync any buffered subpage drafts from localStorage to cloud
   const syncSubpageDrafts = useCallback(async () => {
@@ -779,6 +781,7 @@ export default function WritePage({ slugid }) {
         if (cloud.subtitle) setSubtitle(cloud.subtitle);
         if (cloud.tags?.length) setTags(cloud.tags);
         if (cloud.published_as) setPublishAs(cloud.published_as);
+        setCollectionId(cloud.collection_id || null);
         if (cloud.cover_image_r2_key) setCoverPreview(cloud.cover_image_r2_key);
         if (Number.isFinite(cloud.cover_pos_x) && Number.isFinite(cloud.cover_pos_y)) setCoverPos({ x: cloud.cover_pos_x, y: cloud.cover_pos_y });
         if (Number.isFinite(cloud.cover_zoom)) setCoverZoom(cloud.cover_zoom);
@@ -812,6 +815,7 @@ export default function WritePage({ slugid }) {
         if (local.subtitle) setSubtitle(local.subtitle);
         if (local.tags?.length) setTags(local.tags);
         if (local.publishAs) setPublishAs(local.publishAs);
+        if (local.collectionId) setCollectionId(local.collectionId);
         if (local.coverPreview) setCoverPreview(local.coverPreview);
         if (local.coverPos) setCoverPos(local.coverPos);
         if (Number.isFinite(local.coverZoom)) setCoverZoom(local.coverZoom);
@@ -834,12 +838,12 @@ export default function WritePage({ slugid }) {
     dirtyRef.current = true;
     autoSaveTimer.current = setTimeout(() => {
       if (title || editorContent) {
-        saveDraft(blogId, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, coverPos, coverZoom });
+        saveDraft(blogId, { title, subtitle, tags, publishAs, collectionId, coverPreview, editorContent, pageEmoji, coverPos, coverZoom });
         setLastSaved(Date.now());
       }
     }, 2000);
     return () => clearTimeout(autoSaveTimer.current);
-  }, [title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, coverPos, coverZoom, blogId]);
+  }, [title, subtitle, tags, publishAs, collectionId, coverPreview, editorContent, pageEmoji, coverPos, coverZoom, blogId]);
 
   // Background cloud flush — localStorage is the instant buffer, but beforeunload/
   // sendBeacon is unreliable, so flush unsynced edits to the cloud every 20s.
@@ -976,6 +980,19 @@ export default function WritePage({ slugid }) {
       .catch(() => {});
   }, []);
 
+  // Load collections for the selected org (publish-destination dropdown). Cleared
+  // when publishing personally so a stale org's collections can't be selected.
+  useEffect(() => {
+    if (!publishAs.startsWith('org:')) { setOrgCollections([]); return; }
+    const orgId = publishAs.slice(4);
+    let active = true;
+    fetch(`/api/orgs/collections?orgId=${encodeURIComponent(orgId)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (active && d?.collections) setOrgCollections(d.collections); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [publishAs]);
+
   // Close owner dropdown on outside click
   useEffect(() => {
     if (!showOwnerDropdown) return;
@@ -1008,7 +1025,7 @@ export default function WritePage({ slugid }) {
   }, [blogId]);
 
   const handleSaveDraft = async () => {
-    saveDraft(blogId, { title, subtitle, tags, publishAs, coverPreview, editorContent, pageEmoji, coverPos, coverZoom });
+    saveDraft(blogId, { title, subtitle, tags, publishAs, collectionId, coverPreview, editorContent, pageEmoji, coverPos, coverZoom });
     setLastSaved(Date.now());
     setShowPublishMenu(false);
     syncToCloud({ showToast: true });
