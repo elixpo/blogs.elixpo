@@ -22,7 +22,7 @@ export const metadata = {
       { url: '/favicon.ico', sizes: 'any' },
     ],
     shortcut: '/favicon.ico',
-    apple: '/logo-dark.png',
+    apple: '/logo.png',
   },
   openGraph: {
     type: 'website',
