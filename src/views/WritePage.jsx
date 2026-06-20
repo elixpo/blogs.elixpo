@@ -478,6 +478,13 @@ export default function WritePage({ slugid }) {
   const [pendingMdFile, setPendingMdFile] = useState(null);
   const mdUploadRef = useRef(null);
 
+  const [authorId, setAuthorId] = useState(null);
+  const [pendingOwnerChange, setPendingOwnerChange] = useState(null);
+  const [showOwnerChangeConfirm, setShowOwnerChangeConfirm] = useState(false);
+  const [movingOwner, setMovingOwner] = useState(false);
+  const [ownerChangeError, setOwnerChangeError] = useState('');
+  const [toastMessage, setToastMessage] = useState('Saved to cloud');
+
   const username = user?.username || 'you';
 
   // The URL param (`slugid`) is the human slug or a new-blog id — client-facing.
@@ -626,6 +633,7 @@ export default function WritePage({ slugid }) {
         if (!silent) {
           setSyncStatus('synced');
           if (showToast) {
+            setToastMessage('Saved to cloud');
             setShowSavedToast(true);
             setTimeout(() => setShowSavedToast(false), 3000);
           }
@@ -779,6 +787,7 @@ export default function WritePage({ slugid }) {
         if (cloud.title) setTitle(cloud.title);
         if (cloud.slug) { setSlug(cloud.slug); setSlugManual(true); }
         setIsOwner(cloud.is_owner !== false);
+        if (cloud.author_id) setAuthorId(cloud.author_id);
         if (cloud.owner_username) setOwnerInfo({ username: cloud.owner_username, display_name: cloud.owner_display_name, avatar_url: cloud.owner_avatar });
         if (cloud.subtitle) setSubtitle(cloud.subtitle);
         if (cloud.tags?.length) setTags(cloud.tags);
@@ -1052,6 +1061,49 @@ export default function WritePage({ slugid }) {
     syncToCloud({ showToast: true });
   };
 
+  const handleOwnerChange = (newOwner) => {
+    if (!isPublished) {
+      setPublishAs(newOwner);
+      setCollectionId(null);
+      setShowOwnerDropdown(false);
+      return;
+    }
+    // For published blogs, confirm before moving
+    setPendingOwnerChange(newOwner);
+    setShowOwnerChangeConfirm(true);
+    setShowOwnerDropdown(false);
+    setOwnerChangeError('');
+  };
+
+  const confirmOwnerChange = async () => {
+    if (!pendingOwnerChange) return;
+    setMovingOwner(true);
+    setOwnerChangeError('');
+    try {
+      const res = await fetch(`/api/blogs/${blogId}/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publishAs: pendingOwnerChange }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to move blog');
+      }
+      setPublishAs(data.published_as);
+      setSlug(data.slug);
+      setCollectionId(null);
+      setShowOwnerChangeConfirm(false);
+      setPendingOwnerChange(null);
+      setToastMessage('Blog moved successfully!');
+      setShowSavedToast(true);
+      setTimeout(() => setShowSavedToast(false), 3000);
+    } catch (err) {
+      setOwnerChangeError(err.message);
+    } finally {
+      setMovingOwner(false);
+    }
+  };
+
   // Handle .md file upload — check for existing content first
   const handleMdUpload = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -1187,6 +1239,7 @@ export default function WritePage({ slugid }) {
     if (!draftLoading && settingsSnapshotRef.current === '') settingsSnapshotRef.current = settingsKey();
   }, [draftLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isAuthor = !authorId || (user && authorId === user.id);
   const ownerSlug = publishAs === 'personal' ? (ownerInfo?.username || username) : (userOrgs.find(o => `org:${o.id}` === publishAs)?.slug || username);
   // Owner shown in publish settings = the REAL author (not the current collaborator) for personal blogs, or the org for org blogs.
   const ownerOrg = publishAs !== 'personal' ? userOrgs.find(o => `org:${o.id}` === publishAs) : null;
@@ -2205,9 +2258,9 @@ export default function WritePage({ slugid }) {
           <div>
             <label className="text-[12px] font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>
               Owner
-              {isPublished && <span className="ml-1.5 text-[10px] font-normal" style={{ color: 'var(--text-faint)' }}>(locked)</span>}
+              {isPublished && !isAuthor && <span className="ml-1.5 text-[10px] font-normal" style={{ color: 'var(--text-faint)' }}>(locked)</span>}
             </label>
-            {isPublished ? (
+            {isPublished && !isAuthor ? (
               /* Locked — show current owner, no dropdown */
               <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px]" style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-default)', opacity: 0.7 }}>
                 {ownerAvatar ? (
@@ -2245,7 +2298,7 @@ export default function WritePage({ slugid }) {
                   <div className="absolute top-full mt-1 left-0 right-0 rounded-lg shadow-xl z-10 overflow-hidden" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
                     <div className="px-3 py-2 text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)', borderBottom: '1px solid var(--divider)' }}>Choose an owner</div>
                     <button
-                      onClick={() => { setPublishAs('personal'); setCollectionId(null); setShowOwnerDropdown(false); }}
+                      onClick={() => handleOwnerChange('personal')}
                       className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] transition-colors"
                       style={{ backgroundColor: publishAs === 'personal' ? 'var(--bg-hover)' : 'transparent' }}
                     >
@@ -2262,7 +2315,7 @@ export default function WritePage({ slugid }) {
                     {userOrgs.map(org => (
                       <button
                         key={org.id}
-                        onClick={() => { setPublishAs(`org:${org.id}`); setCollectionId(null); setShowOwnerDropdown(false); }}
+                        onClick={() => handleOwnerChange(`org:${org.id}`)}
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] transition-colors"
                         style={{ backgroundColor: publishAs === `org:${org.id}` ? 'var(--bg-hover)' : 'transparent' }}
                       >
@@ -2506,7 +2559,7 @@ export default function WritePage({ slugid }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span className="text-[13px] text-green-300 font-medium">Saved to cloud</span>
+            <span className="text-[13px] text-green-300 font-medium">{toastMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -2585,6 +2638,54 @@ export default function WritePage({ slugid }) {
                 style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)' }}
               >
                 Sync &amp; publish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOwnerChangeConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 px-4" onClick={() => !movingOwner && setShowOwnerChangeConfirm(false)}>
+          <div
+            className="w-full max-w-sm rounded-2xl p-6"
+            style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(155,123,247,0.12)' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9b7bf7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+              </div>
+              <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {pendingOwnerChange === 'personal' ? 'Revert to personal post?' : 'Move post to organization?'}
+              </h3>
+            </div>
+            <p className="text-[13px] leading-relaxed mb-5" style={{ color: 'var(--text-muted)', paddingLeft: '44px' }}>
+              {pendingOwnerChange === 'personal'
+                ? "This will move the story back to your personal profile. The story's URL will change and existing links will break."
+                : "This will publish the story under the selected organization. The story's URL will change to use the organization's handle, and existing links will break."}
+            </p>
+            {ownerChangeError && (
+              <p className="text-[12px] text-red-400 mb-4" style={{ paddingLeft: '44px' }}>
+                {ownerChangeError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowOwnerChangeConfirm(false)}
+                disabled={movingOwner}
+                className="px-4 py-2 text-[13px] rounded-full disabled:opacity-60"
+                style={{ color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmOwnerChange}
+                disabled={movingOwner}
+                className="px-4 py-2 text-[13px] font-semibold rounded-full text-white bg-[#9b7bf7] hover:bg-[#b69aff] disabled:opacity-60"
+              >
+                {movingOwner ? 'Moving…' : 'Confirm'}
               </button>
             </div>
           </div>
