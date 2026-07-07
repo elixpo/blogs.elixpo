@@ -117,6 +117,100 @@ export async function generateMetadata({ params, searchParams }) {
   }
 }
 
-export default function CatchAllHandle({ params }) {
-  return <CatchAllClient params={params} />;
+export default async function CatchAllHandle({ params, searchParams }) {
+  const { path } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const name = (path?.[0] || '').toLowerCase();
+  const len = path?.length || 0;
+  const slug = len === 2 ? (path[1] || '').toLowerCase() : len === 3 ? (path[2] || '').toLowerCase() : '';
+  const collection = len === 3 ? (path[1] || '').toLowerCase() : '';
+
+  let jsonLd = null;
+
+  if (name) {
+    try {
+      const h = await headers();
+      const origin = `${h.get('x-forwarded-proto') || 'https'}://${h.get('host')}`;
+      const url = `${origin}/${path.join('/')}`;
+
+      if (!slug) {
+        const res = await fetch(`${origin}/api/resolve?name=${encodeURIComponent(name)}`, { headers: { 'user-agent': 'lixblogs-ssr' } });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.type === 'user' && data.user) {
+            jsonLd = {
+              '@context': 'https://schema.org',
+              '@type': 'ProfilePage',
+              mainEntity: {
+                '@type': 'Person',
+                name: data.user.display_name || data.user.username,
+                alternateName: data.user.username,
+                description: data.user.bio || '',
+                image: httpImg(data.user.avatar_url),
+                url: url,
+              }
+            };
+          } else if (data.type === 'org' && data.org) {
+            jsonLd = {
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: data.org.name,
+              alternateName: data.org.slug,
+              description: data.org.description || data.org.bio || '',
+              image: httpImg(data.org.logo_url || data.org.logo_r2_key),
+              url: url,
+            };
+          }
+        }
+      } else {
+        const qs = new URLSearchParams({ name, slug });
+        if (collection) qs.set('collection', collection);
+        const res = await fetch(`${origin}/api/resolve?${qs}`, { headers: { 'user-agent': 'lixblogs-ssr' } });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (data.type === 'blog' && data.blog) {
+            const b = data.blog;
+            const primary = b.author_name || b.author_username || '';
+            const authorList = [{ '@type': 'Person', name: primary }];
+            (b.co_authors || []).forEach(c => {
+              authorList.push({ '@type': 'Person', name: c.display_name || c.username });
+            });
+
+            jsonLd = {
+              '@context': 'https://schema.org',
+              '@type': 'BlogPosting',
+              headline: b.title || 'Untitled',
+              description: b.subtitle || b.excerpt || '',
+              image: httpImg(b.cover_image_r2_key) ? [httpImg(b.cover_image_r2_key)] : [],
+              datePublished: b.published_at ? new Date(b.published_at * 1000).toISOString() : undefined,
+              dateModified: b.updated_at ? new Date(b.updated_at * 1000).toISOString() : undefined,
+              author: authorList,
+              publisher: {
+                '@type': 'Organization',
+                name: data.owner?.name || 'LixBlogs',
+                logo: {
+                  '@type': 'ImageObject',
+                  url: httpImg(data.owner?.logo_url || data.owner?.logo_r2_key) || `${origin}/logo.png`,
+                }
+              },
+              mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': url
+              }
+            };
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return (
+    <>
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
+      <CatchAllClient params={params} />
+    </>
+  );
 }

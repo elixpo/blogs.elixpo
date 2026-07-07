@@ -9,10 +9,23 @@ const SITE_DESC = 'A modern blogging platform with a rich block editor, AI writi
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: SITE_NAME,
+    default: `${SITE_NAME} — The Best Blogs Website & Blogging Platform`,
     template: `%s - ${SITE_NAME}`,
   },
   description: SITE_DESC,
+  keywords: [
+    'blogs website',
+    'best blogs website',
+    'blogging platform',
+    'create a blog',
+    'write a blog',
+    'read blogs',
+    'online publishing',
+    'collaboration',
+    'stories',
+    'articles',
+    SITE_NAME
+  ],
   icons: {
     icon: [
       // SVG favicon embedding the LixBlogs logo (logo.png).
@@ -28,7 +41,7 @@ export const metadata = {
   openGraph: {
     type: 'website',
     siteName: SITE_NAME,
-    title: SITE_NAME,
+    title: `${SITE_NAME} — The Best Blogs Website & Blogging Platform`,
     description: SITE_DESC,
     url: SITE_URL,
     images: [
@@ -43,7 +56,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: SITE_NAME,
+    title: `${SITE_NAME} — The Best Blogs Website & Blogging Platform`,
     description: SITE_DESC,
     images: ['/og-image.jpg'],
   },
