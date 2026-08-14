@@ -36,7 +36,7 @@ set -euo pipefail
 #   ./deploy.sh deploy                    # Quick website deploy
 #   ./deploy.sh release all --minor       # Release everything with minor bump
 #   ./deploy.sh release editor --patch   # Publish lixeditor to npm + GitHub
-#   ./deploy.sh release cli --no-bump    # Publish current lixblogs-cli version
+#   ./deploy.sh release cli --no-bump    # Publish current @elixpo/lixblogs-cli version
 #   ./deploy.sh release web               # Deploy website only
 #   ./deploy.sh release all --dry-run     # Preview full release
 #   ./deploy.sh all                       # Infra: secrets + worker + deploy
@@ -384,7 +384,7 @@ do_release() {
 
   if $RELEASE_CLI; then
     echo ""
-    echo "==> Verifying lixblogs-cli..."
+    echo "==> Verifying @elixpo/lixblogs-cli..."
     dry_run "cd '$SCRIPT_DIR/packages/lixblogs-cli' && npm test && npm pack --dry-run"
     echo "    ✓ CLI tests and package verification complete"
   fi
@@ -402,10 +402,10 @@ do_release() {
   # ── Publish LixBlogs CLI to npm ──
   if $RELEASE_CLI; then
     echo ""
-    echo "==> Publishing lixblogs-cli@${CLI_VERSION} to npm..."
+    echo "==> Publishing @elixpo/lixblogs-cli@${CLI_VERSION} to npm..."
     if $DRY_RUN; then
       echo "[dry-run] cd '$SCRIPT_DIR/packages/lixblogs-cli' && npm publish --access public --registry https://registry.npmjs.org/ --<npm-auth-redacted>"
-      echo "    ✓ lixblogs-cli@${CLI_VERSION} would be published"
+      echo "    ✓ @elixpo/lixblogs-cli@${CLI_VERSION} would be published"
     elif [ -n "${NPM_OTP:-}" ]; then
       if [ -n "$_NPM_TOKEN" ]; then
         (cd "$SCRIPT_DIR/packages/lixblogs-cli" && npm publish --access public --registry https://registry.npmjs.org/ "--//registry.npmjs.org/:_authToken=$_NPM_TOKEN" "--otp=${NPM_OTP}") || {
@@ -418,19 +418,19 @@ do_release() {
           exit 1
         }
       fi
-      echo "    ✓ lixblogs-cli@${CLI_VERSION} published"
+      echo "    ✓ @elixpo/lixblogs-cli@${CLI_VERSION} published"
     elif [ -n "$_NPM_TOKEN" ]; then
       (cd "$SCRIPT_DIR/packages/lixblogs-cli" && npm publish --access public --registry https://registry.npmjs.org/ "--//registry.npmjs.org/:_authToken=$_NPM_TOKEN") || {
         echo "    ✗ CLI publish failed. Use an npm granular token with publish permission and 2FA bypass, or set a current NPM_OTP."
         exit 1
       }
-      echo "    ✓ lixblogs-cli@${CLI_VERSION} published"
+      echo "    ✓ @elixpo/lixblogs-cli@${CLI_VERSION} published"
     else
       (cd "$SCRIPT_DIR/packages/lixblogs-cli" && npm publish --access public --registry https://registry.npmjs.org/) || {
         echo "    ✗ CLI publish failed. Check the active npm login; if the account requires 2FA, set NPM_OTP."
         exit 1
       }
-      echo "    ✓ lixblogs-cli@${CLI_VERSION} published"
+      echo "    ✓ @elixpo/lixblogs-cli@${CLI_VERSION} published"
     fi
   fi
 
@@ -509,9 +509,9 @@ do_release() {
   $RELEASE_NPM    && echo "  - @elixpo/lixeditor published to npm"
   if $RELEASE_CLI; then
     if $DRY_RUN; then
-      echo "  - lixblogs-cli@${CLI_VERSION} would be published to npm"
+      echo "  - @elixpo/lixblogs-cli@${CLI_VERSION} would be published to npm"
     else
-      echo "  - lixblogs-cli@${CLI_VERSION} published to npm"
+      echo "  - @elixpo/lixblogs-cli@${CLI_VERSION} published to npm"
     fi
   fi
   $RELEASE_GITHUB && echo "  - @elixpo/lixeditor published to GitHub Packages"
@@ -552,7 +552,7 @@ usage() {
   echo "  ./deploy.sh deploy                     # Quick website deploy"
   echo "  ./deploy.sh release all --minor        # Release everything"
   echo "  ./deploy.sh release editor --patch     # Publish lixeditor to npm + GitHub"
-  echo "  ./deploy.sh release cli --no-bump      # Publish lixblogs-cli at its current version"
+  echo "  ./deploy.sh release cli --no-bump      # Publish @elixpo/lixblogs-cli at its current version"
   echo "  ./deploy.sh release npm --patch        # Publish lixeditor to npm only"
   echo "  ./deploy.sh release github --patch     # Publish lixeditor to GitHub Packages only"
   echo "  ./deploy.sh release all --dry-run      # Preview full release"

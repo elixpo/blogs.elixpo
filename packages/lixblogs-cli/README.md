@@ -1,4 +1,4 @@
-# lixblogs-cli
+# @elixpo/lixblogs-cli
 
 The official CLI for LixBlogs — publish, manage, and inspect blogs through
 the supported API. Built for creators and agent/automation use.
@@ -16,7 +16,7 @@ npm install
 
 There's no published npm release yet. Once available, install will be:
 ```bash
-npm install -g lixblogs-cli
+npm install -g @elixpo/lixblogs-cli
 ```
 
 ## Usage
