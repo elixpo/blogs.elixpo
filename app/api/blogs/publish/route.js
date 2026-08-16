@@ -21,9 +21,9 @@ export async function POST(request) {
   const posY = Number.isFinite(coverPos?.y) ? coverPos.y : 50;
   const zoom = Number.isFinite(coverZoom) ? coverZoom : 1;
 
-  // status: 'published' (feed), 'unlisted' (beta/public but no feed), 'draft'
+  // status: 'published' (feed), 'unlisted' (beta/public but no feed), 'draft', 'archived'
   const targetStatus = status || 'published';
-  if (!['published', 'unlisted', 'draft'].includes(targetStatus)) {
+  if (!['published', 'unlisted', 'draft', 'archived'].includes(targetStatus)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
 
@@ -35,8 +35,8 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Title or subtitle too long' }, { status: 400 });
   }
   // Only gate the public-facing title/subtitle when actually publishing —
-  // drafts can hold work-in-progress text.
-  if (targetStatus !== 'draft') {
+  // drafts and archived stories can hold work-in-progress or removed text.
+  if (targetStatus !== 'draft' && targetStatus !== 'archived') {
     const { findProfanity } = await import('../../../../lib/validate');
     if (findProfanity(title) || findProfanity(subtitle)) {
       return NextResponse.json({ error: 'Title or subtitle contains language that is not allowed' }, { status: 400 });
@@ -45,8 +45,8 @@ export async function POST(request) {
   if (byteLength(editorContent) > MAX_BLOG_CONTENT_BYTES) {
     return NextResponse.json({ error: 'Content too large' }, { status: 413 });
   }
-  // Require real content before going public (drafts may be short/empty).
-  if (targetStatus !== 'draft' && countWords(editorContent) < 20) {
+  // Require real content before going public (drafts/archived may be short/empty).
+  if (targetStatus !== 'draft' && targetStatus !== 'archived' && countWords(editorContent) < 20) {
     return NextResponse.json({ error: 'A post needs at least 20 words before publishing.' }, { status: 400 });
   }
 
@@ -197,7 +197,7 @@ export async function POST(request) {
     `).bind(slugid, session.userId, `lixblogs/${slugid}/%`).run();
 
     // Record a version snapshot for every publish/update (#11 E).
-    if (compressedContent && targetStatus !== 'draft') {
+    if (compressedContent && targetStatus !== 'draft' && targetStatus !== 'archived') {
       try { const { snapshotVersion } = await import('../../../../lib/blogVersions'); await snapshotVersion(db, slugid, compressedContent, { label: 'published', userId: session.userId }); } catch {}
     }
 
