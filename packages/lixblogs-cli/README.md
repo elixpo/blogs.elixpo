@@ -70,6 +70,19 @@ lixblogs blog list --status trashed
 lixblogs blog restore <id>
 ```
 
+### Organizations and collections
+
+Inspect memberships, collections, and verify allowed publishing targets:
+
+```bash
+lixblogs org list
+lixblogs org get <orgId>
+lixblogs org collections <orgId>
+lixblogs org members <orgId>
+lixblogs org targets
+lixblogs blog create --file post.md --publication org:<orgId> --collection <collectionId>
+```
+
 `create`, `edit`, `publish`, `unpublish`, `delete`, and `restore` accept
 `--dry-run`. Content input is mutually exclusive: `--file`, `--stdin`,
 `--content`, or `--editor`. Permanent deletion additionally requires

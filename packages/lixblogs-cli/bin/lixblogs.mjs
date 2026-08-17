@@ -20,70 +20,81 @@
  * decoupling that made this swap fast.
  */
 
-import { parseArgs } from "node:util";
 import { spawn } from "node:child_process";
-import { resolveConfig } from "../src/config/config.js";
-import { createAuthProvider } from "../src/config/providerFactory.js";
-import { createCredentialStore } from "../src/config/credentialStoreFactory.js";
-import { safeJsonStringify, redactErrorMessage } from "../src/config/redact.js";
-import { authLogin } from "../src/commands/auth/login.js";
-import { authStatus } from "../src/commands/auth/status.js";
-import { authLogout } from "../src/commands/auth/logout.js";
-import { authRevoke } from "../src/commands/auth/revoke.js";
-import { authProfiles, authUse } from "../src/commands/auth/profiles.js";
-import { ProfileRegistry, validateProfileId } from "../src/config/ProfileRegistry.js";
+import { parseArgs } from "node:util";
+import { BlogApiError, BlogClient } from "../src/api/BlogClient.js";
+import { OrgClient } from "../src/api/OrgClient.js";
 import { AuthenticatedClient } from "../src/auth/AuthenticatedClient.js";
-import { BlogClient, BlogApiError } from "../src/api/BlogClient.js";
+import { authLogin } from "../src/commands/auth/login.js";
+import { authLogout } from "../src/commands/auth/logout.js";
+import { authProfiles, authUse } from "../src/commands/auth/profiles.js";
+import { authRevoke } from "../src/commands/auth/revoke.js";
+import { authStatus } from "../src/commands/auth/status.js";
 import {
-  blogCreate,
-  blogDelete,
-  blogEdit,
-  blogGet,
-  blogList,
-  blogPublish,
-  blogRestore,
-  blogUnpublish,
+    blogCreate,
+    blogDelete,
+    blogEdit,
+    blogGet,
+    blogList,
+    blogPublish,
+    blogRestore,
+    blogUnpublish,
 } from "../src/commands/blog/index.js";
+import {
+    orgCollections,
+    orgGet,
+    orgList,
+    orgMembers,
+    orgTargets,
+} from "../src/commands/org/index.js";
+import { resolveConfig } from "../src/config/config.js";
+import { createCredentialStore } from "../src/config/credentialStoreFactory.js";
+import {
+    ProfileRegistry,
+    validateProfileId,
+} from "../src/config/ProfileRegistry.js";
+import { createAuthProvider } from "../src/config/providerFactory.js";
+import { redactErrorMessage, safeJsonStringify } from "../src/config/redact.js";
 
 const OPTIONS = {
-  profile: { type: "string" },
-  env: { type: "string" },
-  json: { type: "boolean", default: false },
-  quiet: { type: "boolean", default: false },
-  yes: { type: "boolean", short: "y", default: false },
-  "allow-insecure-fallback": { type: "boolean", default: false },
-  "auth-provider": { type: "string" },
-  "accounts-url": { type: "string" },
-  "api-url": { type: "string" },
-  "client-id": { type: "string" },
-  audience: { type: "string" },
-  scope: { type: "string", multiple: true },
-  open: { type: "boolean", default: false },
-  status: { type: "string" },
-  limit: { type: "string" },
-  cursor: { type: "string" },
-  file: { type: "string" },
-  stdin: { type: "boolean", default: false },
-  content: { type: "string" },
-  editor: { type: "boolean", default: false },
-  title: { type: "string" },
-  subtitle: { type: "string" },
-  slug: { type: "string" },
-  tag: { type: "string", multiple: true },
-  emoji: { type: "string" },
-  publication: { type: "string" },
-  collection: { type: "string" },
-  cover: { type: "string" },
-  "member-only": { type: "boolean", default: false },
-  "no-member-only": { type: "boolean", default: false },
-  secret: { type: "boolean", default: false },
-  "not-secret": { type: "boolean", default: false },
-  "dry-run": { type: "boolean", default: false },
-  "no-input": { type: "boolean", default: false },
-  etag: { type: "string" },
-  permanent: { type: "boolean", default: false },
-  "idempotency-key": { type: "string" },
-  help: { type: "boolean", short: "h", default: false },
+    profile: { type: "string" },
+    env: { type: "string" },
+    json: { type: "boolean", default: false },
+    quiet: { type: "boolean", default: false },
+    yes: { type: "boolean", short: "y", default: false },
+    "allow-insecure-fallback": { type: "boolean", default: false },
+    "auth-provider": { type: "string" },
+    "accounts-url": { type: "string" },
+    "api-url": { type: "string" },
+    "client-id": { type: "string" },
+    audience: { type: "string" },
+    scope: { type: "string", multiple: true },
+    open: { type: "boolean", default: false },
+    status: { type: "string" },
+    limit: { type: "string" },
+    cursor: { type: "string" },
+    file: { type: "string" },
+    stdin: { type: "boolean", default: false },
+    content: { type: "string" },
+    editor: { type: "boolean", default: false },
+    title: { type: "string" },
+    subtitle: { type: "string" },
+    slug: { type: "string" },
+    tag: { type: "string", multiple: true },
+    emoji: { type: "string" },
+    publication: { type: "string" },
+    collection: { type: "string" },
+    cover: { type: "string" },
+    "member-only": { type: "boolean", default: false },
+    "no-member-only": { type: "boolean", default: false },
+    secret: { type: "boolean", default: false },
+    "not-secret": { type: "boolean", default: false },
+    "dry-run": { type: "boolean", default: false },
+    "no-input": { type: "boolean", default: false },
+    etag: { type: "string" },
+    permanent: { type: "boolean", default: false },
+    "idempotency-key": { type: "string" },
+    help: { type: "boolean", short: "h", default: false },
 };
 
 const HELP_TEXT = `lixblogs — LixBlogs CLI
@@ -103,6 +114,11 @@ Usage:
   lixblogs blog unpublish <id> [--dry-run] [--json]
   lixblogs blog delete <id> --yes [--permanent] [--dry-run] [--json]
   lixblogs blog restore <id>   [--dry-run] [--json]
+  lixblogs org list            [--json]
+  lixblogs org get <id>        [--json]
+  lixblogs org collections <id>[--json]
+  lixblogs org members <id>    [--json]
+  lixblogs org targets         [--json]
 
 Global flags:
   --profile <name>            named profile to use (default: "default")
@@ -134,49 +150,60 @@ work, a later issue) — destructive actions require --yes explicitly, always.
 `;
 
 const DEFAULT_SCOPES = [
-  "openid", "profile", "email",
-  "lixblogs:profile:read", "lixblogs:blog:read",
+    "openid",
+    "profile",
+    "email",
+    "lixblogs:profile:read",
+    "lixblogs:blog:read",
 ];
 
 function configFlags(opts) {
-  return {
-    profile: opts.profile,
-    env: opts.env,
-    authProvider: opts["auth-provider"],
-    accountsUrl: opts["accounts-url"],
-    apiUrl: opts["api-url"],
-    clientId: opts["client-id"],
-    audience: opts.audience,
-  };
+    return {
+        profile: opts.profile,
+        env: opts.env,
+        authProvider: opts["auth-provider"],
+        accountsUrl: opts["accounts-url"],
+        apiUrl: opts["api-url"],
+        clientId: opts["client-id"],
+        audience: opts.audience,
+    };
 }
 
 async function selectedProfile(config, registry) {
-  if (config.profileExplicit) return validateProfileId(config.profile);
-  return (await registry.getActive()) || validateProfileId(config.profile);
+    if (config.profileExplicit) return validateProfileId(config.profile);
+    return (await registry.getActive()) || validateProfileId(config.profile);
 }
 
 async function openBrowser(url) {
-  const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
-  const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
-  const child = spawn(command, args, { detached: true, stdio: "ignore" });
-  child.on("error", () => {});
-  child.unref();
+    const command =
+        process.platform === "darwin"
+            ? "open"
+            : process.platform === "win32"
+              ? "cmd"
+              : "xdg-open";
+    const args =
+        process.platform === "win32" ? ["/c", "start", "", url] : [url];
+    const child = spawn(command, args, { detached: true, stdio: "ignore" });
+    child.on("error", () => {});
+    child.unref();
 }
 
 function output(opts, data) {
-  if (opts.json) {
-    process.stdout.write(safeJsonStringify(data) + "\n");
-  }
+    if (opts.json) {
+        process.stdout.write(safeJsonStringify(data) + "\n");
+    }
 }
 
 function fail(opts, message, exitCode = 1) {
-  const safeMessage = redactErrorMessage(message);
-  if (opts.json) {
-    process.stdout.write(safeJsonStringify({ ok: false, error: safeMessage }) + "\n");
-  } else if (!opts.quiet) {
-    process.stderr.write(`Error: ${safeMessage}\n`);
-  }
-  process.exitCode = exitCode;
+    const safeMessage = redactErrorMessage(message);
+    if (opts.json) {
+        process.stdout.write(
+            safeJsonStringify({ ok: false, error: safeMessage }) + "\n",
+        );
+    } else if (!opts.quiet) {
+        process.stderr.write(`Error: ${safeMessage}\n`);
+    }
+    process.exitCode = exitCode;
 }
 
 /**
@@ -188,303 +215,483 @@ function fail(opts, message, exitCode = 1) {
  *   null if construction failed and fail() was already called.
  */
 async function getCredentialStoreOrFail(opts, profileRegistry) {
-  try {
-    return await createCredentialStore({
-      allowInsecureFallback: opts["allow-insecure-fallback"],
-      profileRegistry,
-    });
-  } catch (err) {
-    fail(
-      opts,
-      `${err.message}${opts["allow-insecure-fallback"] ? "" : " Re-run with --allow-insecure-fallback to opt in to non-persistent storage instead."}`
-    );
-    return null;
-  }
+    try {
+        return await createCredentialStore({
+            allowInsecureFallback: opts["allow-insecure-fallback"],
+            profileRegistry,
+        });
+    } catch (err) {
+        fail(
+            opts,
+            `${err.message}${opts["allow-insecure-fallback"] ? "" : " Re-run with --allow-insecure-fallback to opt in to non-persistent storage instead."}`,
+        );
+        return null;
+    }
 }
 
 async function runLogin(opts) {
-  const config = resolveConfig({ flags: configFlags(opts) });
-  const profileRegistry = new ProfileRegistry();
-  const profileId = await selectedProfile(config, profileRegistry);
+    const config = resolveConfig({ flags: configFlags(opts) });
+    const profileRegistry = new ProfileRegistry();
+    const profileId = await selectedProfile(config, profileRegistry);
 
-  let provider;
-  try {
-    provider = createAuthProvider(config);
-  } catch (err) {
-    return fail(opts, err.message);
-  }
+    let provider;
+    try {
+        provider = createAuthProvider(config);
+    } catch (err) {
+        return fail(opts, err.message);
+    }
 
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
+    const credentialStore = await getCredentialStoreOrFail(
+        opts,
+        profileRegistry,
+    );
+    if (!credentialStore) return;
 
-  const result = await authLogin({
-    provider,
-    credentialStore,
-    profileId,
-    scopes: opts.scope?.length ? opts.scope : DEFAULT_SCOPES,
-    openBrowser: opts.open ? openBrowser : undefined,
-    onStatus: (status) => {
-      if (opts.json) {
-        output(opts, { event: status.type, ...status });
-        return;
-      }
-      if (opts.quiet) return;
-      if (status.type === "verification_pending") {
-        console.log(`To log in, visit: ${status.verificationUriComplete || status.verificationUri}`);
-        console.log(`Enter code: ${status.userCode}`);
-        console.log(`(expires in ${status.expiresInSeconds}s)`);
-      } else if (status.type === "pending") {
-        console.log("Waiting for approval...");
-      } else if (status.type === "slow_down") {
-        console.log("Slowing down polling as requested by the server...");
-      } else if (status.type === "approved") {
-        console.log("Login approved.");
-      } else if (status.type === "denied") {
-        console.log("Login was denied.");
-      } else if (status.type === "expired") {
-        console.log("Device code expired.");
-      }
-    },
-  });
+    const result = await authLogin({
+        provider,
+        credentialStore,
+        profileId,
+        scopes: opts.scope?.length ? opts.scope : DEFAULT_SCOPES,
+        openBrowser: opts.open ? openBrowser : undefined,
+        onStatus: (status) => {
+            if (opts.json) {
+                output(opts, { event: status.type, ...status });
+                return;
+            }
+            if (opts.quiet) return;
+            if (status.type === "verification_pending") {
+                console.log(
+                    `To log in, visit: ${status.verificationUriComplete || status.verificationUri}`,
+                );
+                console.log(`Enter code: ${status.userCode}`);
+                console.log(`(expires in ${status.expiresInSeconds}s)`);
+            } else if (status.type === "pending") {
+                console.log("Waiting for approval...");
+            } else if (status.type === "slow_down") {
+                console.log(
+                    "Slowing down polling as requested by the server...",
+                );
+            } else if (status.type === "approved") {
+                console.log("Login approved.");
+            } else if (status.type === "denied") {
+                console.log("Login was denied.");
+            } else if (status.type === "expired") {
+                console.log("Device code expired.");
+            }
+        },
+    });
 
-  if (!result.ok) {
-    return fail(opts, result.reason);
-  }
-  await profileRegistry.add(result.profileId);
-  await profileRegistry.setActive(result.profileId);
-  output(opts, { ok: true, profile: result.profileId });
-  if (!opts.json && !opts.quiet) {
-    console.log(`Logged in as profile "${result.profileId}".`);
-  }
+    if (!result.ok) {
+        return fail(opts, result.reason);
+    }
+    await profileRegistry.add(result.profileId);
+    await profileRegistry.setActive(result.profileId);
+    output(opts, { ok: true, profile: result.profileId });
+    if (!opts.json && !opts.quiet) {
+        console.log(`Logged in as profile "${result.profileId}".`);
+    }
 }
 
 async function runStatus(opts) {
-  const config = resolveConfig({ flags: configFlags(opts) });
-  const profileRegistry = new ProfileRegistry();
-  const profileId = await selectedProfile(config, profileRegistry);
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
+    const config = resolveConfig({ flags: configFlags(opts) });
+    const profileRegistry = new ProfileRegistry();
+    const profileId = await selectedProfile(config, profileRegistry);
+    const credentialStore = await getCredentialStoreOrFail(
+        opts,
+        profileRegistry,
+    );
+    if (!credentialStore) return;
 
-  const result = await authStatus({ credentialStore, profileId });
+    const result = await authStatus({ credentialStore, profileId });
 
-  output(opts, result);
-  if (!opts.json) {
-    for (const entry of result) {
-      if (!entry.loggedIn) {
-        console.log(`${entry.profileId}: not logged in`);
-      } else {
-        console.log(
-          `${entry.profileId}: logged in${entry.expired ? " (expired)" : ""} — scopes: ${entry.scopes.join(", ")}`
-        );
-      }
+    output(opts, result);
+    if (!opts.json) {
+        for (const entry of result) {
+            if (!entry.loggedIn) {
+                console.log(`${entry.profileId}: not logged in`);
+            } else {
+                console.log(
+                    `${entry.profileId}: logged in${entry.expired ? " (expired)" : ""} — scopes: ${entry.scopes.join(", ")}`,
+                );
+            }
+        }
     }
-  }
 }
 
 async function runLogout(opts) {
-  const config = resolveConfig({ flags: configFlags(opts) });
-  const profileRegistry = new ProfileRegistry();
-  const profileId = await selectedProfile(config, profileRegistry);
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
+    const config = resolveConfig({ flags: configFlags(opts) });
+    const profileRegistry = new ProfileRegistry();
+    const profileId = await selectedProfile(config, profileRegistry);
+    const credentialStore = await getCredentialStoreOrFail(
+        opts,
+        profileRegistry,
+    );
+    if (!credentialStore) return;
 
-  const result = await authLogout({ credentialStore, profileId });
-  output(opts, result);
-  if (!opts.json && !opts.quiet) {
-    console.log(`Logged out profile "${profileId}".`);
-  }
+    const result = await authLogout({ credentialStore, profileId });
+    output(opts, result);
+    if (!opts.json && !opts.quiet) {
+        console.log(`Logged out profile "${profileId}".`);
+    }
 }
 
 async function runRevoke(opts) {
-  const config = resolveConfig({ flags: configFlags(opts) });
-  const profileRegistry = new ProfileRegistry();
-  const profileId = await selectedProfile(config, profileRegistry);
+    const config = resolveConfig({ flags: configFlags(opts) });
+    const profileRegistry = new ProfileRegistry();
+    const profileId = await selectedProfile(config, profileRegistry);
 
-  // Destructive action: per #135, cannot run accidentally in a
-  // non-interactive session. Interactive confirmation prompting is
-  // CLI-shell/UX work (later issue) — for now, --yes is the only
-  // supported path, and omitting it fails closed rather than silently
-  // proceeding or silently doing nothing.
-  if (!opts.yes) {
-    return fail(
-      opts,
-      "This is a destructive action. Re-run with --yes to confirm (interactive confirmation prompt not yet implemented)."
+    // Destructive action: per #135, cannot run accidentally in a
+    // non-interactive session. Interactive confirmation prompting is
+    // CLI-shell/UX work (later issue) — for now, --yes is the only
+    // supported path, and omitting it fails closed rather than silently
+    // proceeding or silently doing nothing.
+    if (!opts.yes) {
+        return fail(
+            opts,
+            "This is a destructive action. Re-run with --yes to confirm (interactive confirmation prompt not yet implemented).",
+        );
+    }
+
+    let provider;
+    try {
+        provider = createAuthProvider(config);
+    } catch (err) {
+        return fail(opts, err.message);
+    }
+    const credentialStore = await getCredentialStoreOrFail(
+        opts,
+        profileRegistry,
     );
-  }
+    if (!credentialStore) return;
 
-  let provider;
-  try {
-    provider = createAuthProvider(config);
-  } catch (err) {
-    return fail(opts, err.message);
-  }
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
+    const result = await authRevoke({
+        provider,
+        credentialStore,
+        profileId,
+        confirmed: true,
+    });
 
-  const result = await authRevoke({
-    provider,
-    credentialStore,
-    profileId,
-    confirmed: true,
-  });
-
-  if (!result.ok) {
-    return fail(opts, result.reason);
-  }
-  output(opts, result);
-  if (!opts.json && !opts.quiet) {
-    console.log(`Revoked and logged out profile "${profileId}".`);
-  }
+    if (!result.ok) {
+        return fail(opts, result.reason);
+    }
+    output(opts, result);
+    if (!opts.json && !opts.quiet) {
+        console.log(`Revoked and logged out profile "${profileId}".`);
+    }
 }
 
 async function runProfiles(opts) {
-  const profileRegistry = new ProfileRegistry();
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
-  const result = await authProfiles({ credentialStore, profileRegistry });
-  output(opts, result);
-  if (!opts.json) {
-    if (!result.profiles.length) console.log("No profiles. Run `lixblogs auth login` first.");
-    for (const profile of result.profiles) {
-      console.log(`${profile.active ? "*" : " "} ${profile.profileId}${profile.expired ? " (expired)" : ""}`);
+    const profileRegistry = new ProfileRegistry();
+    const credentialStore = await getCredentialStoreOrFail(
+        opts,
+        profileRegistry,
+    );
+    if (!credentialStore) return;
+    const result = await authProfiles({ credentialStore, profileRegistry });
+    output(opts, result);
+    if (!opts.json) {
+        if (!result.profiles.length)
+            console.log("No profiles. Run `lixblogs auth login` first.");
+        for (const profile of result.profiles) {
+            console.log(
+                `${profile.active ? "*" : " "} ${profile.profileId}${profile.expired ? " (expired)" : ""}`,
+            );
+        }
     }
-  }
 }
 
 async function runUse(opts, args) {
-  let profileId;
-  try {
-    profileId = validateProfileId(args[0]);
-  } catch (error) {
-    return fail(opts, error.message);
-  }
-  const profileRegistry = new ProfileRegistry();
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
-  const result = await authUse({ credentialStore, profileRegistry, profileId });
-  if (!result.ok) return fail(opts, result.reason);
-  output(opts, result);
-  if (!opts.json && !opts.quiet) console.log(`Using profile "${profileId}".`);
+    let profileId;
+    try {
+        profileId = validateProfileId(args[0]);
+    } catch (error) {
+        return fail(opts, error.message);
+    }
+    const profileRegistry = new ProfileRegistry();
+    const credentialStore = await getCredentialStoreOrFail(
+        opts,
+        profileRegistry,
+    );
+    if (!credentialStore) return;
+    const result = await authUse({
+        credentialStore,
+        profileRegistry,
+        profileId,
+    });
+    if (!result.ok) return fail(opts, result.reason);
+    output(opts, result);
+    if (!opts.json && !opts.quiet) console.log(`Using profile "${profileId}".`);
 }
 
 const BLOG_COMMANDS = {
-  list: blogList,
-  get: blogGet,
-  create: blogCreate,
-  edit: blogEdit,
-  publish: blogPublish,
-  unpublish: blogUnpublish,
-  delete: blogDelete,
-  restore: blogRestore,
+    list: blogList,
+    get: blogGet,
+    create: blogCreate,
+    edit: blogEdit,
+    publish: blogPublish,
+    unpublish: blogUnpublish,
+    delete: blogDelete,
+    restore: blogRestore,
 };
 
 async function runBlog(opts, args, action) {
-  const config = resolveConfig({ flags: configFlags(opts) });
-  const profileRegistry = new ProfileRegistry();
-  const profileId = await selectedProfile(config, profileRegistry);
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
-  let provider;
-  try { provider = createAuthProvider(config); } catch (error) { return fail(opts, error.message); }
-  const http = new AuthenticatedClient({
-    provider, credentialStore, profileId, apiBaseUrl: config.apiBaseUrl,
-  });
-  const client = new BlogClient(http);
-  const normalized = {
-    ...opts,
-    limit: opts.limit === undefined ? undefined : Number.parseInt(opts.limit, 10),
-  };
-  try {
-    const result = await BLOG_COMMANDS[action]({
-      client, id: args[0], options: normalized, stdin: process.stdin,
+    const config = resolveConfig({ flags: configFlags(opts) });
+    const profileRegistry = new ProfileRegistry();
+    const profileId = await selectedProfile(config, profileRegistry);
+    const credentialStore = await getCredentialStoreOrFail(
+        opts,
+        profileRegistry,
+    );
+    if (!credentialStore) return;
+    let provider;
+    try {
+        provider = createAuthProvider(config);
+    } catch (error) {
+        return fail(opts, error.message);
+    }
+    const http = new AuthenticatedClient({
+        provider,
+        credentialStore,
+        profileId,
+        apiBaseUrl: config.apiBaseUrl,
     });
-    output(opts, { ok: true, ...result });
-    if (!opts.json && !opts.quiet) {
-      if (action === 'list') {
-        for (const blog of result.data || []) console.log(`${blog.id}\t${blog.status}\t${blog.title || '(untitled)'}`);
-        if (result.meta?.nextCursor) console.log(`Next cursor: ${result.meta.nextCursor}`);
-      } else if (action === 'get') {
-        console.log(`${result.title || '(untitled)'} [${result.status}]\n${result.markdown || ''}`);
-      } else if (result.dryRun) {
-        console.log(`Dry run: ${action} validated; no changes sent.`);
-      } else {
-        console.log(result.url || `${action} completed for ${result.id}.`);
-      }
+    const client = new BlogClient(http);
+    const normalized = {
+        ...opts,
+        limit:
+            opts.limit === undefined
+                ? undefined
+                : Number.parseInt(opts.limit, 10),
+    };
+    try {
+        const result = await BLOG_COMMANDS[action]({
+            client,
+            id: args[0],
+            options: normalized,
+            stdin: process.stdin,
+        });
+        output(opts, { ok: true, ...result });
+        if (!opts.json && !opts.quiet) {
+            if (action === "list") {
+                for (const blog of result.data || [])
+                    console.log(
+                        `${blog.id}\t${blog.status}\t${blog.title || "(untitled)"}`,
+                    );
+                if (result.meta?.nextCursor)
+                    console.log(`Next cursor: ${result.meta.nextCursor}`);
+            } else if (action === "get") {
+                console.log(
+                    `${result.title || "(untitled)"} [${result.status}]\n${result.markdown || ""}`,
+                );
+            } else if (result.dryRun) {
+                console.log(`Dry run: ${action} validated; no changes sent.`);
+            } else {
+                console.log(
+                    result.url || `${action} completed for ${result.id}.`,
+                );
+            }
+        }
+    } catch (error) {
+        if (opts.json && error instanceof BlogApiError) {
+            process.stdout.write(
+                safeJsonStringify({
+                    ok: false,
+                    error: {
+                        code: error.code,
+                        message: error.message,
+                        requestId: error.requestId,
+                        details: error.details,
+                    },
+                }) + "\n",
+            );
+            process.exitCode = error.status === 412 ? 3 : 1;
+            return;
+        }
+        return fail(
+            opts,
+            `${error.message}${error.requestId ? ` (request ${error.requestId})` : ""}`,
+            error.status === 412 ? 3 : 1,
+        );
     }
-  } catch (error) {
-    if (opts.json && error instanceof BlogApiError) {
-      process.stdout.write(safeJsonStringify({
-        ok: false,
-        error: { code: error.code, message: error.message, requestId: error.requestId, details: error.details },
-      }) + '\n');
-      process.exitCode = error.status === 412 ? 3 : 1;
-      return;
+}
+
+const ORG_COMMANDS = {
+    list: orgList,
+    get: orgGet,
+    collections: orgCollections,
+    members: orgMembers,
+    targets: orgTargets,
+};
+
+async function runOrg(opts, args, action) {
+    const config = resolveConfig({ flags: configFlags(opts) });
+    const profileRegistry = new ProfileRegistry();
+    const profileId = await selectedProfile(config, profileRegistry);
+    const credentialStore = await getCredentialStoreOrFail(
+        opts,
+        profileRegistry,
+    );
+    if (!credentialStore) return;
+    let provider;
+    try {
+        provider = createAuthProvider(config);
+    } catch (error) {
+        return fail(opts, error.message);
     }
-    return fail(opts, `${error.message}${error.requestId ? ` (request ${error.requestId})` : ''}`, error.status === 412 ? 3 : 1);
-  }
+    const http = new AuthenticatedClient({
+        provider,
+        credentialStore,
+        profileId,
+        apiBaseUrl: config.apiBaseUrl,
+    });
+    const client = new OrgClient(http);
+    try {
+        const result = await ORG_COMMANDS[action]({
+            client,
+            id: args[0],
+            options: opts,
+        });
+        output(opts, { ok: true, ...result });
+        if (!opts.json && !opts.quiet) {
+            if (action === "list") {
+                for (const org of result.data || []) {
+                    console.log(
+                        `${org.id}\t@${org.slug}\t${org.name} [role: ${org.role}, canWrite: ${org.canWrite}]`,
+                    );
+                }
+            } else if (action === "get") {
+                console.log(
+                    `${result.name} (@${result.slug}) [role: ${result.role}]\n${result.description || ""}\nMembers: ${result.memberCount} | Collections: ${result.collectionCount} | Blogs: ${result.blogCount}`,
+                );
+            } else if (action === "collections") {
+                for (const col of result || []) {
+                    console.log(
+                        `${col.id}\t${col.slug}\t${col.name} (${col.blogCount} blogs)`,
+                    );
+                }
+            } else if (action === "members") {
+                for (const mem of result || []) {
+                    console.log(
+                        `${mem.userId}\t@${mem.username}\t${mem.displayName}\t[${mem.role}${mem.isOwner ? ", owner" : ""}]`,
+                    );
+                }
+            } else if (action === "targets") {
+                console.log("Publishing Targets:");
+                console.log(
+                    `- Personal: ${result.personal.target} (${result.personal.name})`,
+                );
+                for (const org of result.organizations || []) {
+                    console.log(
+                        `- Org: ${org.target} (${org.name}, @${org.slug}) [${org.role}]`,
+                    );
+                    for (const col of org.collections || []) {
+                        console.log(
+                            `    Collection: ${col.id} (${col.name}, slug: ${col.slug})`,
+                        );
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        if (opts.json && error instanceof BlogApiError) {
+            process.stdout.write(
+                safeJsonStringify({
+                    ok: false,
+                    error: {
+                        code: error.code,
+                        message: error.message,
+                        requestId: error.requestId,
+                        details: error.details,
+                    },
+                }) + "\n",
+            );
+            process.exitCode =
+                error.status === 403 ? 403 : error.status === 404 ? 404 : 1;
+            return;
+        }
+        return fail(
+            opts,
+            `${error.message}${error.requestId ? ` (request ${error.requestId})` : ""}`,
+            error.status === 403 ? 403 : error.status === 404 ? 404 : 1,
+        );
+    }
 }
 
 const ROUTES = {
-  auth: {
-    login: runLogin,
-    status: runStatus,
-    logout: runLogout,
-    revoke: runRevoke,
-    profiles: runProfiles,
-    use: runUse,
-  },
-  blog: Object.fromEntries(Object.keys(BLOG_COMMANDS).map((action) => [
-    action,
-    (opts, args) => runBlog(opts, args, action),
-  ])),
+    auth: {
+        login: runLogin,
+        status: runStatus,
+        logout: runLogout,
+        revoke: runRevoke,
+        profiles: runProfiles,
+        use: runUse,
+    },
+    blog: Object.fromEntries(
+        Object.keys(BLOG_COMMANDS).map((action) => [
+            action,
+            (opts, args) => runBlog(opts, args, action),
+        ]),
+    ),
+    org: Object.fromEntries(
+        Object.keys(ORG_COMMANDS).map((action) => [
+            action,
+            (opts, args) => runOrg(opts, args, action),
+        ]),
+    ),
 };
 
 async function main() {
-  let values, positionals;
-  try {
-    ({ values, positionals } = parseArgs({
-      args: process.argv.slice(2),
-      options: OPTIONS,
-      allowPositionals: true,
-      strict: true,
-    }));
-  } catch (err) {
-    // strict: true makes parseArgs throw ERR_PARSE_ARGS_UNKNOWN_OPTION for
-    // unrecognized flags rather than silently ignoring them — surface that
-    // clearly instead of an unhandled exception.
-    process.stderr.write(`Error: Invalid flag. ${err.message}\n`);
-    process.exitCode = 1;
-    return;
-  }
+    let values, positionals;
+    try {
+        ({ values, positionals } = parseArgs({
+            args: process.argv.slice(2),
+            options: OPTIONS,
+            allowPositionals: true,
+            strict: true,
+        }));
+    } catch (err) {
+        // strict: true makes parseArgs throw ERR_PARSE_ARGS_UNKNOWN_OPTION for
+        // unrecognized flags rather than silently ignoring them — surface that
+        // clearly instead of an unhandled exception.
+        process.stderr.write(`Error: Invalid flag. ${err.message}\n`);
+        process.exitCode = 1;
+        return;
+    }
 
-  if (values.help || positionals.length === 0) {
-    process.stdout.write(HELP_TEXT);
-    return;
-  }
+    if (values.help || positionals.length === 0) {
+        process.stdout.write(HELP_TEXT);
+        return;
+    }
 
-  const [category, action] = positionals;
-  const categoryRoutes = ROUTES[category];
+    const [category, action] = positionals;
+    const categoryRoutes = ROUTES[category];
 
-  if (!categoryRoutes) {
-    process.stderr.write(`Error: Unknown command category "${category}".\n`);
-    process.stderr.write(`Available categories: ${Object.keys(ROUTES).join(", ")}\n`);
-    process.exitCode = 1;
-    return;
-  }
+    if (!categoryRoutes) {
+        process.stderr.write(
+            `Error: Unknown command category "${category}".\n`,
+        );
+        process.stderr.write(
+            `Available categories: ${Object.keys(ROUTES).join(", ")}\n`,
+        );
+        process.exitCode = 1;
+        return;
+    }
 
-  const handler = categoryRoutes[action];
-  if (!handler) {
-    process.stderr.write(`Error: Unknown ${category} command "${action}".\n`);
-    process.stderr.write(
-      `Available commands: ${Object.keys(categoryRoutes)
-        .map((a) => `${category} ${a}`)
-        .join(", ")}\n`
-    );
-    process.exitCode = 1;
-    return;
-  }
+    const handler = categoryRoutes[action];
+    if (!handler) {
+        process.stderr.write(
+            `Error: Unknown ${category} command "${action}".\n`,
+        );
+        process.stderr.write(
+            `Available commands: ${Object.keys(categoryRoutes)
+                .map((a) => `${category} ${a}`)
+                .join(", ")}\n`,
+        );
+        process.exitCode = 1;
+        return;
+    }
 
-  await handler(values, positionals.slice(2));
+    await handler(values, positionals.slice(2));
 }
 
 main();
