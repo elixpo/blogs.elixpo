@@ -42,6 +42,11 @@ lixblogs blog restore-version <id> --version <version-id> --yes
 
 Titles, subtitles, slugs, tags, icon emoji, cover URL/position/zoom, publication target, collection, comment policy, membership, secret state, and published/unlisted visibility are supported by `blog create`, `blog edit`, and `blog publish`.
 
+`--secret` selects anonymous public publishing while a story is still a draft;
+`--not-secret` clears it before first publish. Both use the existing
+`lixblogs:blog:write` scope. Secret mode hides the writer across public LixBlogs
+surfaces but does not make the short-ID story URL access-restricted.
+
 Inspect valid publication targets before assigning organization metadata:
 
 ```bash

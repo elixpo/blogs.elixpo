@@ -7,6 +7,7 @@ import { BlogApiError } from '../src/api/BlogClient.js';
 import { blogCreate, blogDelete, blogEdit, blogPublish, enrichBlogMutationResult } from '../src/commands/blog/index.js';
 import { blocksToMarkdown, markdownToBlocks } from '../src/content/markdown.js';
 import { validateBlogInput } from '../src/content/validate.js';
+import { metadataFromOptions } from '../src/commands/blog/input.js';
 
 test('Markdown conversion retains supported structural blocks', () => {
   const markdown = '# Title\n\n- One\n\n```mermaid\ngraph TD\n A-->B\n```';
@@ -55,6 +56,11 @@ test('create dry-run validates input without calling the API', async () => {
   assert.equal(called, false);
   assert.equal(result.input.title, 'Post');
   assert.equal(result.input.content[0].type, 'paragraph');
+});
+
+test('maps secret mode flags onto API blog input', () => {
+  assert.deepEqual(metadataFromOptions({ secret: true }), { secret: true });
+  assert.deepEqual(metadataFromOptions({ 'not-secret': true }), { secret: false });
 });
 
 test('local validation rejects oversized metadata and short publishing content', () => {

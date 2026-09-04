@@ -23,8 +23,8 @@ logged by the resource API.
 | `GET` | `/api/v1/me` | `lixblogs:profile:read` | Current LixBlogs identity |
 | `GET` | `/api/v1/blogs` | `lixblogs:blog:read` | Accessible blog metadata |
 | `GET` | `/api/v1/blogs/{id}` | `lixblogs:blog:read` | One accessible blog and its content |
-| `POST` | `/api/v1/blogs` | `lixblogs:blog:write` | Create a draft |
-| `PATCH` | `/api/v1/blogs/{id}` | `lixblogs:blog:write` | Edit a draft or post |
+| `POST` | `/api/v1/blogs` | `lixblogs:blog:write` | Create a draft, including secret-author mode |
+| `PATCH` | `/api/v1/blogs/{id}` | `lixblogs:blog:write` | Edit a draft or post; secret mode is draft-only |
 | `POST` | `/api/v1/blogs/{id}/publish` | `lixblogs:blog:publish` | Publish a post |
 | `POST` | `/api/v1/blogs/{id}/unpublish` | `lixblogs:blog:publish` | Return a post to draft |
 | `DELETE` | `/api/v1/blogs/{id}` | `lixblogs:blog:delete` | Move a post to trash |
@@ -58,6 +58,11 @@ visitor identifiers are never returned.
 an opaque `cursor`. Results include authored blogs, accepted collaborations,
 and blogs belonging to organizations of which the caller is a member. Access
 misses return `404` so resource existence is not disclosed.
+
+`secret: true` means anonymous public publishing, not reader access control.
+The API and CLI use `lixblogs:blog:write` to set it on a draft. After first
+publication it cannot be changed. Public author surfaces and recommendations
+must not reveal or allow inference of the writer.
 
 Permanent deletion uses `DELETE /api/v1/blogs/{id}?permanent=true`. It requires
 the additional `lixblogs:blog:delete:permanent` scope and an
