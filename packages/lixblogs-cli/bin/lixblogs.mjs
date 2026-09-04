@@ -25,6 +25,7 @@ import { spawn } from "node:child_process";
 import { resolveConfig } from "../src/config/config.js";
 import { createAuthProvider } from "../src/config/providerFactory.js";
 import { createCredentialStore } from "../src/config/credentialStoreFactory.js";
+import { resolveApiToken } from "../src/config/apiToken.js";
 import { safeJsonStringify, redactErrorMessage } from "../src/config/redact.js";
 import { authLogin } from "../src/commands/auth/login.js";
 import { authStatus } from "../src/commands/auth/status.js";
@@ -99,6 +100,7 @@ const OPTIONS = {
   "auth-provider": { type: "string" },
   "accounts-url": { type: "string" },
   "api-url": { type: "string" },
+  "token-file": { type: "string" },
   "client-id": { type: "string" },
   audience: { type: "string" },
   scope: { type: "string", multiple: true },
@@ -224,6 +226,7 @@ Global flags:
   --auth-provider <provider>  elixpo, or mock in development/test only
   --accounts-url <url>        override the Accounts discovery origin
   --api-url <url>             LixBlogs API origin (default: https://blogs.elixpo.com)
+  --token-file <path>         read a personal access token from a file
   --scope <scope>             request an OAuth scope (repeatable)
   --file <path>               read blog Markdown from a file
   --stdin                     read blog Markdown from stdin
@@ -246,6 +249,7 @@ Global flags:
 Machine mode:
   --json --no-input produces stable JSON on stdout, diagnostics on stderr, and
   never prompts. Publishing and destructive state changes require --yes.
+  Set LIXBLOGS_TOKEN or LIXBLOGS_TOKEN_FILE for non-interactive authentication.
 `;
 
 const DEFAULT_SCOPES = [
@@ -431,6 +435,27 @@ async function runStatus(opts) {
 
 async function authenticatedBlogClient(opts) {
   const config = resolveConfig({ flags: configFlags(opts) });
+  let tokenCredential;
+  try {
+    tokenCredential = await resolveApiToken({ flags: { tokenFile: opts["token-file"] } });
+  } catch (error) {
+    fail(opts, error, EXIT_CODES.AUTH);
+    return null;
+  }
+  if (tokenCredential) {
+    const http = new AuthenticatedClient({
+      accessToken: tokenCredential.token,
+      apiBaseUrl: config.apiBaseUrl,
+    });
+    return {
+      client: new BlogClient(http),
+      http,
+      config,
+      credentialStore: null,
+      profileId: null,
+      credentialSource: tokenCredential.source,
+    };
+  }
   const profileRegistry = new ProfileRegistry();
   const profileId = await selectedProfile(config, profileRegistry);
   const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
@@ -438,7 +463,7 @@ async function authenticatedBlogClient(opts) {
   let provider;
   try { provider = createAuthProvider(config); } catch (error) { fail(opts, error); return null; }
   const http = new AuthenticatedClient({ provider, credentialStore, profileId, apiBaseUrl: config.apiBaseUrl });
-  return { client: new BlogClient(http), http, config, credentialStore, profileId };
+  return { client: new BlogClient(http), http, config, credentialStore, profileId, credentialSource: "device-oauth" };
 }
 
 async function runWhoami(opts) {
@@ -446,23 +471,25 @@ async function runWhoami(opts) {
   if (!context) return;
   try {
     const [identity, credentials] = await withProgress(opts, "Loading account…", () => Promise.all([
-        context.client.whoami(),
-        context.credentialStore.get(context.profileId),
-      ]));
+      context.client.whoami(),
+      context.http.credentials(),
+    ]));
     const result = {
       ok: true,
-      profile: context.profileId,
+      profile: context.profileId || identity.username,
       environment: context.config.environment,
+      authentication: credentials.credentialType || "device_oauth",
       identity,
-      scopes: credentials?.scopes || [],
+      scopes: credentials?.scopes,
       expiresAt: credentials?.expiresAt ? new Date(credentials.expiresAt).toISOString() : null,
-      expired: credentials ? Date.now() >= credentials.expiresAt : true,
+      expired: credentials?.expiresAt ? Date.now() >= credentials.expiresAt : false,
     };
     output(opts, result);
     if (!opts.json && !opts.quiet) {
       console.log(`${identity.displayName || identity.username} (@${identity.username})`);
-      console.log(`Profile: ${context.profileId} · ${result.environment}`);
-      console.log(`Scopes: ${result.scopes.join(', ') || 'none'}`);
+      console.log(`Profile: ${result.profile} · ${result.environment}`);
+      console.log(`Authentication: ${result.authentication}`);
+      console.log(`Scopes: ${result.scopes?.join(', ') || 'validated by server'}`);
       console.log(`Expires: ${result.expiresAt || 'unknown'}`);
     }
   } catch (error) {
@@ -539,10 +566,6 @@ async function runRevoke(opts) {
   }
 }
 async function runIntegrations(opts, args, action) {
-  const config = resolveConfig({ flags: configFlags(opts) });
-  const profileRegistry = new ProfileRegistry();
-  const profileId = await selectedProfile(config, profileRegistry);
-
   if ((action === 'cloudinary-disconnect' || action === 'pollinations-disconnect') && !opts.yes) {
     return fail(
       opts,
@@ -550,19 +573,9 @@ async function runIntegrations(opts, args, action) {
     );
   }
 
-  let provider;
-  try {
-    provider = createAuthProvider(config);
-  } catch (err) {
-    return fail(opts, err.message);
-  }
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
-
-  const http = new AuthenticatedClient({
-    provider, credentialStore, profileId, apiBaseUrl: config.apiBaseUrl,
-  });
-  const integrationsClient = new IntegrationsClient(http);
+  const context = await authenticatedBlogClient(opts);
+  if (!context) return;
+  const integrationsClient = new IntegrationsClient(context.http);
 
   const result = await withProgress(opts, action.endsWith('status') ? "Checking integration…" : "Disconnecting integration…", async () => {
     if (action === 'cloudinary-status') return cloudinaryStatus({ integrationsClient });
@@ -660,17 +673,9 @@ const MEDIA_COMMANDS = { generate: mediaGenerate, upload: mediaUpload, delete: m
 const COMMENT_COMMANDS = { list: commentList, add: commentAdd, reply: commentReply, delete: commentDelete };
 
 async function runBlog(opts, args, action) {
-  const config = resolveConfig({ flags: configFlags(opts) });
-  const profileRegistry = new ProfileRegistry();
-  const profileId = await selectedProfile(config, profileRegistry);
-  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
-  if (!credentialStore) return;
-  let provider;
-  try { provider = createAuthProvider(config); } catch (error) { return fail(opts, error.message); }
-  const http = new AuthenticatedClient({
-    provider, credentialStore, profileId, apiBaseUrl: config.apiBaseUrl,
-  });
-  const client = new BlogClient(http);
+  const context = await authenticatedBlogClient(opts);
+  if (!context) return;
+  const client = context.client;
   const normalized = {
     ...opts,
     limit: opts.limit === undefined ? undefined : Number.parseInt(opts.limit, 10),
