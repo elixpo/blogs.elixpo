@@ -39,8 +39,6 @@ function epochToDateString(epoch, offsetSeconds) {
     return `${y}-${m}-${day}`;
 }
 
-export { epochToDateString, timezoneOffsetSeconds };
-
 export async function GET(request, { params }) {
     const { username } = await params;
     const { searchParams } = new URL(request.url);
