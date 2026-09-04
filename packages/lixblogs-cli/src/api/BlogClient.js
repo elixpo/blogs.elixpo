@@ -81,7 +81,9 @@ export class BlogClient {
   async get(id) {
     await this.requireScopes(['lixblogs:blog:read']);
     const result = await this.request(`/api/v1/blogs/${encodeURIComponent(id)}`);
-    return { ...result.payload.data, etag: result.etag || result.payload.data.etag };
+    // Production CDNs may rewrite the HTTP ETag as a weak validator. The API's
+    // JSON ETag is the authoritative strong validator required by If-Match.
+    return { ...result.payload.data, etag: result.payload.data.etag || result.etag };
   }
 
   async create(input, { idempotencyKey = randomUUID() } = {}) {
@@ -102,11 +104,12 @@ export class BlogClient {
     })).payload.data;
   }
 
-  async publish(id, { etag, idempotencyKey = randomUUID() }) {
+  async publish(id, { etag, status = 'published', idempotencyKey = randomUUID() }) {
     await this.requireScopes(['lixblogs:blog:publish']);
     return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/publish`, {
       method: 'POST',
       headers: { 'if-match': etag, 'idempotency-key': idempotencyKey },
+      body: JSON.stringify({ status }),
     })).payload.data;
   }
 
@@ -136,5 +139,34 @@ export class BlogClient {
     return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/restore`, {
       method: 'POST', headers: { 'if-match': etag },
     })).payload.data;
+  }
+
+  async versions(id) {
+    await this.requireScopes(['lixblogs:blog:read']);
+    return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/versions`)).payload.data;
+  }
+
+  async restoreVersion(id, versionId, { etag }) {
+    await this.requireScopes(['lixblogs:blog:write']);
+    return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/versions`, {
+      method: 'POST', headers: { 'if-match': etag }, body: JSON.stringify({ versionId }),
+    })).payload.data;
+  }
+
+  async comments(id) {
+    await this.requireScopes(['lixblogs:blog:read']);
+    return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/comments`)).payload.data;
+  }
+
+  async comment(id, content, { parentId } = {}) {
+    await this.requireScopes(['lixblogs:blog:write']);
+    return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/comments`, {
+      method: 'POST', body: JSON.stringify({ content, parentId }),
+    })).payload.data;
+  }
+
+  async deleteComment(id, commentId) {
+    await this.requireScopes(['lixblogs:blog:write']);
+    return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/comments/${encodeURIComponent(commentId)}`, { method: 'DELETE' })).payload.data;
   }
 }

@@ -38,18 +38,33 @@ import { BlogClient, BlogApiError } from "../src/api/BlogClient.js";
 import { OrgClient } from "../src/api/OrgClient.js";
 import { CollaborationClient } from "../src/api/CollaborationClient.js";
 import { AnalyticsClient } from "../src/api/AnalyticsClient.js";
+import { IntegrationsClient } from "../src/api/IntegrationsClient.js";
+import { MediaClient } from "../src/api/MediaClient.js";
 import { EXIT_CODES, errorEnvelope, normalizeCommand } from "../src/cli/contract.js";
-import { colorEnabled, listenForEnter, loginChallenge, successLine } from "../src/cli/ui.js";
+import {
+  colorEnabled,
+  errorLine,
+  infoLine,
+  listenForEnter,
+  loginChallenge,
+  successLine,
+  warningLine,
+  withProgress,
+} from "../src/cli/ui.js";
 import {
   blogCreate,
   blogDelete,
   blogEdit,
+  enrichBlogMutationResult,
   blogGet,
+  blogHistory,
   blogList,
   blogPublish,
   blogRestore,
+  blogRestoreVersion,
   blogUnpublish,
 } from "../src/commands/blog/index.js";
+import { blogMutationMessage, mediaMutationMessage } from "../src/cli/resultMessages.js";
 import {
   orgCollections,
   orgGet,
@@ -68,7 +83,11 @@ import {
 } from "../src/commands/collab/index.js";
 import { skillInspect, skillInstall, skillList } from "../src/commands/skill/index.js";
 import { analyticsExport, analyticsQuery } from "../src/commands/analytics/index.js";
-import { integrationDisconnect } from "../src/commands/integration/index.js";
+import { cloudinaryDisconnect } from "../src/commands/integrations/cloudinary-disconnect.js";
+import { cloudinaryStatus } from "../src/commands/integrations/cloudinary-status.js";
+import { mediaDelete, mediaGenerate, mediaUpload } from "../src/commands/media/index.js";
+import { commentAdd, commentDelete, commentList, commentReply } from "../src/commands/comment/index.js";
+
 
 const OPTIONS = {
   profile: { type: "string" },
@@ -119,6 +138,25 @@ const OPTIONS = {
   "hide-on-profile": { type: "boolean", default: false },
   target: { type: "string" },
   force: { type: "boolean", default: false },
+  prompt: { type: "string" },
+  reference: { type: "string" },
+  model: { type: "string" },
+  seed: { type: "string" },
+  width: { type: "string" },
+  height: { type: "string" },
+  blog: { type: "string" },
+  type: { type: "string" },
+  attach: { type: "boolean", default: false },
+  caption: { type: "string" },
+  "upload-id": { type: "string" },
+  version: { type: "string" },
+  parent: { type: "string" },
+  comment: { type: "string" },
+  "allow-comments": { type: "boolean", default: false },
+  "no-comments": { type: "boolean", default: false },
+  "cover-x": { type: "string" },
+  "cover-y": { type: "string" },
+  "cover-zoom": { type: "string" },
   help: { type: "boolean", short: "h", default: false },
 };
 
@@ -147,6 +185,12 @@ Usage:
   lixblogs blog delete <id> --yes [--permanent] [--dry-run] [--json]
   lixblogs blog trash <id> --yes [--dry-run] [--json]
   lixblogs blog restore <id> --yes [--dry-run] [--json]
+  lixblogs blog history <id> [--json]
+  lixblogs blog restore-version <id> --version <version-id> --yes [--json]
+  lixblogs comment list <blog-id> [--json]
+  lixblogs comment add <blog-id> --content <text> [--json]
+  lixblogs comment reply <blog-id> --parent <comment-id> --content <text> [--json]
+  lixblogs comment delete <blog-id> --comment <comment-id> --yes [--json]
   lixblogs org list          [--json]
   lixblogs org get <id>      [--json]
   lixblogs org collections <id> [--json]
@@ -161,10 +205,17 @@ Usage:
   lixblogs collab decline <blog-id> --yes
   lixblogs analytics query [--scope personal|org:<id>] [--range 30d] [--dimension overview]
   lixblogs analytics export --output <file> [--format json|csv] [query options]
+  lixblogs integrations cloudinary-status [--json]
+  lixblogs integrations cloudinary-disconnect --yes [--json]
+  lixblogs integrations pollinations-status [--json]
+  lixblogs integrations pollinations-disconnect --yes [--json]
+  lixblogs media generate --prompt <text> [--model flux] [--reference <image>] [--blog <id> --type inline|cover --attach] [--output <file>]
+  lixblogs media upload --file <image> --blog <id> [--type inline|cover] [--attach]
+  lixblogs media delete <media-id> --yes [--json]
   lixblogs skill list             [--json]
   lixblogs skill inspect <name>   [--json]
   lixblogs skill install <name>   [--target <directory>] [--dry-run] --yes
-  lixblogs disconnect cloudinary
+  lixblogs disconnect cloudinary --yes
   lixblogs disconnect pollinations
 
 Global flags:
@@ -199,7 +250,12 @@ Machine mode:
 
 const DEFAULT_SCOPES = [
   "openid", "profile", "email",
-  "lixblogs:profile:read", "lixblogs:blog:read",
+  "lixblogs:profile:read", "lixblogs:profile:write",
+  "lixblogs:blog:read", "lixblogs:blog:write", "lixblogs:blog:publish", "lixblogs:blog:delete",
+  "lixblogs:media:read", "lixblogs:media:write",
+  "lixblogs:organizations:read", "lixblogs:organizations:write",
+  "lixblogs:collaboration:read", "lixblogs:collaboration:write",
+  "lixblogs:analytics:read", "lixblogs:notifications:read",
 ];
 
 function configFlags(opts) {
@@ -240,9 +296,10 @@ function fail(opts, error, exitCode = EXIT_CODES.ERROR) {
   if (opts.json) {
     process.stdout.write(safeJsonStringify(envelope) + "\n");
   } else if (!opts.quiet) {
-    process.stderr.write(`Error: ${safeMessage}\n`);
-    if (value.hint) process.stderr.write(`Hint: ${value.hint}\n`);
-    if (value.requestId) process.stderr.write(`Request: ${value.requestId}\n`);
+    const color = colorEnabled(process.stderr);
+    process.stderr.write(`${errorLine(safeMessage, color)}\n`);
+    if (value.hint) process.stderr.write(`${warningLine(`Hint: ${value.hint}`, color)}\n`);
+    if (value.requestId) process.stderr.write(`${infoLine(`Request: ${value.requestId}`, color)}\n`);
   }
   process.exitCode = value.exitCode || exitCode;
 }
@@ -327,9 +384,9 @@ async function runLogin(opts) {
         } else if (status.type === "approved") {
           console.log(successLine("Access approved by Elixpo Accounts.", colorEnabled()));
         } else if (status.type === "denied") {
-          console.log("  Access denied.");
+          console.log(warningLine("Access denied.", colorEnabled()));
         } else if (status.type === "expired") {
-          console.log("  Device code expired.");
+          console.log(warningLine("Device code expired.", colorEnabled()));
         }
       },
     });
@@ -344,9 +401,8 @@ async function runLogin(opts) {
   await profileRegistry.setActive(result.profileId);
   output(opts, { ok: true, profile: result.profileId });
   if (!opts.json && !opts.quiet) {
-    console.log(`  Credentials saved to local profile "${result.profileId}".`);
-    console.log("  Tip: add another account with `lixblogs login`, list accounts with `lixblogs profiles`,");
-    console.log("       and switch with `lixblogs use <username>`.");
+    console.log(successLine(`Credentials saved to local profile "${result.profileId}".`, colorEnabled()));
+    console.log(infoLine("Add another account with `lixblogs login`; switch with `lixblogs use <username>`.", colorEnabled()));
   }
 }
 
@@ -389,10 +445,10 @@ async function runWhoami(opts) {
   const context = await authenticatedBlogClient(opts);
   if (!context) return;
   try {
-    const [identity, credentials] = await Promise.all([
-      context.client.whoami(),
-      context.credentialStore.get(context.profileId),
-    ]);
+    const [identity, credentials] = await withProgress(opts, "Loading account…", () => Promise.all([
+        context.client.whoami(),
+        context.credentialStore.get(context.profileId),
+      ]));
     const result = {
       ok: true,
       profile: context.profileId,
@@ -423,7 +479,7 @@ async function runRegister(opts) {
     return;
   }
   await openBrowser(registrationUrl);
-  if (!opts.quiet) console.log(`Create your account at ${registrationUrl}, then approve the device login.`);
+  if (!opts.quiet) console.log(infoLine(`Create your account at ${registrationUrl}, then approve the device login.`, colorEnabled()));
   await runLogin(opts);
 }
 
@@ -437,7 +493,7 @@ async function runLogout(opts) {
   const result = await authLogout({ credentialStore, profileId });
   output(opts, result);
   if (!opts.json && !opts.quiet) {
-    console.log(`Logged out profile "${profileId}".`);
+    console.log(successLine(`Logged out profile "${profileId}".`, colorEnabled()));
   }
 }
 
@@ -479,10 +535,53 @@ async function runRevoke(opts) {
   }
   output(opts, result);
   if (!opts.json && !opts.quiet) {
-    console.log(`Revoked and logged out profile "${profileId}".`);
+    console.log(successLine(`Revoked and logged out profile "${profileId}".`, colorEnabled()));
   }
 }
+async function runIntegrations(opts, args, action) {
+  const config = resolveConfig({ flags: configFlags(opts) });
+  const profileRegistry = new ProfileRegistry();
+  const profileId = await selectedProfile(config, profileRegistry);
 
+  if ((action === 'cloudinary-disconnect' || action === 'pollinations-disconnect') && !opts.yes) {
+    return fail(
+      opts,
+      "This is a destructive action. Re-run with --yes to confirm (interactive confirmation prompt not yet implemented)."
+    );
+  }
+
+  let provider;
+  try {
+    provider = createAuthProvider(config);
+  } catch (err) {
+    return fail(opts, err.message);
+  }
+  const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
+  if (!credentialStore) return;
+
+  const http = new AuthenticatedClient({
+    provider, credentialStore, profileId, apiBaseUrl: config.apiBaseUrl,
+  });
+  const integrationsClient = new IntegrationsClient(http);
+
+  const result = await withProgress(opts, action.endsWith('status') ? "Checking integration…" : "Disconnecting integration…", async () => {
+    if (action === 'cloudinary-status') return cloudinaryStatus({ integrationsClient });
+    if (action === 'cloudinary-disconnect') return cloudinaryDisconnect({ integrationsClient, confirmed: true });
+    try {
+      return { ok: true, data: action === 'pollinations-status'
+        ? await integrationsClient.pollinationsStatus({ refresh: opts.force })
+        : await integrationsClient.pollinationsDisconnect() };
+    } catch (error) { return { ok: false, error }; }
+  });
+
+  if (!result.ok) return fail(opts, result.error || result.reason);
+  output(opts, result);
+  if (!opts.json && !opts.quiet) {
+    if (action === 'cloudinary-status') console.log(infoLine(`Cloudinary: ${result.data.connected ? `connected (${result.data.cloudName})` : 'not connected'}`, colorEnabled()));
+    else if (action === 'pollinations-status') console.log(infoLine(`Pollinations: ${result.data.connected ? `connected${result.data.handle ? ` as ${result.data.handle}` : ''} · ${result.data.balance ?? 'unknown'} Pollen` : `${result.data.status}. Connect at ${result.data.connectUrl || 'https://blogs.elixpo.com/settings?tab=integrations'}`}`, colorEnabled()));
+    else console.log(successLine(`${action.startsWith('pollinations') ? 'Pollinations' : 'Cloudinary'} connection disconnected.`, colorEnabled()));
+  }
+}
 async function runProfiles(opts) {
   const profileRegistry = new ProfileRegistry();
   const credentialStore = await getCredentialStoreOrFail(opts, profileRegistry);
@@ -490,7 +589,7 @@ async function runProfiles(opts) {
   const result = await authProfiles({ credentialStore, profileRegistry });
   output(opts, result);
   if (!opts.json) {
-    if (!result.profiles.length) console.log("No profiles. Run `lixblogs auth login` first.");
+    if (!result.profiles.length) console.log(warningLine("No profiles. Run `lixblogs auth login` first.", colorEnabled()));
     for (const profile of result.profiles) {
       console.log(`${profile.active ? "*" : " "} ${profile.profileId}${profile.expired ? " (expired)" : ""}`);
     }
@@ -510,7 +609,7 @@ async function runUse(opts, args) {
   const result = await authUse({ credentialStore, profileRegistry, profileId });
   if (!result.ok) return fail(opts, result.reason);
   output(opts, result);
-  if (!opts.json && !opts.quiet) console.log(`Using profile "${profileId}".`);
+  if (!opts.json && !opts.quiet) console.log(successLine(`Using profile "${profileId}".`, colorEnabled()));
 }
 
 const BLOG_COMMANDS = {
@@ -524,6 +623,8 @@ const BLOG_COMMANDS = {
   delete: blogDelete,
   trash: blogDelete,
   restore: blogRestore,
+  history: blogHistory,
+  'restore-version': blogRestoreVersion,
 };
 
 const ORG_COMMANDS = {
@@ -555,6 +656,9 @@ const ANALYTICS_COMMANDS = {
   export: analyticsExport,
 };
 
+const MEDIA_COMMANDS = { generate: mediaGenerate, upload: mediaUpload, delete: mediaDelete };
+const COMMENT_COMMANDS = { list: commentList, add: commentAdd, reply: commentReply, delete: commentDelete };
+
 async function runBlog(opts, args, action) {
   const config = resolveConfig({ flags: configFlags(opts) });
   const profileRegistry = new ProfileRegistry();
@@ -572,20 +676,25 @@ async function runBlog(opts, args, action) {
     limit: opts.limit === undefined ? undefined : Number.parseInt(opts.limit, 10),
   };
   try {
-    const result = await BLOG_COMMANDS[action]({
-      client, id: args[0], options: normalized, stdin: process.stdin,
+    const result = await withProgress(opts, `${action === 'list' ? 'Loading' : action === 'get' || action === 'preview' ? 'Opening' : 'Updating'} blog…`, async () => {
+      const commandResult = await BLOG_COMMANDS[action]({
+        client, id: args[0], options: normalized, stdin: process.stdin,
+      });
+      return enrichBlogMutationResult({ client, action, result: commandResult });
     });
     output(opts, { ok: true, ...result });
     if (!opts.json && !opts.quiet) {
       if (action === 'list') {
         for (const blog of result.data || []) console.log(`${blog.id}\t${blog.status}\t${blog.title || '(untitled)'}`);
-        if (result.meta?.nextCursor) console.log(`Next cursor: ${result.meta.nextCursor}`);
-      } else if (action === 'get') {
+        if (result.meta?.nextCursor) console.log(infoLine(`Next cursor: ${result.meta.nextCursor}`, colorEnabled()));
+      } else if (action === 'get' || action === 'preview') {
         console.log(`${result.title || '(untitled)'} [${result.status}]\n${result.markdown || ''}`);
+      } else if (action === 'history') {
+        for (const version of result.data || []) console.log(`${version.id}\t${version.label || 'snapshot'}\t${version.created_at}\t${version.username || 'system'}`);
       } else if (result.dryRun) {
-        console.log(`Dry run: ${action} validated; no changes sent.`);
+        console.log(warningLine(`Dry run: ${action} validated; no changes sent.`, colorEnabled()));
       } else {
-        console.log(result.url || `${action} completed for ${result.id}.`);
+        console.log(successLine(blogMutationMessage(action, result), colorEnabled()));
       }
     }
   } catch (error) {
@@ -606,7 +715,7 @@ async function runOrg(opts, args, action) {
   if (!context) return;
   const client = new OrgClient(context.http);
   try {
-    const result = await ORG_COMMANDS[action]({ client, id: args[0], options: opts });
+    const result = await withProgress(opts, "Loading organization…", () => ORG_COMMANDS[action]({ client, id: args[0], options: opts }));
     output(opts, { ok: true, data: result });
     if (opts.json || opts.quiet) return;
     if (action === 'targets') {
@@ -633,16 +742,49 @@ async function runOrg(opts, args, action) {
   }
 }
 
+async function runMedia(opts, args, action) {
+  const context = await authenticatedBlogClient(opts);
+  if (!context) return;
+  try {
+    const message = action === 'generate' ? 'Generating image…' : action === 'upload' ? 'Uploading image…' : 'Deleting media…';
+    const result = await withProgress(opts, message, () => MEDIA_COMMANDS[action]({
+        mediaClient: new MediaClient(context.http), blogClient: context.client, id: args[0], options: opts,
+      }));
+    output(opts, { ok: true, data: result });
+    if (!opts.json && !opts.quiet) {
+      console.log(successLine(mediaMutationMessage(action, result, opts.blog), colorEnabled()));
+    }
+  } catch (error) { fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR); }
+}
+
+async function runComment(opts, args, action) {
+  const context = await authenticatedBlogClient(opts);
+  if (!context) return;
+  try {
+    const result = await withProgress(opts, action === 'list' ? "Loading comments…" : "Updating comments…", () => COMMENT_COMMANDS[action]({ client: context.client, id: args[0], options: opts }));
+    output(opts, { ok: true, data: result });
+    if (!opts.json && !opts.quiet) {
+      if (action === 'list') {
+        for (const row of result) console.log(`${row.id}\t${row.parent_id ? 'reply' : 'comment'}\t${row.display_name || row.username || 'Anonymous'}\t${row.content}`);
+      } else console.log(successLine(`${action} completed for ${result.id}.`, colorEnabled()));
+    }
+  } catch (error) { fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR); }
+}
+
 async function runCollab(opts, args, action) {
   const context = await authenticatedBlogClient(opts);
   if (!context) return;
   const client = new CollaborationClient(context.http);
   try {
-    const result = await COLLAB_COMMANDS[action]({ client, id: args[0], options: opts });
+    const result = await withProgress(opts, "Updating collaborators…", () => COLLAB_COMMANDS[action]({ client, id: args[0], options: opts }));
     output(opts, { ok: true, data: result });
     if (opts.json || opts.quiet) return;
     if (result.dryRun) {
-      console.log(`Dry run: ${result.action} validated; no changes sent.`);
+      console.log(warningLine(`Dry run: ${result.action} validated; no changes sent.`, colorEnabled()));
+      return;
+    }
+    if (action !== 'list' && action !== 'invitations') {
+      console.log(successLine(`${action} completed for ${result.blogId || result.userId || args[0]}.`, colorEnabled()));
       return;
     }
     const rows = action === 'invitations'
@@ -674,9 +816,9 @@ async function runSkill(opts, args, action) {
     } else if (action === 'inspect') {
       process.stdout.write(result.content);
     } else if (result.dryRun) {
-      console.log(`Dry run: install ${result.name} to ${result.target}${result.replace ? ' (replace)' : ''}.`);
+      console.log(warningLine(`Dry run: install ${result.name} to ${result.target}${result.replace ? ' (replace)' : ''}.`, colorEnabled()));
     } else {
-      console.log(`Installed ${result.name} at ${result.target}.`);
+      console.log(successLine(`Installed ${result.name} at ${result.target}.`, colorEnabled()));
     }
   } catch (error) {
     fail(opts, error);
@@ -692,11 +834,11 @@ async function runAnalytics(opts, _args, action) {
     limit: opts.limit === undefined ? undefined : Number.parseInt(opts.limit, 10),
   };
   try {
-    const result = await ANALYTICS_COMMANDS[action]({ client, options: normalized });
+    const result = await withProgress(opts, action === 'export' ? "Exporting analytics…" : "Loading analytics…", () => ANALYTICS_COMMANDS[action]({ client, options: normalized }));
     output(opts, { ok: true, data: result });
     if (opts.json || opts.quiet) return;
     if (action === 'export') {
-      console.log(`Exported ${result.rows} rows to ${result.output}.`);
+      console.log(successLine(`Exported ${result.rows} rows to ${result.output}.`, colorEnabled()));
       return;
     }
     const payload = result.data;
@@ -713,21 +855,6 @@ async function runAnalytics(opts, _args, action) {
     }
   } catch (error) {
     fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR);
-  }
-}
-
-async function runIntegration(opts, args, action) {
-  const context = await authenticatedBlogClient(opts);
-  if (!context) return;
-  const client = context.client;
-  try {
-    const result = await integrationDisconnect({ client, target: action });
-    output(opts, { ok: true, data: result });
-    if (!opts.json && !opts.quiet) {
-      console.log(`Disconnected ${result.provider}.`);
-    }
-  } catch (error) {
-    fail(opts, error);
   }
 }
 
@@ -761,9 +888,23 @@ const ROUTES = {
     action,
     (opts, args) => runAnalytics(opts, args, action),
   ])),
+  media: Object.fromEntries(Object.keys(MEDIA_COMMANDS).map((action) => [
+    action,
+    (opts, args) => runMedia(opts, args, action),
+  ])),
+  comment: Object.fromEntries(Object.keys(COMMENT_COMMANDS).map((action) => [
+    action,
+    (opts, args) => runComment(opts, args, action),
+  ])),
+  integrations: {
+    'cloudinary-status': (opts, args) => runIntegrations(opts, args, 'cloudinary-status'),
+    'cloudinary-disconnect': (opts, args) => runIntegrations(opts, args, 'cloudinary-disconnect'),
+    'pollinations-status': (opts, args) => runIntegrations(opts, args, 'pollinations-status'),
+    'pollinations-disconnect': (opts, args) => runIntegrations(opts, args, 'pollinations-disconnect'),
+  },
   disconnect: {
-    cloudinary: (opts, args) => runIntegration(opts, args, 'cloudinary'),
-    pollinations: (opts, args) => runIntegration(opts, args, 'pollinations'),
+    cloudinary: (opts, args) => runIntegrations(opts, args, 'cloudinary-disconnect'),
+    pollinations: (opts, args) => runIntegrations(opts, args, 'pollinations-disconnect'),
   },
 };
 

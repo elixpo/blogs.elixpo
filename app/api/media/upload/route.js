@@ -16,9 +16,27 @@ import { isAllowedMime, ALLOWED_IMAGE_MIME_TYPES } from '../../../../src/utils/a
 // Profile image types — these get overwritten (no history), no storage tracking
 const PROFILE_TYPES = ['avatar', 'banner', 'org_avatar', 'org_banner'];
 
+function uploadTransformation(mediaType) {
+  if (mediaType === 'avatar' || mediaType === 'org_avatar') return 'c_fill,g_face,w_512,h_512,q_auto:low,f_webp';
+  if (mediaType === 'banner' || mediaType === 'org_banner' || mediaType === 'cover') return 'c_limit,w_1920,h_1080,q_auto:low,f_webp';
+  return 'c_limit,w_1920,q_auto:low,f_webp';
+}
+
+async function uploadIdentity(request) {
+  const session = await getSession();
+  if (session?.userId) return session;
+  if (!request.headers.get('authorization')?.startsWith('Bearer ')) return null;
+  try {
+    const { requireBearerAuth } = await import('../../../../lib/api/v1/bearerAuth');
+    const { getDB } = await import('../../../../lib/cloudflare');
+    const auth = await requireBearerAuth(request, ['lixblogs:media:write'], { db: getDB() });
+    return { ...auth, apiClientId: auth.clientId };
+  } catch { return null; }
+}
+
 export async function POST(request) {
   try {
-    const session = await getSession();
+    const session = await uploadIdentity(request);
     if (!session?.userId) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -89,19 +107,37 @@ export async function POST(request) {
     let trackedBlogId = null;
     let storageTarget = { provider: PLATFORM_CLOUDINARY, cloudName: null, config: null };
 
+    if (session.credentialType === 'pat' && isProfileImage) {
+      const isOrgImage = mediaType === 'org_avatar' || mediaType === 'org_banner';
+      const allowed = session.resourceType === 'organization'
+        ? isOrgImage && orgId === session.organizationId
+        : !isOrgImage;
+      if (!allowed) {
+        return NextResponse.json({ error: 'This token cannot update media for that account or organization' }, { status: 403 });
+      }
+    }
+
     // A new editor URL has a blog id before its draft row exists. In that case,
     // stage the media with a NULL blog_id and attach it when the draft is saved.
     // Existing blogs still require edit permission before their media path can
     // be overwritten.
     if (db && !isProfileImage && blogId) {
-      const blog = await db.prepare('SELECT id FROM blogs WHERE id = ?').bind(blogId).first();
+      const blog = await db.prepare('SELECT id, author_id, published_as FROM blogs WHERE id = ?').bind(blogId).first();
       if (blog) {
+        if (session.credentialType === 'pat') {
+          const { credentialAllowsPublishedAs } = await import('../../../../lib/api/v1/personalAccessTokens');
+          if (!credentialAllowsPublishedAs(session, blog.published_as)) {
+            return NextResponse.json({ error: 'This token cannot upload media for that blog' }, { status: 403 });
+          }
+        }
         const { canEditBlog } = await import('../../../../lib/permissions');
         const perm = await canEditBlog(db, blogId, session.userId);
         if (!perm.ok) {
           return NextResponse.json({ error: 'Not authorized to upload media for this blog' }, { status: 403 });
         }
         trackedBlogId = blogId;
+      } else if (session.credentialType === 'pat' && session.resourceType === 'organization') {
+        return NextResponse.json({ error: 'Organization tokens require an existing blog before media can be attached' }, { status: 403 });
       }
     }
 
@@ -273,6 +309,7 @@ export async function POST(request) {
         folder,
         publicId,
         mimeType: file.type,
+        transformation: uploadTransformation(mediaType),
         // Covers also use a deterministic public id (`.../<blogId>/cover`).
         // Without overwrite, every replacement is rejected by Cloudinary
         // because the asset already exists.
@@ -328,7 +365,7 @@ export async function POST(request) {
     // Blog content images: track in media_uploads + update storage
     if (db) {
       try {
-        const fileBytes = file.size;
+        const fileBytes = Number(result.bytes) || file.size;
         const mediaId = uploadId || crypto.randomUUID();
         const now = Math.floor(Date.now() / 1000);
 
@@ -411,7 +448,7 @@ export async function POST(request) {
 // Remove a profile image → clears the DB pointer so it falls back to the default
 // (avatar → initials, banner → blank, org logo → pixel avatar). Body: { type, orgId }.
 export async function DELETE(request) {
-  const session = await getSession();
+  const session = await uploadIdentity(request);
   if (!session?.userId) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
@@ -424,6 +461,14 @@ export async function DELETE(request) {
   try {
     const { getDB } = await import('../../../../lib/cloudflare');
     const db = getDB();
+
+    if (session.credentialType === 'pat') {
+      const isOrgImage = type === 'org_avatar' || type === 'org_banner';
+      const allowed = session.resourceType === 'organization'
+        ? isOrgImage && orgId === session.organizationId
+        : !isOrgImage;
+      if (!allowed) return NextResponse.json({ error: 'This token cannot update media for that account or organization' }, { status: 403 });
+    }
 
     if (type === 'org_avatar' || type === 'org_banner') {
       if (!orgId) return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });

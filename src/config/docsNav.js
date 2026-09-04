@@ -8,6 +8,7 @@ export const docsNav = [
       { title: 'Media and storage', slug: 'media-storage', description: 'Upload, track, replace, and delete covers and editor images.' },
       { title: 'Creator analytics', slug: 'creator-analytics', description: 'Read creator metrics, compare date ranges, and export reports.' },
       { title: 'LixBlogs CLI', slug: 'cli', description: 'Authenticate, write, publish, and automate through the supported command line.' },
+      { title: 'API automation', slug: 'api', description: 'Create scoped access tokens and automate publishing through the versioned API.' },
     ],
   },
   {
@@ -16,6 +17,7 @@ export const docsNav = [
       { title: 'Integrations overview', slug: 'integrations', description: 'Connect services, understand permissions, and disconnect them safely.' },
       { title: 'Cloudinary storage', slug: 'cloudinary', description: 'Store new blog media in your own Cloudinary product environment.' },
       { title: 'LixRL short links', slug: 'lixrl', description: 'Create account-owned lixrl.com links from the editor.' },
+      { title: 'Pollinations images', slug: 'pollinations', description: 'Generate blog images with your own Pollen balance and scoped authorization.' },
     ],
   },
   {

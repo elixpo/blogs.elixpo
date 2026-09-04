@@ -6,6 +6,34 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { requireConfirmation } from '../../cli/contract.js';
 
+const MUTATION_ACTIONS = new Set([
+  'create',
+  'edit',
+  'publish',
+  'unpublish',
+  'delete',
+  'trash',
+  'restore',
+  'restore-version',
+]);
+
+export async function enrichBlogMutationResult({ client, action, result }) {
+  if (!MUTATION_ACTIONS.has(action) || result?.dryRun || !result?.id) return result;
+  if (result.url && result.status) return result;
+  try {
+    const current = await client.get(result.id);
+    return {
+      ...result,
+      status: current.status || result.status,
+      url: current.url || result.url,
+    };
+  } catch {
+    // The write already succeeded. A presentation-only follow-up read must not
+    // turn it into a failed command (notably after permanent deletion).
+    return result;
+  }
+}
+
 export async function blogList({ client, options }) {
   return client.list({ status: options.status, limit: options.limit, cursor: options.cursor });
 }
@@ -55,9 +83,23 @@ export async function blogPublish({ client, id, options }) {
   if (!id) throw new Error('A blog ID is required.');
   const current = await client.get(id);
   validateBlogInput(current, { publishing: true });
-  if (options['dry-run']) return { dryRun: true, id, from: current.status, to: 'published' };
+  const targetStatus = options.status || 'published';
+  if (!['published', 'unlisted'].includes(targetStatus)) throw new Error('--status must be published or unlisted.');
+  if (options['dry-run']) return { dryRun: true, id, from: current.status, to: targetStatus };
   requireConfirmation(options, 'Publishing this blog');
-  return client.publish(id, { etag: options.etag || current.etag, idempotencyKey: options['idempotency-key'] });
+  return client.publish(id, { etag: options.etag || current.etag, status: targetStatus, idempotencyKey: options['idempotency-key'] });
+}
+
+export async function blogHistory({ client, id }) {
+  if (!id) throw new Error('A blog ID is required.');
+  return { data: await client.versions(id) };
+}
+
+export async function blogRestoreVersion({ client, id, options }) {
+  if (!id || !options.version) throw new Error('A blog ID and --version are required.');
+  requireConfirmation(options, 'Restoring this historical version');
+  const current = await client.get(id);
+  return client.restoreVersion(id, options.version, { etag: options.etag || current.etag });
 }
 
 export async function blogUnpublish({ client, id, options }) {
@@ -73,7 +115,12 @@ export async function blogDelete({ client, id, options }) {
   if (!options.yes) throw new Error('Deletion requires --yes. Trash is the default; add --permanent for irreversible deletion.');
   const current = await client.get(id);
   if (options['dry-run']) return { dryRun: true, id, permanent: options.permanent };
-  return client.delete(id, { etag: options.etag || current.etag, permanent: options.permanent });
+  const result = await client.delete(id, { etag: options.etag || current.etag, permanent: options.permanent });
+  return {
+    ...result,
+    status: options.permanent ? 'deleted' : 'trashed',
+    url: current.url || result.url,
+  };
 }
 
 export async function blogRestore({ client, id, options }) {

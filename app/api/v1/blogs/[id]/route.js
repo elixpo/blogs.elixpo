@@ -18,9 +18,11 @@ import { checkIfMatch } from '../../../../../lib/api/v1/preconditions';
 import { apiError, apiSuccess, requestContext } from '../../../../../lib/api/v1/responses';
 import { compressBlogContent, decompressBlogContent } from '../../../../../lib/compress';
 import { excerptFromBlocks } from '../../../../../lib/excerpt';
+import { getBlogCanonicalPath } from '../../../../../lib/blogUrl';
 import { ensureUniqueBlogSlug } from '../../../../../lib/namespace';
 import { canEditBlog } from '../../../../../lib/permissions';
 import { readTimeFromWords } from '../../../../../lib/readTime';
+import { credentialAllowsPublishedAs } from '../../../../../lib/api/v1/personalAccessTokens';
 
 const READ_SCOPE = 'lixblogs:blog:read';
 
@@ -58,10 +60,11 @@ export async function GET(request, { params }) {
       return apiError(context, 'blog_not_found', 'The blog was not found.', 404, { headers: rateHeaders });
     }
 
-    const [tags, permission, etag] = await Promise.all([
+    const [tags, permission, etag, canonicalPath] = await Promise.all([
       db.prepare('SELECT tag FROM blog_tags WHERE blog_id = ? ORDER BY tag').bind(blog.id).all(),
       canEditBlog(db, blog.id, auth.userId),
       blogEntityTag(blog),
+      getBlogCanonicalPath(db, blog.id),
     ]);
     let content = blog.content;
     try { content = decompressBlogContent(content); } catch {}
@@ -91,6 +94,7 @@ export async function GET(request, { params }) {
       coverPosition: { x: blog.cover_pos_x ?? 50, y: blog.cover_pos_y ?? 50 },
       coverZoom: blog.cover_zoom ?? 1,
       memberOnly: Boolean(blog.member_only),
+      allowComments: Boolean(blog.allow_comments),
       secret: Boolean(blog.secret),
       canEdit: Boolean(permission.ok),
       createdAt: blog.created_at,
@@ -98,6 +102,7 @@ export async function GET(request, { params }) {
       publishedAt: blog.published_at || null,
       deletedAt: blog.deleted_at || null,
       preDeleteStatus: blog.pre_delete_status || null,
+      url: `https://blogs.elixpo.com${canonicalPath}`,
       etag,
     }, { headers: { ...rateHeaders, ETag: etag } });
   } catch (error) {
@@ -138,6 +143,9 @@ export async function PATCH(request, { params }) {
     const target = owner
       ? await requirePublishTarget(db, auth.userId, input.publishedAs || current.published_as, input.collectionId ?? current.collection_id)
       : { publishedAs: current.published_as, collectionId: current.collection_id };
+    if (!credentialAllowsPublishedAs(auth, target.publishedAs)) {
+      return apiError(context, 'credential_scope_forbidden', 'This token cannot move the blog to that account or organization.', 403, { headers: rateHeaders });
+    }
     await requireMemberOnlyAllowed(db, current.author_id, input.memberOnly, Boolean(current.member_only));
     const slug = owner && input.slug !== undefined
       ? await ensureUniqueBlogSlug(db, slugify(input.slug), id, { authorId: current.author_id, publishAs: target.publishedAs })
@@ -147,14 +155,17 @@ export async function PATCH(request, { params }) {
 
     await db.prepare(`
       UPDATE blogs SET title = ?, subtitle = ?, slug = ?, content = ?, excerpt = ?, published_as = ?,
-        collection_id = ?, page_emoji = ?, cover_image_r2_key = ?, secret = ?, member_only = ?,
-        read_time_minutes = ?, updated_at = ?
+        collection_id = ?, page_emoji = ?, cover_image_r2_key = ?, cover_pos_x = ?, cover_pos_y = ?,
+        cover_zoom = ?, secret = ?, member_only = ?, allow_comments = ?, read_time_minutes = ?, updated_at = ?
       WHERE id = ?
     `).bind(
       input.title ?? current.title ?? '', input.subtitle ?? current.subtitle ?? '', slug,
       compressBlogContent(content), excerptFromBlocks(content), target.publishedAs, target.collectionId,
       input.emoji ?? current.page_emoji ?? '', input.coverUrl ?? current.cover_image_r2_key ?? '',
+      input.coverPosition?.x ?? current.cover_pos_x ?? 50, input.coverPosition?.y ?? current.cover_pos_y ?? 50,
+      input.coverZoom ?? current.cover_zoom ?? 1,
       secret ? 1 : 0, (input.memberOnly ?? Boolean(current.member_only)) ? 1 : 0,
+      (input.allowComments ?? Boolean(current.allow_comments)) ? 1 : 0,
       readTimeFromWords(countBlockWords(content)), now, id,
     ).run();
     if (input.tags !== undefined) {
