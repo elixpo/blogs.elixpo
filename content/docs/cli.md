@@ -23,6 +23,23 @@ lixblogs logout
 
 Credentials are stored in the operating-system keychain. On a headless system, the CLI fails closed unless you explicitly select its non-persistent fallback.
 
+### Authenticate automation with a personal access token
+
+Create a scoped token in **Settings → API** for CI jobs, containers, or scheduled processes. Pass it through the process environment:
+
+```bash
+LIXBLOGS_TOKEN="$LIXBLOGS_PAT" lixblogs blog list --json --no-input
+```
+
+Or mount it as a secret file:
+
+```bash
+lixblogs --token-file /run/secrets/lixblogs blog list --json --no-input
+LIXBLOGS_TOKEN_FILE=/run/secrets/lixblogs lixblogs whoami --json --no-input
+```
+
+Credential resolution is deterministic: `--token-file`, then `LIXBLOGS_TOKEN`, then `LIXBLOGS_TOKEN_FILE`, then the active device-login profile. Direct tokens are not persisted locally. The API remains authoritative for their scopes and personal or organization boundary.
+
 ## Profiles and scopes
 
 ```bash
