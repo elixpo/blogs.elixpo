@@ -59,8 +59,8 @@ function NewUserActions({ user, authLoading }) {
               <ion-icon name={action.icon} style={{ fontSize: '16px' }} />
             </span>
             <span className="min-w-0">
-              <span className="block whitespace-nowrap text-[12px] font-semibold text-[var(--text-primary)]">{action.label}</span>
-              <span className="block whitespace-nowrap text-[10px] text-[var(--text-faint)]">{action.description}</span>
+              <span className="block truncate text-[12px] font-semibold text-[var(--text-primary)]" title={action.label}>{action.label}</span>
+              <span className="block truncate text-[10px] text-[var(--text-faint)]" title={action.description}>{action.description}</span>
             </span>
           </Link>
         ))}
