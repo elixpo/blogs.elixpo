@@ -29,14 +29,7 @@ export const docsNav = [
   {
     title: 'LixEditor Developers',
     items: [
-      { title: 'Editor overview', slug: 'editor-overview', description: 'Understand the block editor package that powers LixBlogs.' },
-      { title: 'Installation', slug: 'installation', description: 'Install the package via npm.' },
-      { title: 'Quick Start', slug: 'quick-start', description: 'Render your first editor.' },
-      { title: '<LixEditor> Props', slug: 'props', description: 'All supported props.' },
-      { title: 'Imperative API (ref)', slug: 'imperative-api', description: 'getBlocks, getEditor, replaceBlocks.' },
-      { title: 'Block Model', slug: 'block-model', description: 'The shape of a block and built-in types.' },
-      { title: 'Markdown & Slash Commands', slug: 'markdown-shortcuts', description: 'Shortcuts while typing.' },
-      { title: 'Rendering Stored Content', slug: 'rendering', description: 'Read-only render of saved blocks.' },
+      { title: 'LixEditor Developer Guide', slug: 'lixeditor', description: 'Overview, installation, quick start, props, imperative API, block model, markdown shortcuts, and rendering.' },
     ],
   },
 ];
