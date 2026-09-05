@@ -15,6 +15,13 @@ export async function GET() {
       audience: 'blogs.elixpo.com',
       tokenSettings: 'https://blogs.elixpo.com/settings?tab=api',
     },
+    capabilities: {
+      secretPublishing: {
+        scope: 'lixblogs:blog:write',
+        semantics: 'anonymous-public',
+        mutableWhile: 'draft',
+      },
+    },
     resources: {
       profile: '/api/v1/me',
       blogs: '/api/v1/blogs',

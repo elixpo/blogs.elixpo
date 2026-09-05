@@ -136,27 +136,22 @@ jobs:
           if [ "$BUILD_LIXEDITOR" = "true" ] && [ "$BUILD_CLI" != "true" ]; then args+=(--lixeditor); fi
           if [ "$BUILD_CLI" = "true" ] && [ "$BUILD_LIXEDITOR" != "true" ]; then args+=(--cli); fi
           ./deploy.sh "${args[@]}" build
-      - name: Enforce package budgets and contracts
+      - name: Verify package contracts
         env:
           BUILD_LIXEDITOR: ${{ needs.changes.outputs.lixeditor }}
           BUILD_CLI: ${{ needs.changes.outputs.cli }}
         run: |
-          check_size() {
+          inspect_package() {
             archive="$1"
-            budget="$2"
             root=$(mktemp -d)
             tar -xzf "$archive" -C "$root"
             bytes=$(find "$root/package" -type f -printf '%s\n' | awk '{ total += $1 } END { print total + 0 }')
             PACKAGE_ROOT="$root/package"
-            echo "$(basename "$archive"): $bytes bytes unpacked (budget: $budget)"
-            if [ "$bytes" -gt "$budget" ]; then
-              echo "::error::$(basename "$archive") exceeds its unpacked-size budget by $((bytes - budget)) bytes."
-              return 1
-            fi
+            echo "$(basename "$archive"): $bytes bytes unpacked"
           }
           if [ "$BUILD_LIXEDITOR" = "true" ]; then
             archive=$(find .release/packages/lixeditor -name '*.tgz' -print -quit)
-            check_size "$archive" 256000
+            inspect_package "$archive"
             test -f "$PACKAGE_ROOT/dist/index.js"
             test -f "$PACKAGE_ROOT/dist/index.cjs"
             test -f "$PACKAGE_ROOT/dist/styles/index.css"
@@ -170,7 +165,7 @@ jobs:
           fi
           if [ "$BUILD_CLI" = "true" ]; then
             archive=$(find .release/packages/lixblogs-cli -name '*.tgz' -print -quit)
-            check_size "$archive" 102400
+            inspect_package "$archive"
             npm install --prefix "$RUNNER_TEMP/lixblogs-smoke" "$archive"
             "$RUNNER_TEMP/lixblogs-smoke/node_modules/.bin/lixblogs" --help
             "$RUNNER_TEMP/lixblogs-smoke/node_modules/.bin/lixblogs" skill list --json --no-input

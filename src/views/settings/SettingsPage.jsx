@@ -1602,7 +1602,7 @@ const TOKEN_SCOPE_LABELS = {
   'lixblogs:profile:read': 'Read profile',
   'lixblogs:profile:write': 'Update profile',
   'lixblogs:blog:read': 'Read blogs and revisions',
-  'lixblogs:blog:write': 'Create and update blogs',
+  'lixblogs:blog:write': 'Create and update blogs, including secret drafts',
   'lixblogs:blog:publish': 'Publish and unpublish blogs',
   'lixblogs:blog:delete': 'Trash and delete blogs',
   'lixblogs:media:read': 'Read media',
