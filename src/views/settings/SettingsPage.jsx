@@ -173,6 +173,14 @@ function AccountTab({ user, refetchUser }) {
             </div>
           </div>
 
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[13px] text-[var(--text-body)] font-medium hover:text-[var(--text-primary)] hover:border-[#9b7bf7]/50 hover:bg-[#9b7bf7]/10 transition-all"
+          >
+            <ion-icon name="create-outline" style={{ fontSize: '16px' }} />
+            Edit profile
+          </Link>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[13px] text-[var(--text-primary)] mb-1 block font-medium">Display name</label>
