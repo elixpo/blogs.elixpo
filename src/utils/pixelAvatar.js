@@ -1,10 +1,11 @@
 /**
- * Deterministic pixel art generators for avatars and banners.
- * Pixels cluster near corners/edges with a solid color center.
+ * Deterministic Neo-brutalist generators for avatars and banners.
+ * Uses stark contrasts, thick black borders, hard shadows, and basic geometry
+ * to create a trendy, high-impact "Neubrutalism" aesthetic.
  */
 
 // Shared hash function
-function hashSeed(seed) {
+export function hashSeed(seed) {
   let hash = 0;
   const s = seed || 'default';
   for (let i = 0; i < s.length; i++) {
@@ -13,183 +14,206 @@ function hashSeed(seed) {
   return Math.abs(hash);
 }
 
-// Curated palettes: [bg, primary, accent]
-const PALETTES = [
-  ['#1a1040', '#c084fc', '#e9d5ff'], // purple → lavender
-  ['#0f2a1a', '#4ade80', '#bbf7d0'], // green → mint
-  ['#0c1a2e', '#60a5fa', '#bfdbfe'], // navy → sky blue
-  ['#2a1215', '#fb7185', '#fecdd3'], // rose → pink
-  ['#1a1708', '#fbbf24', '#fef08a'], // gold → amber
-  ['#0f1f2e', '#22d3ee', '#a5f3fc'], // teal → cyan
-  ['#1e1028', '#a78bfa', '#ddd6fe'], // indigo → violet
-  ['#1a0f08', '#fb923c', '#fed7aa'], // ember → orange
-  ['#0f1a1a', '#2dd4bf', '#99f6e4'], // sea → teal
-  ['#1a0820', '#e879f9', '#f5d0fe'], // magenta → fuchsia
-  ['#101828', '#818cf8', '#c7d2fe'], // slate → periwinkle
-  ['#1a1a08', '#a3e635', '#d9f99d'], // olive → lime
+// Neo-brutalist palettes: [Background, Accent 1, Accent 2]
+export const PALETTES = [
+  ['#FBE54D', '#FF7E67', '#74E291'], // Yellow, Orange, Green
+  ['#A7EDE7', '#FFB3FD', '#FBE54D'], // Blue, Pink, Yellow
+  ['#74E291', '#FBE54D', '#FF7E67'], // Green, Yellow, Orange
+  ['#FFA1F5', '#A7EDE7', '#FBE54D'], // Bright Pink, Blue, Yellow
+  ['#FF7E67', '#74E291', '#A7EDE7'], // Orange, Green, Blue
+  ['#E2F0CB', '#FF9AA2', '#C7CEEA'], // Pale Green, Pink, Periwinkle
+  ['#C7CEEA', '#B5EAD7', '#FFDFD3'], // Periwinkle, Mint, Peach
+  ['#FFD166', '#EF476F', '#118AB2'], // Gold, Rose, Deep Blue
+  ['#06D6A0', '#EF476F', '#FFD166'], // Emerald, Rose, Gold
+  ['#FCFCFC', '#FF7E67', '#A7EDE7'], // White, Orange, Blue
+  ['#FCA311', '#E5E5E5', '#14213D'], // Vibrant Orange, Light Gray, Navy
+  ['#FFBE0B', '#FF006E', '#8338EC'], // Mango, Neon Pink, Purple
 ];
 
 /**
- * Generate a deterministic pixel avatar SVG data URL.
- * Pixels cluster near corners with a solid center.
+ * Generate a Neo-brutalist shape with hard shadow and thick border.
+ */
+function drawBrutalistShape(type, x, y, size, fill, hash) {
+  const shadowOffset = 8;
+  const sw = 6; // stroke width
+  
+  if (type === 0) { // Circle
+    return `
+      <circle cx="${x + shadowOffset}" cy="${y + shadowOffset}" r="${size}" fill="#000000" />
+      <circle cx="${x}" cy="${y}" r="${size}" fill="${fill}" stroke="#000000" stroke-width="${sw}" />
+    `;
+  } else if (type === 1) { // Rectangle
+    return `
+      <rect x="${x - size + shadowOffset}" y="${y - size + shadowOffset}" width="${size*2}" height="${size*2}" fill="#000000" />
+      <rect x="${x - size}" y="${y - size}" width="${size*2}" height="${size*2}" fill="${fill}" stroke="#000000" stroke-width="${sw}" />
+    `;
+  } else if (type === 2) { // Pill
+    return `
+      <rect x="${x - size*1.5 + shadowOffset}" y="${y - size*0.5 + shadowOffset}" width="${size*3}" height="${size}" rx="${size/2}" fill="#000000" />
+      <rect x="${x - size*1.5}" y="${y - size*0.5}" width="${size*3}" height="${size}" rx="${size/2}" fill="${fill}" stroke="#000000" stroke-width="${sw}" />
+    `;
+  } else { // Polygon/Star-ish
+    const points = [
+      `${x},${y-size}`, `${x+size},${y}`, `${x},${y+size}`, `${x-size},${y}`
+    ].join(' ');
+    const shadowPoints = [
+      `${x+shadowOffset},${y-size+shadowOffset}`, `${x+size+shadowOffset},${y+shadowOffset}`, 
+      `${x+shadowOffset},${y+size+shadowOffset}`, `${x-size+shadowOffset},${y+shadowOffset}`
+    ].join(' ');
+    
+    return `
+      <polygon points="${shadowPoints}" fill="#000000" />
+      <polygon points="${points}" fill="${fill}" stroke="#000000" stroke-width="${sw}" stroke-linejoin="round" />
+    `;
+  }
+}
+
+/**
+ * Generate a deterministic Neo-brutalist avatar SVG data URL.
  */
 export function generatePixelAvatar(seed) {
   const h = hashSeed(seed);
   const palette = PALETTES[h % PALETTES.length];
-  const [bg, fg, fgLight] = palette;
+  const [bg, c1, c2] = palette;
+  const SIZE = 240;
 
-  const SIZE = 48;
-  const GRID = 6;
-  const CELL = SIZE / GRID;
+  // Grid background
+  const grid = `
+    <pattern id="grid_${h}" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#000000" stroke-width="2" opacity="0.15"/>
+    </pattern>
+    <rect width="${SIZE}" height="${SIZE}" fill="${bg}"/>
+    <rect width="${SIZE}" height="${SIZE}" fill="url(#grid_${h})"/>
+  `;
 
-  // Generate pattern — higher probability near edges/corners
-  const bits = [];
-  for (let y = 0; y < GRID; y++) {
-    for (let x = 0; x < Math.ceil(GRID / 2); x++) {
-      // Distance from center (0 = center, 1 = corner)
-      const cx = Math.abs(x - (GRID - 1) / 2) / ((GRID - 1) / 2);
-      const cy = Math.abs(y - (GRID - 1) / 2) / ((GRID - 1) / 2);
-      const edgeness = Math.max(cx, cy);
-
-      // Higher threshold in center = fewer pixels; lower near edges = more pixels
-      const threshold = 60 + (1 - edgeness) * 120;
-      bits.push(((h * (y * 11 + x * 17 + 7)) & 0xFF) > threshold);
-    }
+  // Draw 2 deterministic shapes
+  let shapes = '';
+  for(let i=0; i<2; i++) {
+     const type = (h + i*7) % 4;
+     const cx = 60 + ((h * (i*13 + 7)) % 120);
+     const cy = 60 + ((h * (i*17 + 11)) % 120);
+     const size = 40 + ((h * (i*19 + 23)) % 40);
+     const fill = i === 0 ? c1 : c2;
+     shapes += drawBrutalistShape(type, cx, cy, size, fill, h);
   }
 
-  let rects = '';
-  for (let y = 0; y < GRID; y++) {
-    for (let x = 0; x < GRID; x++) {
-      const bx = x < Math.ceil(GRID / 2) ? x : GRID - 1 - x; // mirror
-      if (bits[y * Math.ceil(GRID / 2) + bx]) {
-        const fill = ((x + y) % 3 === 0) ? fgLight : fg;
-        rects += `<rect x="${x * CELL}" y="${y * CELL}" width="${CELL}" height="${CELL}" fill="${fill}" rx="1"/>`;
-      }
-    }
-  }
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}"><rect width="${SIZE}" height="${SIZE}" fill="${bg}" rx="8"/>${rects}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}">
+    ${grid}
+    ${shapes}
+    <rect width="${SIZE}" height="${SIZE}" fill="none" stroke="#000000" stroke-width="12"/>
+  </svg>`;
+  
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
 /**
- * Generate a deterministic blog banner SVG data URL.
- * Same style as org avatars — symmetric pixel blocks in 4 corners, solid center.
+ * Generate a deterministic Neo-brutalist profile banner SVG data URL (1056×160).
+ */
+export function generateProfileBanner(seed, tintSeed) {
+  const h = hashSeed(seed);
+  const paletteHash = tintSeed ? hashSeed(tintSeed) : h;
+  const palette = PALETTES[paletteHash % PALETTES.length];
+  const [bg, c1, c2] = palette;
+
+  const W = 1056;
+  const H = 160;
+
+  const grid = `
+    <pattern id="grid_pb_${h}" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#000000" stroke-width="2" opacity="0.15"/>
+    </pattern>
+    <rect width="${W}" height="${H}" fill="${bg}"/>
+    <rect width="${W}" height="${H}" fill="url(#grid_pb_${h})"/>
+  `;
+
+  let shapes = '';
+  for(let i=0; i<4; i++) {
+     const type = (h + i*11) % 4;
+     const cx = 100 + ((h * (i*13 + 7)) % (W - 200));
+     const cy = ((h * (i*17 + 11)) % H);
+     const size = 50 + ((h * (i*19 + 23)) % 70);
+     const fill = i % 2 === 0 ? c1 : c2;
+     shapes += drawBrutalistShape(type, cx, cy, size, fill, h);
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+    ${grid}
+    ${shapes}
+    <rect width="${W}" height="${H}" fill="none" stroke="#000000" stroke-width="12"/>
+  </svg>`;
+  
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+/**
+ * Generate a deterministic Neo-brutalist blog banner SVG data URL (720x240).
  */
 export function generateBlogBanner(seed) {
   const h = hashSeed(seed);
   const palette = PALETTES[h % PALETTES.length];
-  const [bg, fg, fgLight] = palette;
+  const [bg, c1, c2] = palette;
 
   const W = 720;
   const H = 240;
-  const PX = 10;
-  // Corner block size in cells
-  const CX = 10;
-  const CY = 8;
 
-  // Generate one corner pattern (CX x CY), then mirror to all 4
-  const bits = [];
-  for (let y = 0; y < CY; y++) {
-    for (let x = 0; x < CX; x++) {
-      // Denser at corner (x=0,y=0), sparser further out
-      const dist = Math.sqrt(x * x + y * y) / Math.sqrt(CX * CX + CY * CY);
-      const threshold = dist * 200;
-      bits.push(((h * (y * 7 + x * 13 + 3)) & 0xFF) > threshold);
-    }
+  const grid = `
+    <pattern id="grid_bb_${h}" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="2" fill="#000000" opacity="0.3"/>
+    </pattern>
+    <rect width="${W}" height="${H}" fill="${bg}"/>
+    <rect width="${W}" height="${H}" fill="url(#grid_bb_${h})"/>
+  `;
+
+  let shapes = '';
+  for(let i=0; i<4; i++) {
+     const type = (h + i*13) % 4;
+     const cx = 100 + ((h * (i*7 + 11)) % (W - 200));
+     const cy = 40 + ((h * (i*17 + 23)) % (H - 80));
+     const size = 60 + ((h * (i*19 + 31)) % 80);
+     const fill = i % 2 === 0 ? c1 : c2;
+     shapes += drawBrutalistShape(type, cx, cy, size, fill, h);
   }
 
-  let rects = '';
-  const drawCorner = (ox, oy, flipX, flipY) => {
-    for (let y = 0; y < CY; y++) {
-      for (let x = 0; x < CX; x++) {
-        if (!bits[y * CX + x]) continue;
-        const fill = ((x + y) % 3 === 0) ? fgLight : fg;
-        const px = flipX ? ox - (x + 1) * PX : ox + x * PX;
-        const py = flipY ? oy - (y + 1) * PX : oy + y * PX;
-        rects += `<rect x="${px}" y="${py}" width="${PX}" height="${PX}" fill="${fill}" rx="1"/>`;
-      }
-    }
-  };
-
-  drawCorner(0, 0, false, false);       // top-left
-  drawCorner(W, 0, true, false);        // top-right
-  drawCorner(0, H, false, true);        // bottom-left
-  drawCorner(W, H, true, true);         // bottom-right
-
-  // Scattered low-opacity pixels for blocksy texture
-  let bgPixels = '';
-  for (let y = 0; y < Math.floor(H / PX); y += 2) {
-    for (let x = 0; x < Math.floor(W / PX); x += 2) {
-      const v = (h * (y * 53 + x * 37 + 19)) & 0xFF;
-      if (v > 220) {
-        const fill = v > 240 ? fgLight : fg;
-        const op = v > 240 ? '0.12' : '0.08';
-        bgPixels += `<rect x="${x * PX}" y="${y * PX}" width="${PX}" height="${PX}" fill="${fill}" opacity="${op}" rx="1"/>`;
-      }
-    }
-  }
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice"><rect width="${W}" height="${H}" fill="${bg}"/>${bgPixels}${rects}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+    ${grid}
+    ${shapes}
+    <rect width="${W}" height="${H}" fill="none" stroke="#000000" stroke-width="12"/>
+  </svg>`;
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
 /**
- * Generate the square companion for a default blog banner.
- *
- * The wide banner deliberately puts its strongest detail in the corners. A
- * square `object-cover` crop only sees its quiet centre, so feed cards used to
- * look almost black. This keeps the same seed, palette and pixel language while
- * composing the pattern for a square canvas.
+ * Generate the square companion for a default blog banner (240x240).
  */
 export function generateBlogThumbnail(seed) {
   const h = hashSeed(seed);
   const palette = PALETTES[h % PALETTES.length];
-  const [bg, fg, fgLight] = palette;
+  const [bg, c1, c2] = palette;
 
   const SIZE = 240;
-  const PX = 12;
-  const CORNER = 8;
+  
+  const grid = `
+    <pattern id="grid_tb_${h}" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="15" cy="15" r="2" fill="#000000" opacity="0.3"/>
+    </pattern>
+    <rect width="${SIZE}" height="${SIZE}" fill="${bg}"/>
+    <rect width="${SIZE}" height="${SIZE}" fill="url(#grid_tb_${h})"/>
+  `;
 
-  const bits = [];
-  for (let y = 0; y < CORNER; y++) {
-    for (let x = 0; x < CORNER; x++) {
-      const dist = Math.sqrt(x * x + y * y) / Math.sqrt(2 * CORNER * CORNER);
-      const threshold = dist * 205;
-      bits.push(((h * (y * 7 + x * 13 + 3)) & 0xFF) > threshold);
-    }
+  let shapes = '';
+  for(let i=0; i<2; i++) {
+     const type = (h + i*5) % 4;
+     const cx = 60 + ((h * (i*13 + 7)) % (SIZE - 120));
+     const cy = 60 + ((h * (i*17 + 11)) % (SIZE - 120));
+     const size = 40 + ((h * (i*19 + 23)) % 50);
+     const fill = i === 0 ? c1 : c2;
+     shapes += drawBrutalistShape(type, cx, cy, size, fill, h);
   }
 
-  let rects = '';
-  const drawCorner = (ox, oy, flipX, flipY) => {
-    for (let y = 0; y < CORNER; y++) {
-      for (let x = 0; x < CORNER; x++) {
-        if (!bits[y * CORNER + x]) continue;
-        const fill = ((x + y) % 3 === 0) ? fgLight : fg;
-        const px = flipX ? ox - (x + 1) * PX : ox + x * PX;
-        const py = flipY ? oy - (y + 1) * PX : oy + y * PX;
-        rects += `<rect x="${px}" y="${py}" width="${PX}" height="${PX}" fill="${fill}" rx="1"/>`;
-      }
-    }
-  };
-
-  drawCorner(0, 0, false, false);
-  drawCorner(SIZE, 0, true, false);
-  drawCorner(0, SIZE, false, true);
-  drawCorner(SIZE, SIZE, true, true);
-
-  let texture = '';
-  for (let y = 2; y < SIZE / PX - 2; y += 2) {
-    for (let x = 2; x < SIZE / PX - 2; x += 2) {
-      const v = (h * (y * 53 + x * 37 + 19)) & 0xFF;
-      if (v > 212) {
-        texture += `<rect x="${x * PX}" y="${y * PX}" width="${PX}" height="${PX}" fill="${v > 238 ? fgLight : fg}" opacity="${v > 238 ? '0.16' : '0.1'}" rx="1"/>`;
-      }
-    }
-  }
-
-  // A subtle inset frame gives the small tile definition without changing the
-  // intentionally dark character of the default artwork.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}"><rect width="${SIZE}" height="${SIZE}" fill="${bg}"/><rect x="6" y="6" width="${SIZE - 12}" height="${SIZE - 12}" rx="14" fill="none" stroke="${fg}" stroke-opacity="0.16" stroke-width="2"/>${texture}${rects}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}">
+    ${grid}
+    ${shapes}
+    <rect width="${SIZE}" height="${SIZE}" fill="none" stroke="#000000" stroke-width="12"/>
+  </svg>`;
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 }

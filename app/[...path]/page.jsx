@@ -259,9 +259,10 @@ export async function generateMetadata({ params, searchParams }) {
                     avatar: httpImg(data.user.avatar_url),
                     banner: httpImg(
                         data.user.banner_r2_key
-                            ? `/api/media/${data.user.banner_r2_key}`
+                            ? `${origin}/api/media/${data.user.banner_r2_key}`
                             : "",
                     ),
+                    seed: data.user.username || name,
                     ...noBrand(data.user.tier),
                 });
                 return cardMeta({
@@ -300,6 +301,13 @@ export async function generateMetadata({ params, searchParams }) {
                     sub: ownerName ? `by ${ownerName}` : handle,
                     subtitle: data.org.description || data.org.bio || "",
                     avatar: httpImg(data.org.logo_url || data.org.logo_r2_key),
+                    banner: httpImg(
+                        data.org.banner_url ||
+                        (data.org.banner_r2_key
+                            ? `${origin}/api/media/${data.org.banner_r2_key}`
+                            : "")
+                    ),
+                    seed: data.org.slug || name,
                     ...noBrand(data.owner?.tier),
                 });
                 return cardMeta({
@@ -344,6 +352,13 @@ export async function generateMetadata({ params, searchParams }) {
                 avatar: httpImg(
                     data.owner?.logo_url || data.owner?.logo_r2_key,
                 ),
+                banner: httpImg(
+                    data.owner?.banner_url ||
+                    (data.owner?.banner_r2_key
+                        ? `${origin}/api/media/${data.owner?.banner_r2_key}`
+                        : "")
+                ),
+                seed: data.collection.slug || title,
             });
             return cardMeta({
                 title: `${title}, a collection by ${orgName} on LixBlogs`,

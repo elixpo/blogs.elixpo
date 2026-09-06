@@ -1,5 +1,9 @@
 import { ImageResponse } from "next/og";
-import { generateBlogBanner } from "../../../src/utils/pixelAvatar";
+import {
+    generateBlogBanner,
+    generatePixelAvatar,
+    generateProfileBanner,
+} from "../../../src/utils/pixelAvatar";
 import { LIX_LOGO } from "./lixLogo";
 
 export const runtime = "edge";
@@ -38,12 +42,17 @@ export async function GET(request) {
     const avatar = ogSafeImage(searchParams.get("avatar") || "");
     const cover = ogSafeImage(searchParams.get("cover") || "");
     const banner = ogSafeImage(searchParams.get("banner") || "");
-    const defaultCover = generateBlogBanner(
-        (searchParams.get("seed") || title).slice(0, 160),
-    );
+    const seed = (searchParams.get("seed") || title).slice(0, 160);
+    const defaultCover = generateBlogBanner(seed);
     const hasAvatar = !!avatar;
     const hasCover = !!cover;
     const hasBanner = !!banner;
+
+    // Deterministic fallbacks — zero network, instant.
+    // Profile banner: when a real avatar exists but no banner, tint the
+    // generated banner palette to the avatar URL hash so they visually match.
+    const defaultBanner = generateProfileBanner(seed, avatar || undefined);
+    const defaultAvatar = generatePixelAvatar(seed);
 
     // Real LixBlogs logo, inlined as a data URI (see ./lixLogo). Inlining avoids a
     // request-time self-fetch, which is unreliable in the Cloudflare edge runtime
@@ -99,8 +108,16 @@ export async function GET(request) {
 
     const initial = (title || "L").replace("@", "").charAt(0).toUpperCase();
 
-    // ── Profile / org / collection — logo + optional banner + avatar + name + handle + bio ──
+    // ── Profile / org / collection — always banner + always avatar + name + handle + bio ──
     if (type === "profile") {
+        // Banner: real URL when available, otherwise deterministic pixel-art.
+        const bannerSrc = hasBanner ? banner : defaultBanner;
+        // Avatar: real URL when available, otherwise the pixel avatar.
+        const avatarSrc = hasAvatar ? avatar : defaultAvatar;
+        // The pixel avatar is square — render it with rounded-square clip instead of
+        // a circle so its pixel-art style reads clearly at small sizes.
+        const avatarRadius = hasAvatar ? "50%" : "16px";
+
         return new ImageResponse(
             <div
                 style={{
@@ -123,34 +140,32 @@ export async function GET(request) {
                         overflow: "hidden",
                     }}
                 >
-                    {/* Banner strip when available */}
-                    {hasBanner ? (
-                        <div
+                    {/* Banner strip — always present */}
+                    <div
+                        style={{
+                            display: "flex",
+                            width: "100%",
+                            height: "160px",
+                            flexShrink: 0,
+                        }}
+                    >
+                        <img
+                            src={bannerSrc}
+                            width={1056}
+                            height={160}
                             style={{
-                                display: "flex",
                                 width: "100%",
                                 height: "160px",
-                                flexShrink: 0,
+                                objectFit: "cover",
                             }}
-                        >
-                            <img
-                                src={banner}
-                                width={1056}
-                                height={160}
-                                style={{
-                                    width: "100%",
-                                    height: "160px",
-                                    objectFit: "cover",
-                                }}
-                            />
-                        </div>
-                    ) : null}
+                        />
+                    </div>
                     <div
                         style={{
                             display: "flex",
                             flexDirection: "column",
                             flex: 1,
-                            padding: hasBanner ? "32px 68px 40px" : "60px 68px",
+                            padding: "32px 68px 40px",
                             justifyContent: "space-between",
                         }}
                     >
@@ -162,37 +177,19 @@ export async function GET(request) {
                                 gap: "44px",
                             }}
                         >
-                            {hasAvatar ? (
-                                <img
-                                    src={avatar}
-                                    width={hasBanner ? 160 : 210}
-                                    height={hasBanner ? 160 : 210}
-                                    style={{
-                                        width: hasBanner ? "160px" : "210px",
-                                        height: hasBanner ? "160px" : "210px",
-                                        borderRadius: "50%",
-                                        objectFit: "cover",
-                                        border: `1px solid ${BORDER}`,
-                                    }}
-                                />
-                            ) : (
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        width: hasBanner ? "160px" : "210px",
-                                        height: hasBanner ? "160px" : "210px",
-                                        borderRadius: "50%",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        background: `linear-gradient(135deg, ${ACCENT}, #6d4fd1)`,
-                                        color: "#fff",
-                                        fontSize: hasBanner ? "80px" : "100px",
-                                        fontWeight: 800,
-                                    }}
-                                >
-                                    {initial}
-                                </div>
-                            )}
+                            {/* Avatar — always present */}
+                            <img
+                                src={avatarSrc}
+                                width={160}
+                                height={160}
+                                style={{
+                                    width: "160px",
+                                    height: "160px",
+                                    borderRadius: avatarRadius,
+                                    objectFit: "cover",
+                                    border: `1px solid ${BORDER}`,
+                                }}
+                            />
                             <div
                                 style={{
                                     display: "flex",
