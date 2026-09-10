@@ -24,6 +24,20 @@ Press Enter to open the verification URL or copy it to another device. The
 username becomes the profile alias unless `--profile` overrides it. Use
 `profiles` and `use <username>` to switch accounts.
 
+For CI, containers, and scheduled automation, create a scoped token in
+**LixBlogs → Settings → API** and expose it only to the CLI process:
+
+```bash
+LIXBLOGS_TOKEN="$LIXBLOGS_PAT" lixblogs blog list --json --no-input
+lixblogs --token-file /run/secrets/lixblogs blog list --json --no-input
+LIXBLOGS_TOKEN_FILE=/run/secrets/lixblogs lixblogs whoami --json --no-input
+```
+
+Resolution order is `--token-file`, `LIXBLOGS_TOKEN`, `LIXBLOGS_TOKEN_FILE`,
+then the active device-login profile. Direct tokens are not copied into the
+keychain or profile registry. Scopes and personal/organization boundaries
+remain server-enforced.
+
 ### Blog lifecycle
 
 ```bash
