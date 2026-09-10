@@ -78,10 +78,13 @@ lixblogs blog unpublish BLOG_ID --yes
 lixblogs blog delete BLOG_ID --yes
 lixblogs blog restore BLOG_ID --yes
 lixblogs blog history BLOG_ID
+lixblogs blog history BLOG_ID --version VERSION_ID
 lixblogs blog restore-version BLOG_ID --version VERSION_ID --yes
 ```
 
 Publishing and state transitions require `--yes`. Deletion moves a post to trash by default. Permanent deletion additionally needs `--permanent`, the permanent-delete scope, and explicit confirmation.
+
+History lists the timestamp, author, word count, and excerpt for each retained content snapshot. Inspect an exact version before restoring it; restoration first saves the current document as an undo point.
 
 ## Comments and media
 
@@ -148,3 +151,18 @@ lixblogs skill install lixblogs-author --target .agents/skills --yes
 ```
 
 Install only the workflow needed for the current task. Skill installation never overwrites an existing folder unless `--force --yes` is explicit. Each skill uses the same JSON, scope, confirmation, and recovery contracts documented above.
+
+### Bootstrap a separate agent workspace
+
+Skills are bundled in the npm package, so a machine does not need a checkout of the LixBlogs repository. From the target workspace:
+
+```bash
+npm install --global @elixpo/lixblogs-cli
+lixblogs skill install --all --target .agents/skills --dry-run --json --no-input
+lixblogs skill install --all --target .agents/skills --yes --json --no-input
+lixblogs login
+```
+
+An agent should read only the skill relevant to its task from `.agents/skills/`. Use a different `--target` when the agent runtime discovers workspace skills elsewhere. Installing skills does not authenticate the CLI and does not grant scopes; device login remains a separate user-approved action.
+
+For headless automation, [PAT credential support is tracked separately](https://github.com/elixpo/blogs.elixpo/issues/301). Until it reaches the published package, unattended jobs should not copy keychain credentials or browser sessions into a runner.

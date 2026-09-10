@@ -13,7 +13,6 @@ import "@blocknote/mantine/style.css";
 import "../styles/editor/editor.css";
 import "../styles/katex-fonts.css";
 import { readTimeFromWords } from "../../lib/readTime";
-import MediaStorageChip from "../components/Editor/MediaStorageChip";
 import { useCollaboration } from "../hooks/useCollaboration";
 import { IMAGE_ACCEPT_ATTR, isAllowedImage } from "../utils/allowedImageTypes";
 import { extractMermaidFences } from "../utils/markdownMermaid";
@@ -25,33 +24,43 @@ import {
 } from "../utils/mediaUploadQueue";
 import { generateBlogBanner, generatePixelAvatar } from "../utils/pixelAvatar";
 
+function escapeExportHtml(value) {
+    return String(value || "").replace(
+        /[&<>"']/g,
+        (character) =>
+            ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;",
+            })[character],
+    );
+}
+
+function versionLabel(label) {
+    return (
+        {
+            published: "Published",
+            autosave: "Editor save",
+            "cli-edit": "CLI edit",
+            "pre-restore": "Before restore",
+            "pre-cli-restore": "Before CLI restore",
+        }[label] || "Saved version"
+    );
+}
+
 function AvatarImg({ src, name, size = 32 }) {
     const [failed, setFailed] = useState(false);
-    const initial = (name || "?")[0].toUpperCase();
-    if (src && !failed) {
-        return (
-            <img
-                src={src}
-                alt=""
-                className="rounded-full object-cover"
-                style={{ width: size, height: size }}
-                onError={() => setFailed(true)}
-            />
-        );
-    }
+    const avatarSrc = src && !failed ? src : generatePixelAvatar(name || "lixblogs-user");
     return (
-        <div
-            className="rounded-full flex items-center justify-center font-bold"
-            style={{
-                width: size,
-                height: size,
-                backgroundColor: "var(--bg-elevated)",
-                color: "var(--text-muted)",
-                fontSize: Math.round(size * 0.38),
-            }}
-        >
-            {initial}
-        </div>
+        <img
+            src={avatarSrc}
+            alt=""
+            className="rounded-full object-cover"
+            style={{ width: size, height: size }}
+            onError={() => setFailed(true)}
+        />
     );
 }
 
@@ -790,6 +799,7 @@ export default function WritePage({ slugid }) {
     const { isDark, toggleTheme } = useTheme();
     const { activeTheme } = useSeasonalTheme();
     const editorRef = useRef(null);
+    const publishMenuRef = useRef(null);
     const autoSaveTimer = useRef(null);
     const [mode, setMode] = useState("edit");
     const [title, setTitle] = useState("");
@@ -869,6 +879,10 @@ export default function WritePage({ slugid }) {
 
     const [syncStatus, setSyncStatus] = useState("idle"); // idle | local | syncing | synced
     const [showSavedToast, setShowSavedToast] = useState(false);
+    const [mediaStorageToast, setMediaStorageToast] = useState("");
+    const mediaStorageToastTimerRef = useRef(null);
+    const [clipboardToast, setClipboardToast] = useState(null);
+    const clipboardToastTimerRef = useRef(null);
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [showCollabPanel, setShowCollabPanel] = useState(false);
     const [showColorPanel, setShowColorPanel] = useState(false);
@@ -909,6 +923,40 @@ export default function WritePage({ slugid }) {
 
     const username = user?.username || "you";
 
+    const showClipboardToast = useCallback((message, type = "success") => {
+        clearTimeout(clipboardToastTimerRef.current);
+        setClipboardToast({ message, type });
+        clipboardToastTimerRef.current = setTimeout(
+            () => setClipboardToast(null),
+            2600,
+        );
+    }, []);
+
+    useEffect(
+        () => () => clearTimeout(clipboardToastTimerRef.current),
+        [],
+    );
+
+    useEffect(() => {
+        if (!showPublishMenu) return;
+
+        const dismissOnEscape = (event) => {
+            if (event.key === "Escape") setShowPublishMenu(false);
+        };
+        const dismissOnOutsideClick = (event) => {
+            if (!publishMenuRef.current?.contains(event.target)) {
+                setShowPublishMenu(false);
+            }
+        };
+
+        document.addEventListener("keydown", dismissOnEscape);
+        document.addEventListener("pointerdown", dismissOnOutsideClick);
+        return () => {
+            document.removeEventListener("keydown", dismissOnEscape);
+            document.removeEventListener("pointerdown", dismissOnOutsideClick);
+        };
+    }, [showPublishMenu]);
+
     useEffect(() => {
         pendingSlugRef.current = slug;
     }, [slug]);
@@ -930,28 +978,54 @@ export default function WritePage({ slugid }) {
                 usageResponse.json(),
                 cloudinaryResponse.json(),
             ]);
-            setMediaStorageStatus({
+            const nextStatus = {
                 loading: false,
                 tier: usage.tier,
                 ...usage.storage,
                 connected: cloudinary.connected,
                 useForUploads: cloudinary.useForUploads,
                 cloudName: cloudinary.cloudName,
-            });
+            };
+            setMediaStorageStatus(nextStatus);
+            return nextStatus;
         } catch {
-            setMediaStorageStatus({ loading: false, unavailable: true });
+            const unavailable = { loading: false, unavailable: true };
+            setMediaStorageStatus(unavailable);
+            return unavailable;
         }
     }, []);
 
     useEffect(() => {
+        let active = true;
         refreshMediaStorageStatus();
-        const handleUpload = (event) => {
-            if (event.detail?.status === "complete")
-                refreshMediaStorageStatus();
+        const handleUpload = async (event) => {
+            if (event.detail?.status !== "complete") return;
+            const status = await refreshMediaStorageStatus();
+            if (!active) return;
+            const result = event.detail?.result || {};
+            const personal =
+                result.storageProvider === "user_cloudinary" ||
+                (status.connected && status.useForUploads);
+            const destination = personal
+                ? result.storageCloudName || status.cloudName || "personal Cloudinary"
+                : "LixBlogs storage";
+            const remaining =
+                !personal && status.remainingFormatted
+                    ? ` · ${status.remainingFormatted} remaining`
+                    : "";
+            setMediaStorageToast(`Uploaded to ${destination}${remaining}`);
+            clearTimeout(mediaStorageToastTimerRef.current);
+            mediaStorageToastTimerRef.current = setTimeout(
+                () => setMediaStorageToast(""),
+                4200,
+            );
         };
         window.addEventListener(MEDIA_UPLOAD_EVENT, handleUpload);
-        return () =>
+        return () => {
+            active = false;
             window.removeEventListener(MEDIA_UPLOAD_EVENT, handleUpload);
+            clearTimeout(mediaStorageToastTimerRef.current);
+        };
     }, [refreshMediaStorageStatus]);
 
     // Real-time collaboration (enabled when blog has co-authors)
@@ -973,46 +1047,106 @@ export default function WritePage({ slugid }) {
     // Version history (#11 E)
     const [showHistory, setShowHistory] = useState(false);
     const [versions, setVersions] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState("");
+    const [historyActionId, setHistoryActionId] = useState("");
+    const [versionPreview, setVersionPreview] = useState(null);
     const historyRef = useRef(null);
     useEffect(() => {
-        if (!showHistory) return;
+        if (!showHistory && !versionPreview) return;
         const closeOnOutsideClick = (event) => {
             if (
+                showHistory &&
+                !versionPreview &&
                 historyRef.current &&
                 !historyRef.current.contains(event.target)
             ) {
                 setShowHistory(false);
             }
         };
+        const closeOnEscape = (event) => {
+            if (event.key !== "Escape") return;
+            if (versionPreview) setVersionPreview(null);
+            else setShowHistory(false);
+        };
         document.addEventListener("pointerdown", closeOnOutsideClick);
-        return () =>
+        document.addEventListener("keydown", closeOnEscape);
+        return () => {
             document.removeEventListener("pointerdown", closeOnOutsideClick);
-    }, [showHistory]);
+            document.removeEventListener("keydown", closeOnEscape);
+        };
+    }, [showHistory, versionPreview]);
 
     const openHistory = async () => {
         setShowHistory(true);
+        setHistoryLoading(true);
+        setHistoryError("");
         try {
             const r = await fetch(`/api/blogs/${blogId}/versions`);
-            if (r.ok) setVersions((await r.json()).versions || []);
-        } catch {}
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok)
+                throw new Error(data.error || "Version history is unavailable");
+            setVersions(data.versions || []);
+        } catch (error) {
+            setHistoryError(error.message || "Version history is unavailable");
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+    const previewVersion = async (version) => {
+        setHistoryActionId(version.id);
+        setHistoryError("");
+        try {
+            const r = await fetch(
+                `/api/blogs/${blogId}/versions?version=${encodeURIComponent(version.id)}`,
+            );
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok || !data.version)
+                throw new Error(data.error || "This version could not be loaded");
+            const editor = editorRef.current?.getEditor?.();
+            const versionMarkdown = editor
+                ? await editor.blocksToMarkdownLossy(data.version.content)
+                : JSON.stringify(data.version.content, null, 2);
+            setVersionPreview({ ...data.version, markdown: versionMarkdown });
+        } catch (error) {
+            setHistoryError(error.message || "This version could not be loaded");
+        } finally {
+            setHistoryActionId("");
+        }
     };
     const restoreVersion = async (versionId) => {
+        setHistoryActionId(versionId);
+        setHistoryError("");
         try {
             const r = await fetch(`/api/blogs/${blogId}/versions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ versionId }),
             });
-            if (!r.ok) return;
-            const d = await r.json();
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok)
+                throw new Error(d.error || "This version could not be restored");
             const ed = editorRef.current?.getEditor?.();
             if (ed && Array.isArray(d.content)) {
-                try {
-                    ed.replaceBlocks(ed.document, d.content);
-                } catch {}
+                ed.replaceBlocks(ed.document, d.content);
+                draftDataRef.current = {
+                    ...draftDataRef.current,
+                    editorContent: d.content,
+                };
+                setEditorContent(d.content);
             }
+            dirtyRef.current = false;
+            setHasUnsavedEdits(false);
+            setLastKnownUpdatedAt(d.updatedAt);
+            setLastSaved(Date.now());
+            setVersionPreview(null);
             setShowHistory(false);
-        } catch {}
+            showClipboardToast("Version restored");
+        } catch (error) {
+            setHistoryError(error.message || "This version could not be restored");
+        } finally {
+            setHistoryActionId("");
+        }
     };
 
     // When another collaborator publishes, follow them to the published view
@@ -2048,6 +2182,114 @@ export default function WritePage({ slugid }) {
         }
     };
 
+    const getExportMarkdown = useCallback(async () => {
+        const body =
+            (await editorRef.current?.getMarkdown?.()) || markdown || "";
+        const heading = title.trim() ? `# ${title.trim()}` : "";
+        const punchline = subtitle.trim()
+            ? `> ${subtitle.trim().replace(/\n/g, "\n> ")}`
+            : "";
+        return [heading, punchline, body.trim()].filter(Boolean).join("\n\n");
+    }, [markdown, subtitle, title]);
+
+    const handleCopyMarkdown = useCallback(async () => {
+        setShowPublishMenu(false);
+        try {
+            await navigator.clipboard.writeText(await getExportMarkdown());
+            showClipboardToast("Blog copied as Markdown");
+        } catch {
+            showClipboardToast("Could not copy the blog", "error");
+        }
+    }, [getExportMarkdown, showClipboardToast]);
+
+    const handleDownloadPdf = useCallback(async () => {
+        setShowPublishMenu(false);
+        const printWindow = window.open("", "_blank", "width=960,height=720");
+        if (!printWindow) {
+            showClipboardToast("Allow pop-ups to download a PDF", "error");
+            return;
+        }
+
+        printWindow.document.write(
+            "<!doctype html><title>Preparing PDF…</title><p style=\"font:16px system-ui;padding:32px\">Preparing your blog…</p>",
+        );
+
+        try {
+            const articleHtml =
+                (await editorRef.current?.getHTML?.()) || previewHtml || "";
+            const safeTitle = escapeExportHtml(title || "Untitled blog");
+            const safeSubtitle = escapeExportHtml(subtitle);
+            const safeTags = tags.map((tag) => escapeExportHtml(tag));
+            const printableCover = /^(https?:|data:image\/|blob:|\/)/i.test(
+                coverPreview || "",
+            )
+                ? escapeExportHtml(coverPreview)
+                : "";
+
+            printWindow.document.open();
+            printWindow.document.write(`<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>${safeTitle}</title>
+    <style>
+        @page { size: A4; margin: 18mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0 auto; max-width: 760px; color: #171717; font: 16px/1.7 Georgia, serif; }
+        h1 { margin: 0 0 8px; font-size: 34px; line-height: 1.15; }
+        h2, h3, h4 { break-after: avoid; line-height: 1.25; }
+        .subtitle { margin: 0 0 22px; color: #555; font-size: 18px; }
+        .cover { width: 100%; max-height: 360px; margin: 0 0 24px; border-radius: 12px; object-fit: cover; }
+        .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 22px; color: #555; font: 12px/1.4 system-ui, sans-serif; }
+        .tag { padding: 4px 8px; border: 1px solid #ddd; border-radius: 999px; }
+        img, svg { max-width: 100%; height: auto; }
+        pre { overflow-wrap: anywhere; white-space: pre-wrap; padding: 14px; border: 1px solid #ddd; border-radius: 8px; background: #f6f6f6; font: 12px/1.5 ui-monospace, monospace; }
+        code { font-family: ui-monospace, monospace; }
+        blockquote { margin-left: 0; padding-left: 16px; border-left: 3px solid #aaa; color: #555; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 7px; border: 1px solid #ccc; text-align: left; }
+        a { color: inherit; text-decoration: underline; }
+        [contenteditable] { outline: none; }
+        button, [data-floating-ui-portal] { display: none !important; }
+    </style>
+</head>
+<body>
+    ${printableCover ? `<img class="cover" src="${printableCover}" alt="" />` : ""}
+    <h1>${safeTitle}</h1>
+    ${safeSubtitle ? `<p class="subtitle">${safeSubtitle}</p>` : ""}
+    ${safeTags.length ? `<div class="tags">${safeTags.map((tag) => `<span class="tag">#${tag}</span>`).join("")}</div>` : ""}
+    <article>${articleHtml}</article>
+</body>
+</html>`);
+            printWindow.document.close();
+
+            const images = Array.from(printWindow.document.images);
+            await Promise.all(
+                images.map(
+                    (image) =>
+                        image.complete ||
+                        new Promise((resolve) => {
+                            image.addEventListener("load", resolve, {
+                                once: true,
+                            });
+                            image.addEventListener("error", resolve, {
+                                once: true,
+                            });
+                        }),
+                ),
+            );
+            await printWindow.document.fonts?.ready;
+            printWindow.focus();
+            printWindow.onafterprint = () => printWindow.close();
+            printWindow.print();
+            showClipboardToast("PDF print dialog opened");
+        } catch {
+            printWindow.close();
+            showClipboardToast("Could not prepare the PDF", "error");
+        }
+    }, [coverPreview, previewHtml, showClipboardToast, subtitle, tags, title]);
+
     // Handle .md file upload — check for existing content first
     const handleMdUpload = useCallback((e) => {
         const file = e.target.files?.[0];
@@ -2802,7 +3044,7 @@ export default function WritePage({ slugid }) {
                         </button>
                         {showHistory && (
                             <div
-                                className="absolute right-0 top-10 z-50 w-72 max-h-[60vh] overflow-y-auto rounded-xl p-1.5"
+                                className="absolute right-0 top-10 z-50 w-[22rem] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto rounded-xl p-1.5"
                                 style={{
                                     backgroundColor: "var(--bg-surface)",
                                     border: "1px solid var(--border-default)",
@@ -2815,33 +3057,46 @@ export default function WritePage({ slugid }) {
                                 >
                                     Version history
                                 </p>
-                                {versions.length === 0 ? (
+                                {historyLoading ? (
+                                    <div className="flex items-center gap-2 px-2.5 py-4 text-[12px] text-[var(--text-faint)]">
+                                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#9b7bf7]/25 border-t-[#9b7bf7] animate-spin" />
+                                        Loading saved versions…
+                                    </div>
+                                ) : historyError ? (
+                                    <div className="px-2.5 py-3">
+                                        <p className="text-[12px] text-red-400">
+                                            {historyError}
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={openHistory}
+                                            className="mt-2 text-[11px] font-semibold text-[#9b7bf7]"
+                                        >
+                                            Try again
+                                        </button>
+                                    </div>
+                                ) : versions.length === 0 ? (
                                     <p
                                         className="text-[12px] px-2.5 py-3"
                                         style={{ color: "var(--text-faint)" }}
                                     >
-                                        No versions yet — they accrue as you
-                                        edit and publish.
+                                        No saved versions yet. A history entry
+                                        is created as you edit and publish.
                                     </p>
                                 ) : (
                                     versions.map((v) => (
                                         <div
                                             key={v.id}
-                                            className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg hover:bg-[var(--bg-active)]"
+                                            className="flex items-start justify-between gap-3 px-2.5 py-2.5 rounded-lg hover:bg-[var(--bg-active)]"
                                         >
                                             <div className="min-w-0">
                                                 <p
-                                                    className="text-[12px] truncate"
+                                                    className="text-[12px] font-medium truncate"
                                                     style={{
                                                         color: "var(--text-primary)",
                                                     }}
                                                 >
-                                                    {v.label === "published"
-                                                        ? "🚀 Published"
-                                                        : v.label ===
-                                                            "pre-restore"
-                                                          ? "↩ Pre-restore"
-                                                          : "💾 Autosave"}
+                                                    {versionLabel(v.label)}
                                                 </p>
                                                 <p
                                                     className="text-[11px] truncate"
@@ -2856,20 +3111,59 @@ export default function WritePage({ slugid }) {
                                                         ? ` · @${v.username}`
                                                         : ""}
                                                 </p>
+                                                <p
+                                                    className="mt-1 text-[11px] line-clamp-2 leading-relaxed"
+                                                    style={{
+                                                        color: "var(--text-muted)",
+                                                    }}
+                                                >
+                                                    {v.excerpt ||
+                                                        "Empty document"}
+                                                </p>
+                                                <p
+                                                    className="mt-1 text-[10px]"
+                                                    style={{
+                                                        color: "var(--text-faint)",
+                                                    }}
+                                                >
+                                                    {v.word_count || 0} words
+                                                </p>
                                             </div>
-                                            <button
-                                                onClick={() =>
-                                                    restoreVersion(v.id)
-                                                }
-                                                className="text-[11px] font-medium px-2 py-1 rounded-md flex-shrink-0"
-                                                style={{
-                                                    color: "#9b7bf7",
-                                                    backgroundColor:
-                                                        "rgba(155,123,247,0.1)",
-                                                }}
-                                            >
-                                                Restore
-                                            </button>
+                                            <div className="flex flex-col gap-1 flex-shrink-0">
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        historyActionId === v.id
+                                                    }
+                                                    onClick={() =>
+                                                        previewVersion(v)
+                                                    }
+                                                    className="text-[11px] font-medium px-2 py-1 rounded-md disabled:opacity-50"
+                                                    style={{
+                                                        color: "var(--text-secondary)",
+                                                        border: "1px solid var(--border-default)",
+                                                    }}
+                                                >
+                                                    Preview
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        historyActionId === v.id
+                                                    }
+                                                    onClick={() =>
+                                                        restoreVersion(v.id)
+                                                    }
+                                                    className="text-[11px] font-medium px-2 py-1 rounded-md disabled:opacity-50"
+                                                    style={{
+                                                        color: "#9b7bf7",
+                                                        backgroundColor:
+                                                            "rgba(155,123,247,0.1)",
+                                                    }}
+                                                >
+                                                    Restore
+                                                </button>
+                                            </div>
                                         </div>
                                     ))
                                 )}
@@ -2887,7 +3181,10 @@ export default function WritePage({ slugid }) {
                     />
 
                     {/* Publish / Update split button */}
-                    <div className="relative group/publish">
+                    <div
+                        ref={publishMenuRef}
+                        className="relative group/publish"
+                    >
                         {(() => {
                             const titleWords = title
                                 .trim()
@@ -2942,14 +3239,15 @@ export default function WritePage({ slugid }) {
                                             {isPublished ? "Update" : "Publish"}
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() =>
-                                                canPublish &&
                                                 setShowPublishMenu(
                                                     !showPublishMenu,
                                                 )
                                             }
-                                            disabled={!canPublish}
-                                            className="px-2.5 py-1.5 text-white transition-colors border-l border-white/15 disabled:cursor-not-allowed flex items-center justify-center hover:bg-black/10 active:bg-black/20"
+                                            className="px-2.5 py-1.5 text-white transition-colors border-l border-white/15 flex items-center justify-center hover:bg-black/10 active:bg-black/20"
+                                            aria-label="Publishing and export options"
+                                            aria-expanded={showPublishMenu}
                                         >
                                             <svg
                                                 width="10"
@@ -2967,7 +3265,7 @@ export default function WritePage({ slugid }) {
                                     </div>
 
                                     {/* Title hint when publish is disabled */}
-                                    {!canPublish && (
+                                    {!canPublish && !showPublishMenu && (
                                         <div
                                             className="absolute right-0 top-full mt-2 whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-medium z-50 opacity-0 group-hover/publish:opacity-100 transition-opacity pointer-events-none"
                                             style={{
@@ -2983,14 +3281,7 @@ export default function WritePage({ slugid }) {
                                         </div>
                                     )}
 
-                                    {showPublishMenu && canPublish && (
-                                        <>
-                                            <div
-                                                className="fixed inset-0 z-40"
-                                                onClick={() =>
-                                                    setShowPublishMenu(false)
-                                                }
-                                            />
+                                    {showPublishMenu && (
                                             <div
                                                 className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl z-50 overflow-hidden py-1"
                                                 style={{
@@ -3023,10 +3314,47 @@ export default function WritePage({ slugid }) {
                                                         ? "Syncing draft…"
                                                         : "Save Draft"}
                                                 </button>
+                                                <div className="my-1 border-t border-[var(--dropdown-border)]" />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCopyMarkdown}
+                                                    className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors"
+                                                    style={{
+                                                        color: "var(--text-secondary)",
+                                                    }}
+                                                >
+                                                    <ion-icon
+                                                        name="copy-outline"
+                                                        style={{
+                                                            fontSize: "15px",
+                                                            color: "var(--text-faint)",
+                                                        }}
+                                                    />
+                                                    Copy as Markdown
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDownloadPdf}
+                                                    className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors"
+                                                    style={{
+                                                        color: "var(--text-secondary)",
+                                                    }}
+                                                >
+                                                    <ion-icon
+                                                        name="document-outline"
+                                                        style={{
+                                                            fontSize: "15px",
+                                                            color: "var(--text-faint)",
+                                                        }}
+                                                    />
+                                                    Download as PDF
+                                                </button>
+                                                <div className="my-1 border-t border-[var(--dropdown-border)]" />
                                                 {isPublished ? (
                                                     <button
+                                                        disabled={!canPublish}
                                                         onClick={handlePublish}
-                                                        className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors"
+                                                        className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                                         style={{
                                                             color: "var(--text-secondary)",
                                                         }}
@@ -3044,10 +3372,11 @@ export default function WritePage({ slugid }) {
                                                 ) : (
                                                     <>
                                                         <button
+                                                            disabled={!canPublish}
                                                             onClick={
                                                                 handlePublish
                                                             }
-                                                            className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors"
+                                                            className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                                             style={{
                                                                 color: "var(--text-secondary)",
                                                             }}
@@ -3063,10 +3392,11 @@ export default function WritePage({ slugid }) {
                                                             Publish
                                                         </button>
                                                         <button
+                                                            disabled={!canPublish}
                                                             onClick={
                                                                 handlePublishBeta
                                                             }
-                                                            className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors"
+                                                            className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-[var(--bg-hover)] flex items-center gap-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                                             style={{
                                                                 color: "var(--text-muted)",
                                                             }}
@@ -3084,7 +3414,6 @@ export default function WritePage({ slugid }) {
                                                     </>
                                                 )}
                                             </div>
-                                        </>
                                     )}
                                 </>
                             );
@@ -3178,8 +3507,16 @@ export default function WritePage({ slugid }) {
                             const url = `${window.location.origin}/${username}/${slug || slugid}`;
                             navigator.clipboard.writeText(url).catch(() => {});
                         }}
-                        onCopyBlogId={() => {
-                            navigator.clipboard.writeText(blogId).catch(() => {});
+                        onCopyBlogId={async () => {
+                            try {
+                                await navigator.clipboard.writeText(blogId);
+                                showClipboardToast("Blog ID copied");
+                            } catch {
+                                showClipboardToast(
+                                    "Could not copy the Blog ID",
+                                    "error",
+                                );
+                            }
                         }}
                         onChangeCover={() => setShowCoverModal(true)}
                         onChangeTitle={() =>
@@ -4372,7 +4709,6 @@ export default function WritePage({ slugid }) {
                                                 mediaStorageStatus={
                                                     mediaStorageStatus
                                                 }
-                                                mediaStorageReturnTo={`/edit/${encodeURIComponent(slugid)}`}
                                                 secret={secret}
                                                 collaboration={collabConfig}
                                                 editable={!roomFull}
@@ -4509,23 +4845,6 @@ export default function WritePage({ slugid }) {
                             {readTime} min read
                         </span>
                     </div>
-
-                    {/* Storage belongs with publishing/media configuration, not
-                        between the cover and the article's title hierarchy. */}
-                    {!coverUploading && (
-                        <div>
-                            <label
-                                className="text-[12px] font-medium mb-2 block"
-                                style={{ color: "var(--text-muted)" }}
-                            >
-                                Media storage
-                            </label>
-                            <MediaStorageChip
-                                status={mediaStorageStatus}
-                                returnTo={`/edit/${encodeURIComponent(slugid)}`}
-                            />
-                        </div>
-                    )}
 
                     {/* Owner — locked after publish */}
                     <div>
@@ -5508,6 +5827,154 @@ export default function WritePage({ slugid }) {
                             <span className="text-[13px] text-green-300 font-medium">
                                 Saved to cloud
                             </span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </ViewportPortal>
+
+            {/* Upload destination is transient here; full quota details live in Settings → Media. */}
+            <ViewportPortal>
+                <AnimatePresence>
+                    {mediaStorageToast && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-[#9b7bf7]/20 bg-[var(--bg-surface)]/90 backdrop-blur-lg shadow-2xl"
+                        >
+                            <ion-icon
+                                name="cloud-done-outline"
+                                style={{ fontSize: "17px", color: "#9b7bf7" }}
+                            />
+                            <span className="text-[13px] text-[var(--text-primary)] font-medium">
+                                {mediaStorageToast}
+                            </span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </ViewportPortal>
+
+            <ViewportPortal>
+                <AnimatePresence>
+                    {clipboardToast && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 8 }}
+                            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2.5 rounded-xl border bg-[var(--bg-surface)]/90 px-4 py-2.5 shadow-2xl backdrop-blur-lg"
+                            style={{
+                                borderColor:
+                                    clipboardToast.type === "error"
+                                        ? "rgba(248,113,113,0.35)"
+                                        : "rgba(74,222,128,0.25)",
+                            }}
+                            role="status"
+                        >
+                            <ion-icon
+                                name={
+                                    clipboardToast.type === "error"
+                                        ? "alert-circle-outline"
+                                        : "checkmark-circle-outline"
+                                }
+                                style={{
+                                    fontSize: "18px",
+                                    color:
+                                        clipboardToast.type === "error"
+                                            ? "#f87171"
+                                            : "#4ade80",
+                                }}
+                            />
+                            <span className="text-[13px] font-medium text-[var(--text-primary)]">
+                                {clipboardToast.message}
+                            </span>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </ViewportPortal>
+
+            <ViewportPortal>
+                <AnimatePresence>
+                    {versionPreview && (
+                        <motion.div
+                            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onPointerDown={(event) => {
+                                if (event.target === event.currentTarget)
+                                    setVersionPreview(null);
+                            }}
+                        >
+                            <motion.div
+                                role="dialog"
+                                aria-modal="true"
+                                aria-labelledby="version-preview-title"
+                                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-2xl"
+                            >
+                                <div className="flex items-start justify-between gap-4 border-b border-[var(--border-default)] px-5 py-4">
+                                    <div className="min-w-0">
+                                        <h2
+                                            id="version-preview-title"
+                                            className="text-[15px] font-semibold text-[var(--text-primary)]"
+                                        >
+                                            {versionLabel(
+                                                versionPreview.label,
+                                            )}
+                                        </h2>
+                                        <p className="mt-1 text-[11px] text-[var(--text-faint)]">
+                                            {new Date(
+                                                versionPreview.created_at *
+                                                    1000,
+                                            ).toLocaleString()}
+                                            {versionPreview.username
+                                                ? ` · @${versionPreview.username}`
+                                                : ""}
+                                            {` · ${versionPreview.word_count || 0} words`}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setVersionPreview(null)
+                                        }
+                                        className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"
+                                        aria-label="Close version preview"
+                                    >
+                                        <ion-icon name="close-outline" />
+                                    </button>
+                                </div>
+                                <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words px-5 py-4 font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                                    {versionPreview.markdown ||
+                                        "This version is empty."}
+                                </pre>
+                                <div className="flex items-center justify-end gap-2 border-t border-[var(--border-default)] px-5 py-3">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setVersionPreview(null)
+                                        }
+                                        className="rounded-lg border border-[var(--border-default)] px-3 py-2 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={
+                                            historyActionId ===
+                                            versionPreview.id
+                                        }
+                                        onClick={() =>
+                                            restoreVersion(versionPreview.id)
+                                        }
+                                        className="rounded-lg bg-[#9b7bf7] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
+                                    >
+                                        Restore this version
+                                    </button>
+                                </div>
+                            </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>

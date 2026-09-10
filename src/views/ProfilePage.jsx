@@ -8,6 +8,7 @@ import ImageCropModal from '../components/ImageCropModal';
 import FollowListModal from '../components/FollowListModal';
 import Link from 'next/link';
 import BadgeManager from '../components/BadgeManager';
+import { generatePixelAvatar, generateProfileBanner } from '../utils/pixelAvatar';
 
 function UsageBar({ label, used, limit, unit, color = '#9b7bf7' }) {
   const percent = limit > 0 ? Math.min(Math.round((used / limit) * 100), 100) : 0;
@@ -45,6 +46,8 @@ export default function ProfilePage() {
   const [blogsLoading, setBlogsLoading] = useState(true);
   const [counts, setCounts] = useState({ followers: 0, following: 0 });
   const [followModal, setFollowModal] = useState(null); // 'followers' | 'following'
+  const [blogActionId, setBlogActionId] = useState('');
+  const [blogActionError, setBlogActionError] = useState('');
 
   useEffect(() => {
     if (!user?.username) return;
@@ -65,6 +68,57 @@ export default function ProfilePage() {
       .catch(() => {})
       .finally(() => setUsageLoading(false));
   }, [user]);
+
+  async function manageOwnedBlog(blog, action) {
+    const messages = {
+      unlist: 'Remove this blog from feeds while keeping its public link?',
+      archive: 'Archive this blog? It will no longer be publicly available.',
+      delete: 'Permanently delete this blog and its stored media? This cannot be undone.',
+    };
+    if (!window.confirm(messages[action])) return;
+    setBlogActionId(blog.id);
+    setBlogActionError('');
+    try {
+      const response = action === 'delete'
+        ? await fetch(`/api/blogs/${encodeURIComponent(blog.id)}`, { method: 'DELETE' })
+        : await fetch(`/api/blogs/${encodeURIComponent(blog.id)}/manage`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'The blog could not be updated');
+      if (action === 'delete' || action === 'archive') {
+        setBlogs((current) => current.filter((item) => item.id !== blog.id));
+      } else {
+        setBlogs((current) => current.map((item) => item.id === blog.id ? { ...item, status: result.status } : item));
+      }
+    } catch (requestError) {
+      setBlogActionError(requestError.message || 'The blog could not be updated');
+    } finally {
+      setBlogActionId('');
+    }
+  }
+
+  async function leaveCoauthoredBlog(blog) {
+    if (!window.confirm(`Remove yourself as a co-author from “${blog.title || 'Untitled'}”?`)) return;
+    setBlogActionId(blog.id);
+    setBlogActionError('');
+    try {
+      const response = await fetch('/api/blogs/invite', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugid: blog.id }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'You could not leave this blog');
+      setCoAuthored((current) => current.filter((item) => item.id !== blog.id));
+    } catch (requestError) {
+      setBlogActionError(requestError.message || 'You could not leave this blog');
+    } finally {
+      setBlogActionId('');
+    }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -108,13 +162,15 @@ export default function ProfilePage() {
 
   // Banners overwrite a stable Cloudinary public id. Version the proxy URL so a
   // replacement cannot be served from the browser/CDN cache after a reload.
-  const bannerSrc = localBanner || (user.banner_r2_key
+  const uploadedBannerSrc = user.banner_r2_key
     ? `/api/media/${user.banner_r2_key}?v=${encodeURIComponent(user.updated_at || '')}`
-    : null);
+    : null;
+  const defaultSeed = user.username || user.id || 'lixblogs-user';
+  const bannerSrc = localBanner || uploadedBannerSrc || generateProfileBanner(defaultSeed, user.avatar_url);
 
   async function handleBannerSave(blob) {
     if (!blob) {
-      // Remove → clear server-side so it stays blank after reload.
+      // Remove → clear server-side and return to the generated default.
       setShowBannerModal(false);
       setBannerError(null);
       try {
@@ -155,11 +211,11 @@ export default function ProfilePage() {
     }
   }
 
-  const avatarSrc = localAvatar || user.avatar_url || null;
+  const avatarSrc = localAvatar || user.avatar_url || generatePixelAvatar(defaultSeed);
 
   async function handleAvatarSave(blob) {
     if (!blob) {
-      // Remove → revert to the default initials avatar.
+      // Remove → revert to the generated geometric avatar.
       setShowAvatarModal(false);
       setAvatarError(null);
       try {
@@ -205,9 +261,7 @@ export default function ProfilePage() {
         {/* Banner + Avatar */}
         <div className="relative mb-16">
           <div className="group w-full h-48 rounded-xl bg-[var(--bg-elevated)] overflow-hidden relative">
-            {bannerSrc && (
-              <img src={bannerSrc} alt="" className="w-full h-full object-cover" />
-            )}
+	            <img src={bannerSrc} alt="" className="w-full h-full object-cover" />
             <button
               onClick={() => setShowBannerModal(true)}
               className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors cursor-pointer"
@@ -217,7 +271,7 @@ export default function ProfilePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                {bannerSrc ? 'Change Banner' : 'Add Banner'}
+	                {localBanner || uploadedBannerSrc ? 'Change Banner' : 'Add Banner'}
               </span>
             </button>
           </div>
@@ -230,15 +284,9 @@ export default function ProfilePage() {
             <button
               onClick={() => setShowAvatarModal(true)}
               className="group/av relative h-24 w-24 rounded-full border-4 border-[var(--bg-app)] overflow-hidden block"
-              title={avatarSrc ? 'Change photo' : 'Add photo'}
-            >
-              {avatarSrc ? (
-                <img src={avatarSrc} alt="" className="h-full w-full rounded-full object-cover" />
-              ) : (
-                <div className="h-full w-full rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-3xl text-[var(--text-muted)] font-bold">
-                  {(user.display_name || user.username || '?')[0].toUpperCase()}
-                </div>
-              )}
+	              title={localAvatar || user.avatar_url ? 'Change photo' : 'Add photo'}
+	            >
+	              <img src={avatarSrc} alt="" className="h-full w-full rounded-full object-cover" />
               <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/av:bg-black/45 transition-colors">
                 <ion-icon name="camera-outline" style={{ fontSize: '22px', color: '#fff' }} className="opacity-0 group-hover/av:opacity-100 transition-opacity" />
               </span>
@@ -393,6 +441,8 @@ export default function ProfilePage() {
                 onChange={setActiveTab}
               />
 
+              {blogActionError && <p className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-500">{blogActionError}</p>}
+
               {blogsLoading ? (
                 <div className="space-y-4 mt-2">
                   {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-[var(--bg-elevated)] animate-pulse rounded" />)}
@@ -401,14 +451,15 @@ export default function ProfilePage() {
                 <div>
                   {list.map((b) => {
                     const href = activeTab === 0 ? `/${user.username}/${b.slug}`
-                      : activeTab === 2 ? `/${b.author_username}/${b.slug}`
-                      : `/edit/${b.slug || b.id}`;
+                      : activeTab === 2 && ['published', 'unlisted'].includes(b.status)
+                        ? `/${b.author_username}/${b.slug}`
+                        : `/edit/${b.slug || b.id}`;
                     return (
-                      <article key={b.id} className="flex gap-4 py-5 border-b border-[var(--border-default)] last:border-b-0">
+                      <article key={b.id} className="flex flex-col gap-3 border-b border-[var(--border-default)] py-5 last:border-b-0 sm:flex-row sm:items-center">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             {b.status === 'draft' && <span className="text-[11px] font-medium text-[#e8a840] bg-[#e8a84014] px-2 py-0.5 rounded-full">Draft</span>}
-                            {b.status === 'unlisted' && <span className="text-[11px] font-medium text-[#60a5fa] bg-[#60a5fa14] px-2 py-0.5 rounded-full">Beta</span>}
+                            {b.status === 'unlisted' && <span className="text-[11px] font-medium text-[#60a5fa] bg-[#60a5fa14] px-2 py-0.5 rounded-full">Unlisted</span>}
                             <span className="text-[12px] text-[var(--text-muted)]">
                               {b.status === 'draft' ? (b.updated_at ? `Edited ${fmt(b.updated_at)}` : '') : fmt(b.published_at || b.updated_at)}
                             </span>
@@ -419,6 +470,23 @@ export default function ProfilePage() {
                             </h3>
                           </Link>
                           {b.subtitle && <p className="text-[14px] text-[var(--text-muted)] line-clamp-2">{b.subtitle}</p>}
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                          {(activeTab !== 2 || ['editor', 'admin'].includes(b.co_author_role)) && (
+                            <Link href={`/edit/${b.slug || b.id}`} className="rounded-lg border border-[var(--border-default)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-body)] hover:bg-[var(--bg-elevated)]">Edit</Link>
+                          )}
+                          {activeTab === 0 && b.status === 'published' && (
+                            <button disabled={blogActionId === b.id} onClick={() => manageOwnedBlog(b, 'unlist')} className="rounded-lg border border-[var(--border-default)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] disabled:opacity-50">Unlist</button>
+                          )}
+                          {activeTab !== 2 && (
+                            <button disabled={blogActionId === b.id} onClick={() => manageOwnedBlog(b, 'archive')} className="rounded-lg border border-[var(--border-default)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] disabled:opacity-50">Archive</button>
+                          )}
+                          {activeTab !== 2 && (
+                            <button disabled={blogActionId === b.id} onClick={() => manageOwnedBlog(b, 'delete')} className="grid h-8 w-8 place-items-center rounded-lg border border-red-400/25 text-red-500 hover:bg-red-500/10 disabled:opacity-50" aria-label={`Delete ${b.title || 'blog'}`} title="Delete permanently"><ion-icon name="trash-outline" /></button>
+                          )}
+                          {activeTab === 2 && (
+                            <button disabled={blogActionId === b.id} onClick={() => leaveCoauthoredBlog(b)} className="rounded-lg border border-red-400/25 px-2.5 py-1.5 text-[11px] font-semibold text-red-500 hover:bg-red-500/10 disabled:opacity-50">Remove me</button>
+                          )}
                         </div>
                       </article>
                     );

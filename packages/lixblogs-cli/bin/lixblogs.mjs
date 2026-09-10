@@ -82,7 +82,7 @@ import {
   collabRemove,
   collabRole,
 } from "../src/commands/collab/index.js";
-import { skillInspect, skillInstall, skillList } from "../src/commands/skill/index.js";
+import { skillInspect, skillInstall, skillInstallAll, skillList } from "../src/commands/skill/index.js";
 import { analyticsExport, analyticsQuery } from "../src/commands/analytics/index.js";
 import { cloudinaryDisconnect } from "../src/commands/integrations/cloudinary-disconnect.js";
 import { cloudinaryStatus } from "../src/commands/integrations/cloudinary-status.js";
@@ -140,6 +140,7 @@ const OPTIONS = {
   "hide-on-profile": { type: "boolean", default: false },
   target: { type: "string" },
   force: { type: "boolean", default: false },
+  all: { type: "boolean", default: false },
   prompt: { type: "string" },
   reference: { type: "string" },
   model: { type: "string" },
@@ -187,7 +188,7 @@ Usage:
   lixblogs blog delete <id> --yes [--permanent] [--dry-run] [--json]
   lixblogs blog trash <id> --yes [--dry-run] [--json]
   lixblogs blog restore <id> --yes [--dry-run] [--json]
-  lixblogs blog history <id> [--json]
+  lixblogs blog history <id> [--version <version-id>] [--json]
   lixblogs blog restore-version <id> --version <version-id> --yes [--json]
   lixblogs comment list <blog-id> [--json]
   lixblogs comment add <blog-id> --content <text> [--json]
@@ -217,6 +218,7 @@ Usage:
   lixblogs skill list             [--json]
   lixblogs skill inspect <name>   [--json]
   lixblogs skill install <name>   [--target <directory>] [--dry-run] --yes
+  lixblogs skill install --all    [--target <directory>] [--dry-run] --yes
   lixblogs disconnect cloudinary --yes
   lixblogs disconnect pollinations
 
@@ -661,7 +663,9 @@ const COLLAB_COMMANDS = {
 const SKILL_COMMANDS = {
   list: ({ options }) => skillList(options),
   inspect: ({ id }) => skillInspect({ name: id }),
-  install: ({ id, options }) => skillInstall({ name: id, options }),
+  install: ({ id, options }) => options.all
+    ? skillInstallAll({ options })
+    : skillInstall({ name: id, options }),
 };
 
 const ANALYTICS_COMMANDS = {
@@ -695,7 +699,14 @@ async function runBlog(opts, args, action) {
       } else if (action === 'get' || action === 'preview') {
         console.log(`${result.title || '(untitled)'} [${result.status}]\n${result.markdown || ''}`);
       } else if (action === 'history') {
-        for (const version of result.data || []) console.log(`${version.id}\t${version.label || 'snapshot'}\t${version.created_at}\t${version.username || 'system'}`);
+        if (result.markdown !== undefined) {
+          console.log(`${result.id}\t${result.label || 'snapshot'}\t${result.created_at}\t${result.username || 'system'}`);
+          process.stdout.write(`${result.markdown}\n`);
+        } else {
+          for (const version of result.data || []) {
+            console.log(`${version.id}\t${version.label || 'snapshot'}\t${version.created_at}\t${version.word_count || 0} words\t${version.username || 'system'}\t${version.excerpt || ''}`);
+          }
+        }
       } else if (result.dryRun) {
         console.log(warningLine(`Dry run: ${action} validated; no changes sent.`, colorEnabled()));
       } else {
@@ -820,8 +831,12 @@ async function runSkill(opts, args, action) {
       for (const skill of result) console.log(`${skill.name}\tCLI >= ${skill.minimumCliVersion || 'unknown'}\t${skill.description}`);
     } else if (action === 'inspect') {
       process.stdout.write(result.content);
+    } else if (result.dryRun && result.all) {
+      console.log(warningLine(`Dry run: install ${result.skills.length} skills to ${result.targetRoot}.`, colorEnabled()));
     } else if (result.dryRun) {
       console.log(warningLine(`Dry run: install ${result.name} to ${result.target}${result.replace ? ' (replace)' : ''}.`, colorEnabled()));
+    } else if (result.all) {
+      console.log(successLine(`Installed ${result.skills.length} LixBlogs skills at ${result.targetRoot}.`, colorEnabled()));
     } else {
       console.log(successLine(`Installed ${result.name} at ${result.target}.`, colorEnabled()));
     }

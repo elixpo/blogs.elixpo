@@ -43,6 +43,18 @@ test('get prefers the strong payload ETag when an edge rewrites the response hea
   assert.equal((await client.get('blog-1')).etag, '"strong"');
 });
 
+test('an individual historical version can be inspected before restore', async () => {
+  let requested;
+  const client = new BlogClient({ request: async (url) => {
+    requested = url;
+    return response({ data: { id: 'version-1', content: [] } });
+  } });
+
+  const version = await client.version('blog-1', 'version-1');
+  assert.equal(version.id, 'version-1');
+  assert.match(requested, /\/api\/v1\/blogs\/blog-1\/versions\?version=version-1$/);
+});
+
 test('API errors retain machine code, request ID, and conflict details', async () => {
   const client = new BlogClient({ request: async () => response({
     error: {

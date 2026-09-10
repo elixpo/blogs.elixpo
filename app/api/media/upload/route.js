@@ -28,9 +28,49 @@ async function uploadIdentity(request) {
   if (!request.headers.get('authorization')?.startsWith('Bearer ')) return null;
   try {
     const { requireBearerAuth } = await import('../../../../lib/api/v1/bearerAuth');
-    const auth = await requireBearerAuth(request, ['lixblogs:media:write']);
-    return { userId: auth.userId, apiClientId: auth.clientId };
+    const { getDB } = await import('../../../../lib/cloudflare');
+    const auth = await requireBearerAuth(request, ['lixblogs:media:write'], { db: getDB() });
+    return { ...auth, apiClientId: auth.clientId };
   } catch { return null; }
+}
+
+// A browser can lose the response while Cloudinary and D1 continue processing
+// the request. The persisted client queue polls this endpoint with the same job
+// id before declaring an ambiguous network failure.
+export async function GET(request) {
+  const session = await uploadIdentity(request);
+  if (!session?.userId) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  const uploadId = new URL(request.url).searchParams.get('uploadId') || '';
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(uploadId)) {
+    return NextResponse.json({ error: 'Invalid upload identifier' }, { status: 400 });
+  }
+
+  try {
+    const { getDB } = await import('../../../../lib/cloudflare');
+    const row = await getDB().prepare(`
+      SELECT id, cloudinary_public_id, size_bytes, storage_provider,
+        storage_cloud_name, secure_url
+      FROM media_uploads WHERE id = ? AND user_id = ? LIMIT 1
+    `).bind(uploadId, session.userId).first();
+    if (!row?.secure_url) {
+      return NextResponse.json({ status: 'processing' }, { status: 202 });
+    }
+    return NextResponse.json({
+      id: row.id,
+      publicId: row.cloudinary_public_id,
+      url: row.secure_url,
+      sizeBytes: row.size_bytes,
+      storageProvider: row.storage_provider,
+      storageCloudName: row.storage_cloud_name,
+      idempotent: true,
+    });
+  } catch (error) {
+    console.warn('[media/upload] Upload status lookup failed:', error?.message || error);
+    return NextResponse.json({ status: 'processing' }, { status: 202 });
+  }
 }
 
 export async function POST(request) {
@@ -106,19 +146,37 @@ export async function POST(request) {
     let trackedBlogId = null;
     let storageTarget = { provider: PLATFORM_CLOUDINARY, cloudName: null, config: null };
 
+    if (session.credentialType === 'pat' && isProfileImage) {
+      const isOrgImage = mediaType === 'org_avatar' || mediaType === 'org_banner';
+      const allowed = session.resourceType === 'organization'
+        ? isOrgImage && orgId === session.organizationId
+        : !isOrgImage;
+      if (!allowed) {
+        return NextResponse.json({ error: 'This token cannot update media for that account or organization' }, { status: 403 });
+      }
+    }
+
     // A new editor URL has a blog id before its draft row exists. In that case,
     // stage the media with a NULL blog_id and attach it when the draft is saved.
     // Existing blogs still require edit permission before their media path can
     // be overwritten.
     if (db && !isProfileImage && blogId) {
-      const blog = await db.prepare('SELECT id FROM blogs WHERE id = ?').bind(blogId).first();
+      const blog = await db.prepare('SELECT id, author_id, published_as FROM blogs WHERE id = ?').bind(blogId).first();
       if (blog) {
+        if (session.credentialType === 'pat') {
+          const { credentialAllowsPublishedAs } = await import('../../../../lib/api/v1/personalAccessTokens');
+          if (!credentialAllowsPublishedAs(session, blog.published_as)) {
+            return NextResponse.json({ error: 'This token cannot upload media for that blog' }, { status: 403 });
+          }
+        }
         const { canEditBlog } = await import('../../../../lib/permissions');
         const perm = await canEditBlog(db, blogId, session.userId);
         if (!perm.ok) {
           return NextResponse.json({ error: 'Not authorized to upload media for this blog' }, { status: 403 });
         }
         trackedBlogId = blogId;
+      } else if (session.credentialType === 'pat' && session.resourceType === 'organization') {
+        return NextResponse.json({ error: 'Organization tokens require an existing blog before media can be attached' }, { status: 403 });
       }
     }
 
@@ -362,6 +420,7 @@ export async function POST(request) {
              storage_provider, storage_cloud_name, secure_url)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(cloudinary_public_id) DO UPDATE SET
+            id = excluded.id,
             user_id = excluded.user_id,
             blog_id = COALESCE(excluded.blog_id, media_uploads.blog_id),
             size_bytes = excluded.size_bytes,
@@ -403,7 +462,7 @@ export async function POST(request) {
         } catch {}
 
         return NextResponse.json({
-          id: previous?.id || mediaId,
+          id: mediaId,
           publicId: result.public_id,
           url: result.secure_url,
           sizeBytes: fileBytes,
@@ -442,6 +501,14 @@ export async function DELETE(request) {
   try {
     const { getDB } = await import('../../../../lib/cloudflare');
     const db = getDB();
+
+    if (session.credentialType === 'pat') {
+      const isOrgImage = type === 'org_avatar' || type === 'org_banner';
+      const allowed = session.resourceType === 'organization'
+        ? isOrgImage && orgId === session.organizationId
+        : !isOrgImage;
+      if (!allowed) return NextResponse.json({ error: 'This token cannot update media for that account or organization' }, { status: 403 });
+    }
 
     if (type === 'org_avatar' || type === 'org_banner') {
       if (!orgId) return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });

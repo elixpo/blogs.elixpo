@@ -146,6 +146,12 @@ export class BlogClient {
     return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/versions`)).payload.data;
   }
 
+  async version(id, versionId) {
+    await this.requireScopes(['lixblogs:blog:read']);
+    const query = new URLSearchParams({ version: versionId });
+    return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/versions?${query}`)).payload.data;
+  }
+
   async restoreVersion(id, versionId, { etag }) {
     await this.requireScopes(['lixblogs:blog:write']);
     return (await this.request(`/api/v1/blogs/${encodeURIComponent(id)}/versions`, {

@@ -257,25 +257,15 @@ function NotificationDropdown() {
 /** Avatar with fallback — handles broken image URLs gracefully */
 function UserAvatar({ src, name, size = 32, className = '', style = {} }) {
   const [failed, setFailed] = useState(false);
-  const initial = (name || '?')[0].toUpperCase();
   const s = { width: size, height: size, ...style };
+  const avatarSrc = src && !failed ? src : generatePixelAvatar(name || 'lixblogs-user');
 
-  if (src && !failed) {
-    return (
-      <img
-        src={src} alt="" className={`rounded-full object-cover ${className}`}
-        style={s}
-        onError={() => setFailed(true)}
-      />
-    );
-  }
   return (
-    <div
-      className={`rounded-full flex items-center justify-center font-bold ${className}`}
-      style={{ ...s, backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)', fontSize: Math.round(size * 0.38) }}
-    >
-      {initial}
-    </div>
+    <img
+      src={avatarSrc} alt="" className={`rounded-full object-cover ${className}`}
+      style={s}
+      onError={() => setFailed(true)}
+    />
   );
 }
 
