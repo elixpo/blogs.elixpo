@@ -5,7 +5,7 @@ import { useAuth } from './context/AuthContext';
 import AppShell from './components/AppShell';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { generateBlogThumbnail } from './utils/pixelAvatar';
+import { generateBlogThumbnail, generatePixelAvatar } from './utils/pixelAvatar';
 import SearchBar from './components/SearchBar';
 import { ONBOARDING_TIP_DAYS, tipForDay } from './utils/siteTips';
 
@@ -150,11 +150,7 @@ function AuthorStack({ authors }) {
   return (
     <div className="flex -space-x-1.5">
       {shown.map((a, i) => (
-        a.avatar_url ? (
-          <img key={i} src={a.avatar_url} alt="" title={a.display_name || a.username} className="h-5 w-5 rounded-full object-cover" style={{ boxShadow: '0 0 0 2px var(--bg-app)' }} />
-        ) : (
-          <div key={i} title={a.display_name || a.username} className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-faint)', boxShadow: '0 0 0 2px var(--bg-app)' }}>{(a.display_name || a.username || '?')[0].toUpperCase()}</div>
-        )
+        <img key={i} src={a.avatar_url || generatePixelAvatar(a.username || a.display_name)} alt="" title={a.display_name || a.username} className="h-5 w-5 rounded-full object-cover" style={{ boxShadow: '0 0 0 2px var(--bg-app)' }} />
       ))}
     </div>
   );
@@ -429,13 +425,7 @@ function TopPickCard({ post, index }) {
         }}
       >
         <div className="flex items-center gap-2 mb-2">
-          {author.avatar_url ? (
-            <img src={author.avatar_url} alt="" className="h-5 w-5 rounded-full object-cover ring-1 ring-white/10" />
-          ) : (
-            <div className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-faint)' }}>
-              {(author.display_name || author.username || '?')[0].toUpperCase()}
-            </div>
-          )}
+          <img src={author.avatar_url || generatePixelAvatar(author.username || author.display_name)} alt="" className="h-5 w-5 rounded-full object-cover ring-1 ring-white/10" />
           <span className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
             {author.display_name || author.username}
           </span>
@@ -483,11 +473,7 @@ function FollowSuggestion({ u }) {
   return (
     <div className="flex items-center gap-2.5 mb-3.5">
       <Link href={`/${u.username}`} className="flex-shrink-0">
-        {u.avatar_url ? (
-          <img src={u.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
-        ) : (
-          <div className="h-9 w-9 rounded-full flex items-center justify-center text-[12px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-faint)' }}>{(u.display_name || u.username || '?')[0].toUpperCase()}</div>
-        )}
+        <img src={u.avatar_url || generatePixelAvatar(u.username || u.display_name)} alt="" className="h-9 w-9 rounded-full object-cover" />
       </Link>
       <Link href={`/${u.username}`} className="min-w-0 flex-1">
         <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{u.display_name || u.username}</p>

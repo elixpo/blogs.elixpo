@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AppShell from '../components/AppShell';
 import SearchBar from '../components/SearchBar';
-import { generateBlogBanner } from '../utils/pixelAvatar';
+import { generateBlogBanner, generatePixelAvatar } from '../utils/pixelAvatar';
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -17,17 +17,7 @@ function timeAgo(ts) {
 }
 
 function Avatar({ src, name, size = 40, rounded = 'rounded-full' }) {
-  if (src) {
-    return <img src={src} alt="" className={`${rounded} object-cover flex-shrink-0`} style={{ width: size, height: size }} />;
-  }
-  return (
-    <div
-      className={`${rounded} flex items-center justify-center font-bold flex-shrink-0`}
-      style={{ width: size, height: size, backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)', fontSize: size * 0.4 }}
-    >
-      {(name || '?')[0].toUpperCase()}
-    </div>
-  );
+  return <img src={src || generatePixelAvatar(name || 'lixblogs-user')} alt="" className={`${rounded} object-cover flex-shrink-0`} style={{ width: size, height: size }} />;
 }
 
 function SectionHeading({ children, count }) {

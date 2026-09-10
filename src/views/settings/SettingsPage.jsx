@@ -160,18 +160,20 @@ function AccountTab({ user, refetchUser }) {
         <h3 className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-widest mb-4">Profile</h3>
         <div className="space-y-4">
           <div className="flex items-center gap-4 p-4 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-xl">
-            {user.avatar_url ? (
-              <img src={user.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--border-default)]" />
-            ) : (
-              <div className="h-16 w-16 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-2xl text-[var(--text-muted)] font-bold ring-2 ring-[var(--border-default)]">
-                {(user.display_name || user.username || '?')[0].toUpperCase()}
-              </div>
-            )}
+            <img src={user.avatar_url || generatePixelAvatar(user.username || user.display_name)} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--border-default)]" />
             <div className="min-w-0">
               <p className="text-[15px] text-[var(--text-primary)] font-semibold">{user.display_name || user.username}</p>
               <p className="text-[13px] text-[var(--text-faint)]">@{user.username} &middot; {user.email}</p>
             </div>
           </div>
+
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[13px] text-[var(--text-body)] font-medium hover:text-[var(--text-primary)] hover:border-[#9b7bf7]/50 hover:bg-[#9b7bf7]/10 transition-all"
+          >
+            <ion-icon name="create-outline" style={{ fontSize: '16px' }} />
+            Edit profile
+          </Link>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

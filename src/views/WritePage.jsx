@@ -52,31 +52,15 @@ function versionLabel(label) {
 
 function AvatarImg({ src, name, size = 32 }) {
     const [failed, setFailed] = useState(false);
-    const initial = (name || "?")[0].toUpperCase();
-    if (src && !failed) {
-        return (
-            <img
-                src={src}
-                alt=""
-                className="rounded-full object-cover"
-                style={{ width: size, height: size }}
-                onError={() => setFailed(true)}
-            />
-        );
-    }
+    const avatarSrc = src && !failed ? src : generatePixelAvatar(name || "lixblogs-user");
     return (
-        <div
-            className="rounded-full flex items-center justify-center font-bold"
-            style={{
-                width: size,
-                height: size,
-                backgroundColor: "var(--bg-elevated)",
-                color: "var(--text-muted)",
-                fontSize: Math.round(size * 0.38),
-            }}
-        >
-            {initial}
-        </div>
+        <img
+            src={avatarSrc}
+            alt=""
+            className="rounded-full object-cover"
+            style={{ width: size, height: size }}
+            onError={() => setFailed(true)}
+        />
     );
 }
 
