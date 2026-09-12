@@ -125,10 +125,8 @@ export default function NotificationsPage() {
       fetchNotifications(true).then(list => {
         if (list) {
           // Viewing the notifications page counts as having seen them, so
-          // clear the local unread count for this page's own display and tell
-          // the navbar to mark the current notifications as seen (so the badge
-          // doesn't resurrect on the next poll for direct URL navigation).
-          setUnread(0);
+          // tell the navbar to clear its badge. Read state remains independent,
+          // so this page can still offer "Mark all as read".
           dispatchNotificationsUpdate(list.map(n => n.id));
         }
       });

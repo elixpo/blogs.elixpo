@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { generatePixelAvatar } from '../utils/pixelAvatar';
@@ -35,7 +35,6 @@ function timeAgo(ts) {
 
 function NotificationDropdown() {
   const [open, setOpen] = useState(false);
-  const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -101,11 +100,12 @@ function NotificationDropdown() {
 
   const markAllRead = async () => {
     try {
-      await fetch('/api/notifications', {
+      const response = await fetch('/api/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ all: true }),
       });
+      if (!response.ok) return;
       setUnread(0);
       setNotifications(prev => prev.map(n => ({ ...n, read: 1 })));
     } catch {}
@@ -123,17 +123,24 @@ function NotificationDropdown() {
     } catch {}
   };
 
+  const hasUnreadNotifications = notifications.some(notification => !notification.read);
+
+  const togglePanel = () => {
+    if (!open) {
+      // Opening the panel acknowledges the badge without changing the read
+      // state. The user can still mark individual or all entries as read.
+      setUnread(0);
+      notifications.forEach(notification => seenIdsRef.current.add(notification.id));
+    }
+    setOpen(!open);
+  };
+
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => {
-          // Clear the badge and remember current notifications as "seen" so
-          // the 30s poll doesn't resurrect the count if the user just viewed
-          // them without marking read.
-          setUnread(0);
-          notifications.forEach(n => seenIdsRef.current.add(n.id));
-          router.push('/notifications');
-        }}
+        onClick={togglePanel}
+        aria-expanded={open}
+        aria-haspopup="dialog"
         className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
         style={{ color: 'var(--text-muted)' }}
         onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
@@ -156,13 +163,13 @@ function NotificationDropdown() {
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid var(--divider)' }}>
             <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Notifications</h3>
-            {unread > 0 && (
+            {hasUnreadNotifications && (
               <button
                 onClick={markAllRead}
                 className="text-[12px] font-medium transition-colors"
                 style={{ color: 'var(--accent)' }}
               >
-                Mark all read
+                Mark all as read
               </button>
             )}
           </div>
