@@ -1,7 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { STAFF_ORG_ID } from "../../lib/staff";
 import AppShell from "../components/AppShell";
@@ -25,12 +25,6 @@ import {
 } from "../utils/pixelAvatar";
 import "../styles/editor/editor.css";
 import "../styles/katex-fonts.css";
-
-// Mermaid and Shiki are intentionally browser-only. Pulling BlogPreview into
-// the Edge bundle pushes the Cloudflare Worker beyond the free-plan limit.
-const BlogPreview = dynamic(() => import("../components/Editor/BlogPreview"), {
-    ssr: false,
-});
 
 function formatUtcDate(value, options = {}) {
     const date = value instanceof Date ? value : new Date(value * 1000);
@@ -743,15 +737,33 @@ export default function HandlePage(props) {
 }
 
 function HandlePageInner({ path, initialData = null }) {
+    const router = useRouter();
     const { user: currentUser } = useAuth();
     const [data, setData] = useState(initialData);
     const [loading, setLoading] = useState(!initialData);
     const [error, setError] = useState(null);
     const [followModal, setFollowModal] = useState(null); // 'followers' | 'following'
     const [hideHighlights, setHideHighlights] = useState(false); // strip text colors/highlights
-    const [interactiveReady, setInteractiveReady] = useState(false);
+    const [InteractiveBlogPreview, setInteractiveBlogPreview] = useState(null);
 
-    useEffect(() => setInteractiveReady(true), []);
+    // Mermaid and Shiki stay browser-only to protect the Edge bundle. Keep the
+    // crawlable article mounted until this chunk has actually loaded; switching
+    // on hydration alone created a blank reader while the chunk was in flight.
+    useEffect(() => {
+        if (data?.type !== "blog") {
+            setInteractiveBlogPreview(null);
+            return;
+        }
+        let active = true;
+        import("../components/Editor/BlogPreview").then((module) => {
+            if (active) setInteractiveBlogPreview(() => module.default);
+        }).catch(() => {
+            // The static article remains fully readable if the enhancement fails.
+        });
+        return () => {
+            active = false;
+        };
+    }, [data?.type]);
 
     // Parse: path[0] = name, path[1] = slug or collection, path[2] = slug (if collection)
     // rawName keeps the original case: a 1-segment path may be a /[slugid] short link,
@@ -914,6 +926,18 @@ function HandlePageInner({ path, initialData = null }) {
                 <main className="reader-page w-full">
                 <div className="reader-frame w-full overflow-x-hidden">
                     <nav className="reader-context" aria-label="Story context">
+                        <button
+                            type="button"
+                            className="reader-back-button"
+                            onClick={() => {
+                                if (window.history.length > 1) router.back();
+                                else router.push("/explore");
+                            }}
+                            aria-label="Go back"
+                        >
+                            <ion-icon name="arrow-back-outline" aria-hidden="true" />
+                            Back
+                        </button>
                         <Link href="/explore" className="reader-context-link">
                             <ion-icon name="compass-outline" aria-hidden="true" />
                             Explore
@@ -951,8 +975,8 @@ function HandlePageInner({ path, initialData = null }) {
                             </Link>
                         </div>
                     )}
-                    {interactiveReady ? (
-                        <BlogPreview
+                    {InteractiveBlogPreview ? (
+                        <InteractiveBlogPreview
                             title={blog.title}
                             subtitle={blog.subtitle}
                             pageEmoji={blog.page_emoji}
