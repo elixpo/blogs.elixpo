@@ -174,6 +174,7 @@ function CrawlableArticle({ blog, blocks, owner }) {
     const author = blog.secret
         ? "Anonymous"
         : blog.author_name || blog.author_username || owner?.name || "LixBlogs";
+    const designation = blog.secret ? "" : blog.author_designation;
     return (
         <article
             className="blog-preview"
@@ -214,6 +215,7 @@ function CrawlableArticle({ blog, blocks, owner }) {
                     style={{ color: "var(--text-faint)" }}
                 >
                     By <span itemProp="author">{author}</span>
+                    {designation ? ` · ${designation}` : ""}
                     {blog.published_at
                         ? ` · ${formatUtcDate(blog.published_at, { year: "numeric", month: "short", day: "numeric" })}`
                         : ""}
@@ -933,6 +935,7 @@ function HandlePageInner({ path, initialData = null }) {
                             user={{
                                 username: blog.author_username,
                                 display_name: blog.author_name,
+                                designation: blog.author_designation,
                                 avatar_url: blog.author_avatar,
                             }}
                             anonymous={!!blog.secret}
@@ -1023,6 +1026,7 @@ function HandlePageInner({ path, initialData = null }) {
                         author={{
                             username: blog.author_username,
                             display_name: blog.author_name,
+                            designation: blog.author_designation,
                             avatar_url: blog.author_avatar,
                         }}
                         org={
@@ -1502,6 +1506,11 @@ function HandlePageInner({ path, initialData = null }) {
                             <p className="text-[var(--text-muted)] text-[15px] mt-0.5 font-medium">
                                 @{u.username}
                             </p>
+                            {u.designation && (
+                                <p className="mt-1 text-[14px] font-medium text-[var(--text-secondary)]">
+                                    {u.designation}
+                                </p>
+                            )}
                         </div>
                         {isOwnProfile ? (
                             <Link

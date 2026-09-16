@@ -113,6 +113,7 @@ const USER_LINK_PRESETS = [
 // ── Account Tab ──
 function AccountTab({ user, refetchUser }) {
   const [displayName, setDisplayName] = useState(user.display_name || '');
+  const [designation, setDesignation] = useState(user.designation || '');
   const [bio, setBio] = useState(user.bio || '');
   const [pronouns, setPronouns] = useState(user.pronouns || '');
   const [location, setLocation] = useState(user.location || '');
@@ -138,7 +139,7 @@ function AccountTab({ user, refetchUser }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          display_name: displayName, bio, pronouns, location, timezone, website, company,
+          display_name: displayName, designation, bio, pronouns, location, timezone, website, company,
           links: links.filter(l => l.url?.trim()),
         }),
       });
@@ -195,6 +196,19 @@ function AccountTab({ user, refetchUser }) {
                 <input value={pronouns} onChange={e => setPronouns(e.target.value)} placeholder="Your pronouns" className={`${inputCls} mt-2`} />
               )}
             </div>
+          </div>
+
+          <div>
+            <label className="text-[13px] text-[var(--text-primary)] mb-1 block font-medium">Designation</label>
+            <p className="text-[11px] text-[var(--text-faint)] mb-2">A short professional headline shown beside your authorship</p>
+            <input
+              value={designation}
+              onChange={e => setDesignation(e.target.value)}
+              placeholder="Software engineer and technical writer"
+              maxLength={100}
+              className={inputCls}
+            />
+            <p className="text-[10px] text-[var(--text-muted)] mt-1 text-right">{designation.length}/100</p>
           </div>
 
           <div>

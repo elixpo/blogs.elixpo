@@ -489,6 +489,7 @@ async function runWhoami(opts) {
     output(opts, result);
     if (!opts.json && !opts.quiet) {
       console.log(`${identity.displayName || identity.username} (@${identity.username})`);
+      if (identity.designation) console.log(identity.designation);
       console.log(`Profile: ${result.profile} · ${result.environment}`);
       console.log(`Authentication: ${result.authentication}`);
       console.log(`Scopes: ${result.scopes?.join(', ') || 'validated by server'}`);

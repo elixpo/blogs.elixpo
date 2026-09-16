@@ -264,6 +264,7 @@ export async function generateMetadata({ params, searchParams }) {
                     .filter(Boolean)
                     .join(", ");
                 const description = describe([
+                    data.user.designation,
                     data.user.bio,
                     data.user.bio
                         ? `Read ${dn} (${handle}) on LixBlogs.`
@@ -275,7 +276,7 @@ export async function generateMetadata({ params, searchParams }) {
                     kind: "Author Profile",
                     title: dn,
                     sub: handle,
-                    subtitle: data.user.bio || "",
+                    subtitle: data.user.designation || data.user.bio || "",
                     avatar: seoMediaUrl(data.user.avatar_url || data.user.avatar_r2_key, data.user.updated_at, "f_jpg,q_auto:eco,w_256,h_256,c_fill,g_face"),
                     banner: seoMediaUrl(data.user.banner_r2_key, data.user.updated_at, "f_jpg,q_auto:eco,w_1200,h_630,c_fill"),
                     seed: data.user.username || name,
@@ -500,7 +501,7 @@ async function buildJsonLd(path, origin) {
                                 : undefined,
                         ].filter(Boolean),
                         url,
-                        jobTitle: u.company || undefined,
+                        jobTitle: u.designation || undefined,
                         sameAs: (() => {
                             const links = [u.website];
                             try {
@@ -543,10 +544,12 @@ async function buildJsonLd(path, origin) {
                 {
                     name: b.author_name || b.author_username,
                     username: b.author_username,
+                    designation: b.author_designation,
                 },
                 ...(b.co_authors || []).map((c) => ({
                     name: c.display_name || c.username,
                     username: c.username,
+                    designation: c.designation,
                 })),
             ].filter((author) => author.name);
             const orgOwner = data.owner?.type === "org" ? data.owner : null;
@@ -574,6 +577,7 @@ async function buildJsonLd(path, origin) {
                         author: authors.map((author) => ({
                             "@type": "Person",
                             name: author.name,
+                            jobTitle: author.designation || undefined,
                             url: author.username
                                 ? `${origin}/${author.username}`
                                 : undefined,

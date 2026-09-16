@@ -1073,11 +1073,12 @@ export default function BlogPreview({
         const authors = anonymous
           ? [{ name: 'Anonymous', avatar_url: null, username: null }]
           : [
-            { name: user.display_name || user.username || 'Author', avatar_url: user.avatar_url, username: user.username },
+            { name: user.display_name || user.username || 'Author', designation: user.designation, avatar_url: user.avatar_url, username: user.username },
             // Co-authors come from /api/resolve with display_name/username — normalize
             // to `name` so their names actually render (not just the primary author).
             ...coAuthors.map((c) => ({
               name: c.name || c.display_name || c.username || 'Author',
+              designation: c.designation,
               avatar_url: c.avatar_url,
               username: c.username,
             })),
@@ -1142,6 +1143,12 @@ export default function BlogPreview({
               </span>
               {moreNames > 0 && (
                 <span className="text-[var(--text-faint)]">+ {moreNames} more</span>
+              )}
+              {!anonymous && authors.length === 1 && authors[0].designation && (
+                <>
+                  <span className="text-[var(--text-faint)]">·</span>
+                  <span className="text-[var(--text-secondary)]">{authors[0].designation}</span>
+                </>
               )}
               <span className="text-[var(--text-faint)]">·</span>
               <span>{readTimeMinutes > 0 ? readTimeMinutes : readTimeFromWords(wordCount)} min read</span>
