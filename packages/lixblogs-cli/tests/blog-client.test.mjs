@@ -35,6 +35,23 @@ test('create and publish send idempotency and revision headers', async () => {
   assert.equal(requests[1].options.headers['idempotency-key'], 'publish-key');
 });
 
+test('profile updates require the write scope and use the v1 identity endpoint', async () => {
+  const calls = [];
+  const client = new BlogClient({
+    requireScopes: async (scopes) => calls.push({ scopes }),
+    request: async (url, options) => {
+      calls.push({ url, options });
+      return response({ data: { username: 'writer', designation: 'Technical writer' } });
+    },
+  });
+  const profile = await client.updateProfile({ designation: 'Technical writer' });
+  assert.deepEqual(calls[0].scopes, ['lixblogs:profile:write']);
+  assert.equal(calls[1].url, '/api/v1/me');
+  assert.equal(calls[1].options.method, 'PATCH');
+  assert.equal(JSON.parse(calls[1].options.body).designation, 'Technical writer');
+  assert.equal(profile.designation, 'Technical writer');
+});
+
 test('get prefers the strong payload ETag when an edge rewrites the response header', async () => {
   const client = new BlogClient({ request: async () => response({
     data: { id: 'blog-1', etag: '"strong"' },

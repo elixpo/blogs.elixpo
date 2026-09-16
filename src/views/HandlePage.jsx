@@ -174,9 +174,10 @@ function CrawlableArticle({ blog, blocks, owner }) {
     const author = blog.secret
         ? "Anonymous"
         : blog.author_name || blog.author_username || owner?.name || "LixBlogs";
+    const designation = blog.secret ? "" : blog.author_designation;
     return (
         <article
-            className="blog-preview"
+            className="blog-preview reader-crawlable"
             itemScope
             itemType="https://schema.org/BlogPosting"
         >
@@ -184,7 +185,7 @@ function CrawlableArticle({ blog, blocks, owner }) {
                 <img
                     src={cover}
                     alt={blog.title ? `${blog.title} cover` : "Blog cover"}
-                    className="w-full max-h-[420px] object-cover rounded-xl mb-10"
+                    className="blog-preview-cover w-full object-cover rounded-xl mb-10"
                     itemProp="image"
                 />
             )}
@@ -195,14 +196,14 @@ function CrawlableArticle({ blog, blocks, owner }) {
                     </p>
                 )}
                 <h1
-                    className="text-4xl sm:text-5xl font-bold leading-tight"
+                    className="blog-preview-title text-4xl sm:text-5xl font-bold leading-tight"
                     itemProp="headline"
                 >
                     {blog.title || "Untitled"}
                 </h1>
                 {blog.subtitle && (
                     <p
-                        className="text-xl mt-4"
+                        className="blog-preview-subtitle text-xl mt-4"
                         style={{ color: "var(--text-muted)" }}
                         itemProp="description"
                     >
@@ -210,10 +211,11 @@ function CrawlableArticle({ blog, blocks, owner }) {
                     </p>
                 )}
                 <p
-                    className="mt-5 text-sm"
+                    className="blog-preview-byline mt-5 text-sm"
                     style={{ color: "var(--text-faint)" }}
                 >
                     By <span itemProp="author">{author}</span>
+                    {designation ? ` · ${designation}` : ""}
                     {blog.published_at
                         ? ` · ${formatUtcDate(blog.published_at, { year: "numeric", month: "short", day: "numeric" })}`
                         : ""}
@@ -892,8 +894,28 @@ function HandlePageInner({ path, initialData = null }) {
             isAuthor || myCoRole === "editor" || myCoRole === "admin";
 
         return (
-            <AppShell>
-                <div className="max-w-3xl mx-auto min-[1400px]:ml-[96px] px-4 sm:px-6 py-8 w-full overflow-x-hidden">
+            <AppShell showSidebar={false}>
+                <main className="reader-page w-full">
+                <div className="reader-frame w-full overflow-x-hidden">
+                    <nav className="reader-context" aria-label="Story context">
+                        <Link href="/explore" className="reader-context-link">
+                            <ion-icon name="compass-outline" aria-hidden="true" />
+                            Explore
+                        </Link>
+                        <span aria-hidden="true">/</span>
+                        {blog.secret ? (
+                            <span>Anonymous story</span>
+                        ) : (
+                            <Link
+                                href={`/${encodeURIComponent(data.owner?.slug || blog.author_username)}`}
+                                className="reader-context-link"
+                            >
+                                {data.owner?.type === "org"
+                                    ? data.owner.name
+                                    : blog.author_name || blog.author_username}
+                            </Link>
+                        )}
+                    </nav>
                     {canEdit && (
                         <div className="flex items-center justify-end mb-4">
                             <Link
@@ -933,9 +955,11 @@ function HandlePageInner({ path, initialData = null }) {
                             user={{
                                 username: blog.author_username,
                                 display_name: blog.author_name,
+                                designation: blog.author_designation,
                                 avatar_url: blog.author_avatar,
                             }}
                             anonymous={!!blog.secret}
+                            readerMode
                             org={
                                 data.owner?.type === "org"
                                     ? {
@@ -1019,10 +1043,12 @@ function HandlePageInner({ path, initialData = null }) {
                     )}
 
                     {/* End-of-blog follow card — author (+ org) */}
+                    <div className="reader-endmatter">
                     <BlogFollowCard
                         author={{
                             username: blog.author_username,
                             display_name: blog.author_name,
+                            designation: blog.author_designation,
                             avatar_url: blog.author_avatar,
                         }}
                         org={
@@ -1046,7 +1072,9 @@ function HandlePageInner({ path, initialData = null }) {
 
                     {/* More to read — related recommendations */}
                     <BlogRecommendations blogId={blog.id} />
+                    </div>
                 </div>
+                </main>
             </AppShell>
         );
     }
@@ -1502,6 +1530,11 @@ function HandlePageInner({ path, initialData = null }) {
                             <p className="text-[var(--text-muted)] text-[15px] mt-0.5 font-medium">
                                 @{u.username}
                             </p>
+                            {u.designation && (
+                                <p className="mt-1 text-[14px] font-medium text-[var(--text-secondary)]">
+                                    {u.designation}
+                                </p>
+                            )}
                         </div>
                         {isOwnProfile ? (
                             <Link

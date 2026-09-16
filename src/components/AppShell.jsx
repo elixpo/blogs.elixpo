@@ -277,7 +277,8 @@ function UserAvatar({ src, name, size = 32, className = '', style = {} }) {
 }
 
 const NAV_ITEMS = [
-  { label: 'Home', icon: 'home-outline', href: '/' },
+  { label: 'Home', icon: 'home-outline', href: '/', public: true },
+  { label: 'Explore', icon: 'compass-outline', href: '/explore', public: true },
   { label: 'Library', icon: 'bookmark-outline', href: '/library' },
   { label: 'Profile', icon: 'person-outline', href: '/profile' },
   { label: 'Stories', icon: 'book-outline', href: '/stories' },
@@ -531,7 +532,7 @@ export default function AppShell({ children, showSidebar = true }) {
         {/* Left Sidebar */}
         {showSidebar && <aside className="hidden lg:flex flex-col w-[220px] flex-shrink-0 sticky top-14 h-[calc(100vh-56px)] px-4 py-6 justify-between" style={{ borderRight: '1px solid var(--border-default)' }}>
           <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.filter((item) => user || item.href === '/').map((item) => {
+            {NAV_ITEMS.filter((item) => user || item.public).map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
               return (
                 <Link

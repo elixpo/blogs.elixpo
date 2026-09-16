@@ -8,6 +8,7 @@ import {
     blogExcerpt,
     safeJsonLd,
 } from "../../src/utils/seoContent";
+import { getCloudinaryUrl } from "../../lib/cloudinary";
 import CatchAllClient from "./client";
 
 export const dynamic = "force-dynamic";
@@ -19,17 +20,18 @@ const httpImg = (u) =>
     typeof u === "string" && /^https?:\/\//.test(u) ? u : "";
 
 // Metadata, JSON-LD and the page all need the same route resolution. React's
-// request cache keeps that to one API call without persisting member-aware data
-// between visitors.
+// request cache keeps that to one lookup without persisting member-aware data
+// between visitors. Invoke the route handler in-process: a Worker self-fetch adds
+// a full network round trip and JSON boundary before any metadata can stream.
 const resolvePublicPage = cache(
     async (origin, name, slug = "", collection = "") => {
         const qs = new URLSearchParams({ name });
         if (slug) qs.set("slug", slug);
         if (collection) qs.set("collection", collection);
-        const response = await fetch(`${origin}/api/resolve?${qs}`, {
-            cache: "no-store",
+        const { GET: resolveRequest } = await import("../api/resolve/route");
+        const response = await resolveRequest(new Request(`${origin}/api/resolve?${qs}`, {
             headers: { "user-agent": "lixblogs-ssr" },
-        });
+        }));
         if (response.status === 404) return { type: "notFound" };
         if (!response.ok)
             throw new Error(
@@ -38,6 +40,24 @@ const resolvePublicPage = cache(
         return response.json();
     },
 );
+
+// Profile and organization banners are stored as Cloudinary public IDs. Build a
+// delivery URL directly so an OG render does not have to follow our media redirect.
+function seoMediaUrl(value, version, transforms = "f_jpg,q_auto:eco") {
+    if (!value || typeof value !== "string") return "";
+    if (/^https?:\/\//.test(value)) {
+        if (!version) return value;
+        const separator = value.includes("?") ? "&" : "?";
+        return `${value}${separator}v=${encodeURIComponent(version)}`;
+    }
+    try {
+        const url = getCloudinaryUrl(value, transforms);
+        if (!/^https?:\/\//.test(url) || url.includes("undefined")) return "";
+        return version ? `${url}?v=${encodeURIComponent(version)}` : url;
+    } catch {
+        return "";
+    }
+}
 
 // `title.absolute` opts out of the root layout's "%s | LixBlogs" template. These
 // titles already carry the brand, and without this they render double-branded:
@@ -155,9 +175,9 @@ export async function generateMetadata({ params, searchParams }) {
                 subtitle: b.subtitle || "",
                 sub,
                 readTime,
-                cover: httpImg(b.cover_image_r2_key),
+                cover: seoMediaUrl(b.cover_image_r2_key, b.updated_at, "f_jpg,q_auto:eco,w_1200,c_limit"),
                 seed: b.id || b.slugid || b.slug || title,
-                avatar: secret ? "" : httpImg(b.author_avatar),
+                avatar: secret ? "" : seoMediaUrl(b.author_avatar, b.updated_at, "f_jpg,q_auto:eco,w_256,h_256,c_fill,g_face"),
                 // author_tier is itself a weak author signal — never send it for a secret blog.
                 ...(secret ? {} : noBrand(b.author_tier)),
             });
@@ -244,6 +264,7 @@ export async function generateMetadata({ params, searchParams }) {
                     .filter(Boolean)
                     .join(", ");
                 const description = describe([
+                    data.user.designation,
                     data.user.bio,
                     data.user.bio
                         ? `Read ${dn} (${handle}) on LixBlogs.`
@@ -255,13 +276,9 @@ export async function generateMetadata({ params, searchParams }) {
                     kind: "Author Profile",
                     title: dn,
                     sub: handle,
-                    subtitle: data.user.bio || "",
-                    avatar: httpImg(data.user.avatar_url),
-                    banner: httpImg(
-                        data.user.banner_r2_key
-                            ? `${origin}/api/media/${data.user.banner_r2_key}`
-                            : "",
-                    ),
+                    subtitle: data.user.designation || data.user.bio || "",
+                    avatar: seoMediaUrl(data.user.avatar_url || data.user.avatar_r2_key, data.user.updated_at, "f_jpg,q_auto:eco,w_256,h_256,c_fill,g_face"),
+                    banner: seoMediaUrl(data.user.banner_r2_key, data.user.updated_at, "f_jpg,q_auto:eco,w_1200,h_630,c_fill"),
                     seed: data.user.username || name,
                     ...noBrand(data.user.tier),
                 });
@@ -300,13 +317,8 @@ export async function generateMetadata({ params, searchParams }) {
                     title: dn,
                     sub: ownerName ? `by ${ownerName}` : handle,
                     subtitle: data.org.description || data.org.bio || "",
-                    avatar: httpImg(data.org.logo_url || data.org.logo_r2_key),
-                    banner: httpImg(
-                        data.org.banner_url ||
-                        (data.org.banner_r2_key
-                            ? `${origin}/api/media/${data.org.banner_r2_key}`
-                            : "")
-                    ),
+                    avatar: seoMediaUrl(data.org.logo_url || data.org.logo_r2_key, data.org.updated_at, "f_jpg,q_auto:eco,w_256,h_256,c_fill"),
+                    banner: seoMediaUrl(data.org.banner_url || data.org.banner_r2_key, data.org.updated_at, "f_jpg,q_auto:eco,w_1200,h_630,c_fill"),
                     seed: data.org.slug || name,
                     ...noBrand(data.owner?.tier),
                 });
@@ -349,15 +361,8 @@ export async function generateMetadata({ params, searchParams }) {
                 title,
                 sub: orgName,
                 subtitle: data.collection.description || "",
-                avatar: httpImg(
-                    data.owner?.logo_url || data.owner?.logo_r2_key,
-                ),
-                banner: httpImg(
-                    data.owner?.banner_url ||
-                    (data.owner?.banner_r2_key
-                        ? `${origin}/api/media/${data.owner?.banner_r2_key}`
-                        : "")
-                ),
+                avatar: seoMediaUrl(data.owner?.logo_url || data.owner?.logo_r2_key, data.owner?.updated_at, "f_jpg,q_auto:eco,w_256,h_256,c_fill"),
+                banner: seoMediaUrl(data.owner?.banner_url || data.owner?.banner_r2_key, data.owner?.updated_at, "f_jpg,q_auto:eco,w_1200,h_630,c_fill"),
                 seed: data.collection.slug || title,
                 avatarSeed: data.owner?.slug || name,
             });
@@ -454,6 +459,19 @@ async function buildJsonLd(path, origin) {
             const u = data.user;
             const dn = u.display_name || u.username || name;
             const url = `${origin}/${name}`;
+            const profileStories = (data.blogs || []).slice(0, 20).map((blog) => {
+                const owner = blog.org_slug || blog.author_username || name;
+                const parts = [owner];
+                if (blog.org_slug && blog.collection_slug)
+                    parts.push(blog.collection_slug);
+                parts.push(blog.slug);
+                return {
+                    "@type": "BlogPosting",
+                    "@id": `${origin}/${parts.map(encodeURIComponent).join("/")}#article`,
+                    url: `${origin}/${parts.map(encodeURIComponent).join("/")}`,
+                    headline: blog.title || "Untitled",
+                };
+            });
             return {
                 "@context": "https://schema.org",
                 "@graph": [
@@ -464,6 +482,9 @@ async function buildJsonLd(path, origin) {
                         name: `${dn} on LixBlogs`,
                         mainEntity: { "@id": `${url}#person` },
                         isPartOf: { "@id": `${origin}/#website` },
+                        hasPart: profileStories.length
+                            ? profileStories
+                            : undefined,
                     },
                     {
                         "@type": "Person",
@@ -480,7 +501,7 @@ async function buildJsonLd(path, origin) {
                                 : undefined,
                         ].filter(Boolean),
                         url,
-                        jobTitle: u.company || undefined,
+                        jobTitle: u.designation || undefined,
                         sameAs: (() => {
                             const links = [u.website];
                             try {
@@ -523,10 +544,12 @@ async function buildJsonLd(path, origin) {
                 {
                     name: b.author_name || b.author_username,
                     username: b.author_username,
+                    designation: b.author_designation,
                 },
                 ...(b.co_authors || []).map((c) => ({
                     name: c.display_name || c.username,
                     username: c.username,
+                    designation: c.designation,
                 })),
             ].filter((author) => author.name);
             const orgOwner = data.owner?.type === "org" ? data.owner : null;
@@ -554,6 +577,7 @@ async function buildJsonLd(path, origin) {
                         author: authors.map((author) => ({
                             "@type": "Person",
                             name: author.name,
+                            jobTitle: author.designation || undefined,
                             url: author.username
                                 ? `${origin}/${author.username}`
                                 : undefined,
