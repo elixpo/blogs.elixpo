@@ -143,7 +143,7 @@ async function fetchBlogBySlugid(db, slugid) {
     ) {
         const org = await db
             .prepare(
-                "SELECT id, slug, name, description, bio, logo_url, logo_r2_key, owner_id FROM orgs WHERE id = ?",
+                "SELECT id, slug, name, description, bio, logo_url, logo_r2_key, owner_id, updated_at FROM orgs WHERE id = ?",
             )
             .bind(full.published_as.slice(4))
             .first();
@@ -432,7 +432,7 @@ export async function GET(request) {
                 .prepare(`
         SELECT id, slug, name, description, bio, website, links, visibility,
           logo_url, logo_r2_key, banner_url, banner_r2_key, featured_blog_ids,
-          timezone, location, contact_email, owner_id, created_at
+          timezone, location, contact_email, owner_id, created_at, updated_at
         FROM orgs WHERE id = ?
       `)
                 .bind(ownerId)

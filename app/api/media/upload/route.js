@@ -365,22 +365,23 @@ export async function POST(request) {
     if (isProfileImage) {
       if (db) {
         try {
+          const profileUpdatedAt = Math.floor(Date.now() / 1000);
           if (mediaType === 'avatar') {
             // Display reads avatar_url, so set both (else the new avatar won't show).
-            await db.prepare('UPDATE users SET avatar_r2_key = ?, avatar_url = ? WHERE id = ?')
-              .bind(result.public_id, result.secure_url, session.userId).run();
+            await db.prepare('UPDATE users SET avatar_r2_key = ?, avatar_url = ?, updated_at = ? WHERE id = ?')
+              .bind(result.public_id, result.secure_url, profileUpdatedAt, session.userId).run();
           } else if (mediaType === 'banner') {
             // The public id is intentionally stable. Touch updated_at as well so
             // clients can use it as a cache-busting version after a replacement.
             await db.prepare('UPDATE users SET banner_r2_key = ?, updated_at = ? WHERE id = ?')
-              .bind(result.public_id, Math.floor(Date.now() / 1000), session.userId).run();
+              .bind(result.public_id, profileUpdatedAt, session.userId).run();
           } else if (mediaType === 'org_avatar') {
             // Org UI reads logo_url for display — set both so the new logo shows.
-            await db.prepare('UPDATE orgs SET logo_r2_key = ?, logo_url = ? WHERE id = ?')
-              .bind(result.public_id, result.secure_url, orgId).run();
+            await db.prepare('UPDATE orgs SET logo_r2_key = ?, logo_url = ?, updated_at = ? WHERE id = ?')
+              .bind(result.public_id, result.secure_url, profileUpdatedAt, orgId).run();
           } else if (mediaType === 'org_banner') {
-            await db.prepare('UPDATE orgs SET banner_r2_key = ?, banner_url = ? WHERE id = ?')
-              .bind(result.public_id, result.secure_url, orgId).run();
+            await db.prepare('UPDATE orgs SET banner_r2_key = ?, banner_url = ?, updated_at = ? WHERE id = ?')
+              .bind(result.public_id, result.secure_url, profileUpdatedAt, orgId).run();
           }
           // Bust the cached profile so the new avatar/banner shows on refresh
           // (without this, /api/auth/me serves the stale user for up to 5 min).
@@ -519,16 +520,21 @@ export async function DELETE(request) {
       if (org?.owner_id !== session.userId && membership?.role !== 'admin' && membership?.role !== 'maintain') {
         return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
       }
+      const profileUpdatedAt = Math.floor(Date.now() / 1000);
       if (type === 'org_avatar') {
-        await db.prepare('UPDATE orgs SET logo_r2_key = NULL, logo_url = NULL WHERE id = ?').bind(orgId).run();
+        await db.prepare('UPDATE orgs SET logo_r2_key = NULL, logo_url = NULL, updated_at = ? WHERE id = ?')
+          .bind(profileUpdatedAt, orgId).run();
       } else {
-        await db.prepare('UPDATE orgs SET banner_r2_key = NULL, banner_url = NULL WHERE id = ?').bind(orgId).run();
+        await db.prepare('UPDATE orgs SET banner_r2_key = NULL, banner_url = NULL, updated_at = ? WHERE id = ?')
+          .bind(profileUpdatedAt, orgId).run();
       }
     } else if (type === 'avatar') {
-      await db.prepare('UPDATE users SET avatar_r2_key = NULL, avatar_url = NULL WHERE id = ?').bind(session.userId).run();
+      await db.prepare('UPDATE users SET avatar_r2_key = NULL, avatar_url = NULL, updated_at = ? WHERE id = ?')
+        .bind(Math.floor(Date.now() / 1000), session.userId).run();
       try { const { kvInvalidate } = await import('../../../../lib/cache'); await kvInvalidate(`v1:user:${session.userId}`); } catch {}
     } else if (type === 'banner') {
-      await db.prepare('UPDATE users SET banner_r2_key = NULL WHERE id = ?').bind(session.userId).run();
+      await db.prepare('UPDATE users SET banner_r2_key = NULL, updated_at = ? WHERE id = ?')
+        .bind(Math.floor(Date.now() / 1000), session.userId).run();
       try { const { kvInvalidate } = await import('../../../../lib/cache'); await kvInvalidate(`v1:user:${session.userId}`); } catch {}
     }
 
