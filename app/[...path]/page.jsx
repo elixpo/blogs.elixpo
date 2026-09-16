@@ -454,6 +454,19 @@ async function buildJsonLd(path, origin) {
             const u = data.user;
             const dn = u.display_name || u.username || name;
             const url = `${origin}/${name}`;
+            const profileStories = (data.blogs || []).slice(0, 20).map((blog) => {
+                const owner = blog.org_slug || blog.author_username || name;
+                const parts = [owner];
+                if (blog.org_slug && blog.collection_slug)
+                    parts.push(blog.collection_slug);
+                parts.push(blog.slug);
+                return {
+                    "@type": "BlogPosting",
+                    "@id": `${origin}/${parts.map(encodeURIComponent).join("/")}#article`,
+                    url: `${origin}/${parts.map(encodeURIComponent).join("/")}`,
+                    headline: blog.title || "Untitled",
+                };
+            });
             return {
                 "@context": "https://schema.org",
                 "@graph": [
@@ -464,6 +477,9 @@ async function buildJsonLd(path, origin) {
                         name: `${dn} on LixBlogs`,
                         mainEntity: { "@id": `${url}#person` },
                         isPartOf: { "@id": `${origin}/#website` },
+                        hasPart: profileStories.length
+                            ? profileStories
+                            : undefined,
                     },
                     {
                         "@type": "Person",

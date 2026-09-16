@@ -248,7 +248,7 @@ function FeedCardActions({ post, onHide }) {
   const [reposted, setReposted] = useState(!!post.reposted);
   const [repostCount, setRepostCount] = useState(post.repost_count || 0);
   const [toast, setToast] = useState('');
-  const href = `/${(post.org?.slug) || post.author?.username || 'unknown'}/${post.slug}`;
+  const href = feedPostHref(post);
   // Author / co-authors / org members can't repost their own blog.
   const cannotRepost = !!(post.is_author || post.is_co_author || post.can_edit);
 
@@ -320,7 +320,7 @@ function FeedCard({ post, onHide }) {
   const cardRef = useRef(null);
   const author = post.author || {};
   const cover = post.cover_image_r2_key || generateBlogThumbnail(post.id || post.slug);
-  const href = `/${(post.org?.slug) || author.username || 'unknown'}/${post.slug}`;
+  const href = feedPostHref(post);
   const allAuthors = [{ display_name: author.display_name, username: author.username, avatar_url: author.avatar_url }, ...(post.co_authors || [])];
 
   useEffect(() => {
@@ -415,7 +415,7 @@ function TopPickCard({ post, index }) {
   ];
   const accents = ['#9b7bf7', '#60a5fa', '#f472b6'];
   return (
-    <Link href={`/${author.username || 'unknown'}/${post.slug}`}>
+    <Link href={feedPostHref(post)}>
       <div
         className="p-3.5 rounded-xl cursor-pointer group mb-2.5 transition-all duration-200 hover:scale-[1.02]"
         style={{
@@ -536,15 +536,25 @@ function recommendedTopics(interests, popular) {
   return topics;
 }
 
-export default function App() {
+function feedPostHref(post) {
+  const owner = post.org?.slug || post.author?.username || 'unknown';
+  const parts = [owner];
+  if (post.org?.slug && post.collection?.slug) parts.push(post.collection.slug);
+  parts.push(post.slug);
+  return `/${parts.map(part => encodeURIComponent(part)).join('/')}`;
+}
+
+export default function App({ initialPosts = [] }) {
   const { user, loading: authLoading } = useAuth();
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState(initialPosts);
   const [topPicks, setTopPicks] = useState([]);
   const [popularTags, setPopularTags] = useState([]);
   const [userInterests, setUserInterests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialPosts.length === 0);
   const [activeTopic, setActiveTopic] = useState(0);
   const [tagFilter, setTagFilter] = useState(null); // active Recommended-topic pill
+  const firstFeedLoadRef = useRef(true);
+  const hasServerStoriesRef = useRef(initialPosts.length > 0);
 
   // Two tabs only: "For you" (personalized/blended) and "Featured" (editorial).
   const topics = [
@@ -569,7 +579,12 @@ export default function App() {
 
   // Fetch feed — a Recommended-topic pill (tagFilter) overrides the tab.
   useEffect(() => {
-    setLoading(true);
+    const preserveServerStories = firstFeedLoadRef.current
+      && hasServerStoriesRef.current
+      && !user
+      && !tagFilter
+      && activeTopic === 0;
+    if (!preserveServerStories) setLoading(true);
     let url = '/api/feed?limit=20';
     if (tagFilter) url += `&tag=${encodeURIComponent(tagFilter)}`;
     else if (topics[activeTopic]?.filter) url += `&filter=${topics[activeTopic].filter}`;
@@ -577,8 +592,11 @@ export default function App() {
     fetch(url, { cache: 'no-store' })
       .then(r => r.json())
       .then(data => setPosts(data.posts || []))
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
+      .catch(() => { if (!preserveServerStories) setPosts([]); })
+      .finally(() => {
+        firstFeedLoadRef.current = false;
+        setLoading(false);
+      });
   }, [activeTopic, tagFilter, user]);
 
   // Fetch sidebar data once
@@ -654,6 +672,17 @@ export default function App() {
                     Start writing
                   </Link>
                 )}
+              </div>
+            )}
+            {posts.length > 0 && !tagFilter && (
+              <div className="py-8 text-center">
+                <Link
+                  href="/explore"
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] px-5 py-2.5 text-[13px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+                >
+                  Browse all stories
+                  <ion-icon name="arrow-forward-outline" style={{ fontSize: '15px' }} />
+                </Link>
               </div>
             )}
           </div>

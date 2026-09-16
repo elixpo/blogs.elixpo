@@ -1,8 +1,10 @@
 export const runtime = 'edge';
-// Must run per-request: the URL list comes from D1, which is only bound at runtime.
+// Must run in the edge runtime: the URL list comes from D1. The database rows are
+// cached briefly in KV so crawler bursts do not repeat the same five large queries.
 export const dynamic = 'force-dynamic';
 
 import { docsNavFlat } from '../src/config/docsNav';
+import { kvCache } from '../lib/cache';
 
 const SITE_URL = 'https://blogs.elixpo.com';
 
@@ -24,6 +26,7 @@ const ts = (sec) => (sec ? new Date(sec * 1000) : undefined);
 export default async function sitemap() {
   const staticPages = [
     { url: `${SITE_URL}/`, changeFrequency: 'daily', priority: 1.0 },
+    { url: `${SITE_URL}/explore`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/about`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/pricing`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/docs`, changeFrequency: 'monthly', priority: 0.6 },
@@ -42,7 +45,7 @@ export default async function sitemap() {
     const { getDB } = await import('../lib/cloudflare');
     const db = getDB();
 
-    const [blogs, users, orgs, collections, tags] = await Promise.all([
+    const [blogs, users, orgs, collections, tags] = await kvCache('v2:public-sitemap-rows', 3600, () => Promise.all([
       db.prepare(`
         SELECT b.slug, b.updated_at, b.published_at, b.published_as,
                au.username AS author_username, o.slug AS org_slug, col.slug AS collection_slug
@@ -81,7 +84,7 @@ export default async function sitemap() {
         GROUP BY LOWER(bt.tag)
         ORDER BY COUNT(*) DESC LIMIT 2000
       `).all(),
-    ]);
+    ]));
 
     const blogUrls = (blogs?.results || []).map((b) => {
       const owner = b.published_as?.startsWith('org:') ? b.org_slug : b.author_username;

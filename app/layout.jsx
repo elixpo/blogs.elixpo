@@ -102,6 +102,7 @@ const SITE_JSONLD = {
       '@id': `${SITE_URL}/#website`,
       url: SITE_URL,
       name: SITE_NAME,
+      alternateName: ['Elixpo Blogs', 'Lix Blogs', 'blogs.elixpo.com'],
       description: SITE_DESC,
       publisher: { '@id': `${SITE_URL}/#organization` },
       inLanguage: 'en',

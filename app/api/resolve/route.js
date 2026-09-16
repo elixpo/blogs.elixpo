@@ -363,7 +363,7 @@ export async function GET(request) {
         WHERE (b.author_id = ? OR b.id IN (
                  SELECT blog_id FROM blog_co_authors WHERE user_id = ? AND status = 'accepted' AND show_on_profile = 1
                ))
-          AND b.status IN ('published', 'unlisted')
+          AND b.status = 'published'
           -- Secret blogs never appear on a profile: listing them here would tie
           -- the anonymous post straight back to its author (or a co-author).
           AND b.secret = 0
@@ -403,7 +403,7 @@ export async function GET(request) {
                     .prepare(`
           SELECT bt.tag, COUNT(*) as count
           FROM blog_tags bt JOIN blogs b ON b.id = bt.blog_id
-          WHERE b.author_id = ? AND b.status IN ('published', 'unlisted') AND b.secret = 0
+          WHERE b.author_id = ? AND b.status = 'published' AND b.secret = 0
           GROUP BY bt.tag ORDER BY count DESC LIMIT 20
         `)
                     .bind(ownerId)
@@ -534,7 +534,7 @@ export async function GET(request) {
               (SELECT COUNT(*) FROM likes WHERE blog_id = b.id) as like_count,
               (SELECT COUNT(*) FROM comments WHERE blog_id = b.id) as comment_count
             FROM blogs b JOIN users u ON u.id = b.author_id
-            WHERE b.collection_id = ? AND b.status IN ('published', 'unlisted')
+            WHERE b.collection_id = ? AND b.status = 'published'
             ORDER BY b.published_at DESC LIMIT 50
           `)
                         .bind(col.id)
@@ -635,7 +635,7 @@ export async function GET(request) {
             b.page_emoji, b.read_time_minutes, b.published_at, b.published_as,
             c.slug AS collection_slug
           FROM blogs b LEFT JOIN collections c ON c.id = b.collection_id
-          WHERE b.published_as = ? AND b.status IN ('published', 'unlisted')
+          WHERE b.published_as = ? AND b.status = 'published'
           ORDER BY published_at DESC LIMIT 20
         `)
                     .bind(`org:${ownerId}`)
