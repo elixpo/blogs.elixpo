@@ -269,10 +269,12 @@ export default function ContributionGraph({ username, timezone }) {
                 style={{ WebkitOverflowScrolling: "touch" }}
             >
                 <svg
-                    width={svgWidth}
+                    width="100%"
                     height={svgHeight}
+                    viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                    preserveAspectRatio="xMinYMid meet"
                     aria-label={`Publishing activity: ${total} post${total !== 1 ? "s" : ""} in the last year`}
-                    style={{ display: "block" }}
+                    style={{ display: "block", minWidth: `${svgWidth}px` }}
                 >
                     {/* Month labels */}
                     {monthLabels.map(({ week, label }) => (

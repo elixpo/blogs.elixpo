@@ -75,7 +75,7 @@ export async function GET(request, { params }) {
         }
 
         // Base conditions: visible public posts
-        let baseWhere = `b.status IN ('published', 'unlisted') AND b.secret = 0`;
+        let baseWhere = `b.status = 'published' AND b.secret = 0`;
         let fromClause = "FROM blogs b JOIN users au ON au.id = b.author_id";
 
         if (filter === "coauthored") {

@@ -357,6 +357,8 @@ export async function GET(request) {
                 .prepare(`
         SELECT b.id, b.slug, b.title, b.subtitle, b.cover_image_r2_key, b.page_emoji,
           b.read_time_minutes, b.published_at, b.status, b.author_id, b.published_as,
+          COALESCE(b.like_count, 0) AS like_count,
+          COALESCE(b.comment_count, 0) AS comment_count,
           au.username AS author_username,
           po.slug AS org_slug, pc.slug AS collection_slug,
           (b.author_id = ?) AS is_owner

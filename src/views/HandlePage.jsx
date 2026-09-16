@@ -13,7 +13,7 @@ import BlogInteractionBar from "../components/BlogInteractionBar";
 import BlogInviteOverlay from "../components/BlogInviteOverlay";
 import BlogRecommendations from "../components/BlogRecommendations";
 import ContributionGraph from "../components/ContributionGraph";
-import { CreatorBadgeStrip } from "../components/CreatorBadge";
+import { CreatorBadgeMark } from "../components/CreatorBadge";
 import FollowListModal from "../components/FollowListModal";
 import { useAuth } from "../context/AuthContext";
 import { normalizeImageUrl, normalizeUrl } from "../utils/linkHelper";
@@ -313,7 +313,6 @@ function FollowButton({ username }) {
 }
 
 const FILTER_TABS = [
-    { key: "all", label: "All", icon: "grid-outline" },
     { key: "newest", label: "Newest", icon: "time-outline" },
     { key: "popular", label: "Popular", icon: "flame-outline" },
     { key: "oldest", label: "Oldest", icon: "hourglass-outline" },
@@ -321,41 +320,140 @@ const FILTER_TABS = [
     { key: "coauthored", label: "Co-authored", icon: "people-outline" },
 ];
 
-function ProfileContent({ username, initialBlogs, tags, timezone }) {
-    // Read initial filter from URL
-    const getInitialFilter = () => {
-        if (typeof window === "undefined") return "all";
-        const params = new URLSearchParams(window.location.search);
-        return params.get("filter") || "all";
-    };
-    const getInitialQuery = () => {
-        if (typeof window === "undefined") return "";
-        const params = new URLSearchParams(window.location.search);
-        return params.get("q") || "";
-    };
-    const getInitialTag = () => {
-        if (typeof window === "undefined") return "";
-        const params = new URLSearchParams(window.location.search);
-        return params.get("tag") || "";
-    };
+const PROFILE_TABS = [
+    { key: "overview", label: "Overview", icon: "person-circle-outline" },
+    { key: "blogs", label: "Blogs", icon: "newspaper-outline" },
+    { key: "badges", label: "Badges", icon: "ribbon-outline" },
+];
 
-    const [filter, setFilter] = useState(getInitialFilter);
-    const [searchQuery, setSearchQuery] = useState(getInitialQuery);
-    const [activeTag, setActiveTag] = useState(getInitialTag);
+function ProfilePostCard({ blog, username }) {
+    const cover = blog.cover_image_r2_key || generateBlogThumbnail(blog.id || blog.slug);
+    return (
+        <Link
+            href={publicBlogHref(blog, username)}
+            className="group block overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--card-bg)] transition-all hover:-translate-y-0.5 hover:border-[#9b7bf7]/45 hover:shadow-lg hover:shadow-[#9b7bf7]/5"
+        >
+            <article className="flex flex-col sm:flex-row">
+                <img
+                    src={cover}
+                    alt=""
+                    loading="lazy"
+                    className="h-40 w-full object-cover sm:h-auto sm:min-h-36 sm:w-48 lg:w-56"
+                />
+                <div className="min-w-0 flex-1 p-5 sm:p-6">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                        {(blog.tags || []).slice(0, 3).map((tag) => (
+                            <span key={tag} className="rounded-full bg-[#9b7bf7]/10 px-2.5 py-1 text-[10px] font-semibold text-[#9b7bf7]">
+                                #{tag}
+                            </span>
+                        ))}
+                    </div>
+                    <h3 className="text-[19px] font-bold leading-snug text-[var(--text-primary)] transition-colors group-hover:text-[#9b7bf7]">
+                        {blog.title || "Untitled"}
+                    </h3>
+                    {blog.subtitle && (
+                        <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-[var(--text-muted)]">
+                            {blog.subtitle}
+                        </p>
+                    )}
+                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-[var(--text-faint)]">
+                        {blog.published_at && (
+                            <span>{formatUtcDate(blog.published_at, { month: "short", day: "numeric", year: "numeric" })}</span>
+                        )}
+                        {blog.read_time_minutes > 0 && <span>{blog.read_time_minutes} min read</span>}
+                        {blog.like_count > 0 && <span>{blog.like_count} likes</span>}
+                        {blog.comment_count > 0 && <span>{blog.comment_count} comments</span>}
+                    </div>
+                </div>
+            </article>
+        </Link>
+    );
+}
+
+function ProfileBadgeGallery({ badges = [] }) {
+    if (!badges.length) {
+        return (
+            <div className="rounded-2xl border border-dashed border-[var(--border-default)] bg-[var(--card-bg)] px-6 py-16 text-center">
+                <ion-icon name="ribbon-outline" style={{ fontSize: "34px", color: "var(--text-faint)" }} />
+                <p className="mt-3 text-[14px] font-semibold text-[var(--text-muted)]">No public badges yet</p>
+                <p className="mt-1 text-[12px] text-[var(--text-faint)]">Achievements this creator chooses to display will appear here.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Creator achievements">
+            {badges.map((badge) => (
+                <article
+                    key={badge.id}
+                    tabIndex={0}
+                    className="group/badge relative flex min-h-28 items-center gap-4 rounded-2xl border border-[var(--border-default)] bg-[var(--card-bg)] p-4 outline-none transition-all hover:-translate-y-0.5 hover:border-[#9b7bf7]/40 hover:shadow-lg focus-visible:border-[#9b7bf7] focus-visible:ring-2 focus-visible:ring-[#9b7bf7]/20"
+                    aria-describedby={`badge-description-${badge.id}`}
+                >
+                    <CreatorBadgeMark badge={badge} size={58} />
+                    <div className="min-w-0">
+                        <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{badge.name}</h3>
+                        <p className="mt-1 text-[11px] font-medium text-[#9b7bf7]">{badge.category}</p>
+                        <p className="mt-0.5 text-[10px] text-[var(--text-faint)]">{badge.difficulty}</p>
+                    </div>
+                    <div
+                        id={`badge-description-${badge.id}`}
+                        role="tooltip"
+                        className="pointer-events-none absolute inset-x-3 top-[calc(100%+8px)] z-40 hidden rounded-xl border border-[var(--border-default)] bg-[var(--dropdown-bg,var(--bg-surface))] p-3 text-[11px] leading-5 text-[var(--text-muted)] shadow-xl group-hover/badge:block group-focus/badge:block"
+                    >
+                        {badge.description}
+                        {badge.awarded_at && (
+                            <span className="mt-1 block text-[10px] text-[var(--text-faint)]">
+                                Earned {formatUtcDate(badge.awarded_at, { month: "short", day: "numeric", year: "numeric" })}
+                            </span>
+                        )}
+                    </div>
+                </article>
+            ))}
+        </div>
+    );
+}
+
+function ProfileContent({ username, initialBlogs = [], tags = [], timezone, badges = [] }) {
+    const [section, setSection] = useState("overview");
+    const [filter, setFilter] = useState("newest");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [activeTag, setActiveTag] = useState("");
+    const [urlReady, setUrlReady] = useState(false);
     const [posts, setPosts] = useState(initialBlogs || []);
     const [cursor, setCursor] = useState(null);
     const [hasMore, setHasMore] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [initialLoad, setInitialLoad] = useState(false);
 
-    // Update URL without reload
+    // Read deep-linked profile state after hydration so server and client render
+    // the same initial tab and do not produce a hydration mismatch.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const requestedSection = params.get("tab");
+        const requestedFilter = params.get("filter");
+        setSection(
+            PROFILE_TABS.some((tab) => tab.key === requestedSection)
+                ? requestedSection
+                : params.has("filter") || params.has("q") || params.has("tag")
+                  ? "blogs"
+                  : "overview",
+        );
+        setFilter(FILTER_TABS.some((tab) => tab.key === requestedFilter) ? requestedFilter : "newest");
+        setSearchQuery(params.get("q") || "");
+        setActiveTag(params.get("tag") || "");
+        setUrlReady(true);
+    }, []);
+
     const updateUrl = useCallback(
-        (f, q, t) => {
+        (view, f, q, t) => {
             if (typeof window === "undefined") return;
             const params = new URLSearchParams();
-            if (f && f !== "all") params.set("filter", f);
-            if (q) params.set("q", q);
-            if (t) params.set("tag", t);
+            if (view !== "overview") params.set("tab", view);
+            if (view === "blogs") {
+                if (f && f !== "newest") params.set("filter", f);
+                if (q) params.set("q", q);
+                if (t) params.set("tag", t);
+            }
             const qs = params.toString();
             const newUrl = `/${username}${qs ? `?${qs}` : ""}`;
             window.history.replaceState(null, "", newUrl);
@@ -393,30 +491,19 @@ function ProfileContent({ username, initialBlogs, tags, timezone }) {
         [username],
     );
 
-    // On filter/search/tag change, refetch
     useEffect(() => {
-        // Don't fetch on initial mount if we have initialBlogs and default filter
-        if (
-            !initialLoad &&
-            filter === "all" &&
-            !searchQuery &&
-            !activeTag &&
-            initialBlogs.length > 0
-        ) {
-            setInitialLoad(true);
-            return;
-        }
-        setInitialLoad(true);
+        if (!urlReady) return;
+        updateUrl(section, filter, searchQuery, activeTag);
+        if (section !== "blogs") return;
         fetchPosts(filter, searchQuery, activeTag, null);
-        updateUrl(filter, searchQuery, activeTag);
     }, [
+        section,
         filter,
         searchQuery,
         activeTag,
         fetchPosts,
         updateUrl,
-        initialLoad,
-        initialBlogs.length,
+        urlReady,
     ]);
 
     const handleFilterChange = (f) => {
@@ -432,6 +519,7 @@ function ProfileContent({ username, initialBlogs, tags, timezone }) {
 
     const handleTagClick = (tag) => {
         setActiveTag(activeTag === tag ? "" : tag);
+        setSection("blogs");
     };
 
     const loadMore = () => {
@@ -440,27 +528,90 @@ function ProfileContent({ username, initialBlogs, tags, timezone }) {
         }
     };
 
-    // Top picks = first 3 posts from initial data
-    const topPicks = (initialBlogs || []).slice(0, 3);
+    const topPicks = [...initialBlogs]
+        .sort((a, b) => ((b.like_count || 0) + (b.comment_count || 0)) - ((a.like_count || 0) + (a.comment_count || 0)) || (b.published_at || 0) - (a.published_at || 0))
+        .slice(0, 3);
 
     return (
-        <div className="flex flex-col lg:flex-row gap-8">
-            {/* ── Main column: filters + post feed ── */}
-            <div className="flex-1 min-w-0">
-                {/* Filter tabs */}
-                <div
-                    className="flex items-center gap-1 mb-4 overflow-x-auto pb-1"
-                    role="tablist"
-                    aria-label="Post filters"
-                >
-                    {FILTER_TABS.map((tab) => (
+        <div>
+            <div className="mb-7 flex gap-1 overflow-x-auto rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-1" role="tablist" aria-label="Profile sections">
+                {PROFILE_TABS.map((tab) => (
+                    <button
+                        key={tab.key}
+                        role="tab"
+                        aria-selected={section === tab.key}
+                        onClick={() => setSection(tab.key)}
+                        className={`flex min-w-max flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-all ${section === tab.key ? "bg-[var(--bg-app)] text-[#9b7bf7] shadow-sm ring-1 ring-[var(--border-default)]" : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"}`}
+                    >
+                        <ion-icon name={tab.icon} style={{ fontSize: "16px" }} />
+                        {tab.label}
+                        {tab.key === "badges" && badges.length > 0 && (
+                            <span className="rounded-full bg-[#9b7bf7]/12 px-1.5 py-0.5 text-[10px] text-[#9b7bf7]">{badges.length}</span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {section === "overview" && (
+                <div role="tabpanel" className="space-y-7">
+                    <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+                        <section>
+                            <div className="mb-3 flex items-center justify-between">
+                                <h2 className="text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">Top stories</h2>
+                                {initialBlogs.length > 3 && (
+                                    <button onClick={() => setSection("blogs")} className="text-[12px] font-semibold text-[#9b7bf7] hover:underline">View all</button>
+                                )}
+                            </div>
+                            <div className="space-y-2.5">
+                                {topPicks.length ? topPicks.map((blog, index) => (
+                                    <Link key={blog.id} href={publicBlogHref(blog, username)} className="group flex items-center gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--card-bg)] p-3 transition-colors hover:border-[#9b7bf7]/35">
+                                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#9b7bf7]/10 text-[12px] font-bold text-[#9b7bf7]">{index + 1}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[#9b7bf7]">{blog.title || "Untitled"}</p>
+                                            <p className="mt-1 text-[10px] text-[var(--text-faint)]">{blog.read_time_minutes || 1} min read{blog.like_count ? ` · ${blog.like_count} likes` : ""}</p>
+                                        </div>
+                                    </Link>
+                                )) : (
+                                    <div className="rounded-xl border border-dashed border-[var(--border-default)] p-8 text-center text-[13px] text-[var(--text-faint)]">No public stories yet</div>
+                                )}
+                            </div>
+                        </section>
+
+                        <section>
+                            <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">Top topics</h2>
+                            <div className="min-h-36 rounded-xl border border-[var(--border-default)] bg-[var(--card-bg)] p-4">
+                                {tags.length ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {tags.slice(0, 12).map((topic) => (
+                                            <button key={topic.tag} onClick={() => handleTagClick(topic.tag)} className="rounded-full border border-transparent bg-[var(--bg-elevated)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] transition-all hover:border-[#9b7bf7]/30 hover:text-[#9b7bf7]">
+                                                #{topic.tag} <span className="ml-1 text-[var(--text-faint)]">{topic.count}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : <p className="text-[12px] text-[var(--text-faint)]">Topics will appear as stories are published.</p>}
+                            </div>
+                        </section>
+                    </div>
+
+                    <section className="w-full">
+                        <h2 className="mb-3 text-[12px] font-bold uppercase tracking-[0.14em] text-[var(--text-faint)]">Publishing activity</h2>
+                        <ContributionGraph username={username} timezone={timezone} />
+                    </section>
+                </div>
+            )}
+
+            {section === "blogs" && (
+                <div role="tabpanel">
+                    <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-center gap-1 overflow-x-auto" role="tablist" aria-label="Blog filters">
+                            {FILTER_TABS.map((tab) => (
                         <button
                             key={tab.key}
                             role="tab"
                             aria-selected={filter === tab.key}
                             aria-label={`Filter: ${tab.label}`}
                             onClick={() => handleFilterChange(tab.key)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-all whitespace-nowrap shrink-0 ${
+                                    className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-[12px] font-medium transition-all ${
                                 filter === tab.key
                                     ? "bg-[#9b7bf7]/15 text-[#9b7bf7] border border-[#9b7bf7]/30"
                                     : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]"
@@ -472,12 +623,10 @@ function ProfileContent({ username, initialBlogs, tags, timezone }) {
                             />
                             {tab.label}
                         </button>
-                    ))}
-                </div>
-
-                {/* Search bar */}
-                <form onSubmit={handleSearch} className="mb-5">
-                    <div className="relative">
+                            ))}
+                        </div>
+                        <form onSubmit={handleSearch} className="w-full lg:w-72">
+                            <div className="relative">
                         <ion-icon
                             name="search-outline"
                             style={{
@@ -496,9 +645,10 @@ function ProfileContent({ username, initialBlogs, tags, timezone }) {
                             placeholder="Search posts..."
                             aria-label="Search this creator's posts"
                             className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg pl-9 pr-4 py-2 text-[13px] text-[var(--text-primary)] outline-none focus:border-[#9b7bf7]/50 transition-colors placeholder-[var(--text-faint)]"
-                        />
+                                />
+                            </div>
+                        </form>
                     </div>
-                </form>
 
                 {/* Active tag indicator */}
                 {activeTag && (
@@ -519,76 +669,10 @@ function ProfileContent({ username, initialBlogs, tags, timezone }) {
                     </div>
                 )}
 
-                {/* Post list */}
                 {posts.length > 0 ? (
-                    <div className="space-y-2.5">
+                    <div className="space-y-4">
                         {posts.map((b) => (
-                            <Link
-                                key={b.id}
-                                href={publicBlogHref(b, username)}
-                                className="block p-4 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-xl hover:border-[#9b7bf7]/30 transition-colors group"
-                            >
-                                <div className="flex items-start gap-3">
-                                    {b.cover_image_r2_key && (
-                                        <img
-                                            src={b.cover_image_r2_key}
-                                            alt=""
-                                            className="w-20 h-14 rounded-lg object-cover shrink-0 mt-0.5"
-                                        />
-                                    )}
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-[15px] text-[var(--text-primary)] font-semibold group-hover:text-[#c4b5fd] transition-colors leading-snug">
-                                            {b.title || "Untitled"}
-                                        </p>
-                                        {b.subtitle && (
-                                            <p className="text-[13px] text-[var(--text-muted)] mt-1 line-clamp-1">
-                                                {b.subtitle}
-                                            </p>
-                                        )}
-                                        <div className="flex flex-wrap items-center gap-3 mt-2 text-[11px] text-[var(--text-faint)]">
-                                            {(b.tags || []).length > 0 && (
-                                                <span className="text-[#9b7bf7] text-[10px] bg-[#9b7bf714] px-2 py-0.5 rounded-full font-medium">
-                                                    {b.tags[0]}
-                                                </span>
-                                            )}
-                                            {b.read_time_minutes > 0 && (
-                                                <span className="flex items-center gap-1">
-                                                    <ion-icon
-                                                        name="time-outline"
-                                                        style={{
-                                                            fontSize: "12px",
-                                                        }}
-                                                    />
-                                                    {b.read_time_minutes} min
-                                                    read
-                                                </span>
-                                            )}
-                                            {b.published_at && (
-                                                <span>
-                                                    {formatUtcDate(
-                                                        b.published_at,
-                                                        {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            year: "numeric",
-                                                        },
-                                                    )}
-                                                </span>
-                                            )}
-                                            {b.like_count > 0 && (
-                                                <span>
-                                                    {b.like_count} likes
-                                                </span>
-                                            )}
-                                            {b.comment_count > 0 && (
-                                                <span>
-                                                    {b.comment_count} comments
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
+                            <ProfilePostCard key={b.id} blog={b} username={username} />
                         ))}
                     </div>
                 ) : (
@@ -631,86 +715,18 @@ function ProfileContent({ username, initialBlogs, tags, timezone }) {
                         ))}
                     </div>
                 )}
-            </div>
-
-            {/* ── Sidebar ── */}
-            <aside className="w-full lg:w-[300px] lg:shrink-0 space-y-5">
-                {/* Top picks */}
-                {topPicks.length > 0 && (
-                    <div>
-                        <h3 className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-widest mb-3">
-                            Top picks
-                        </h3>
-                        <div className="space-y-2">
-                            {topPicks.map((b) => (
-                                <Link
-                                    key={b.id}
-                                    href={publicBlogHref(b, username)}
-                                    className="block p-3 bg-[var(--card-bg)] border border-[var(--border-default)] rounded-lg hover:border-[#9b7bf7]/30 transition-colors group"
-                                >
-                                    <p className="text-[13px] text-[var(--text-primary)] font-medium group-hover:text-[#c4b5fd] transition-colors leading-snug line-clamp-2">
-                                        {b.title || "Untitled"}
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-1.5 text-[10px] text-[var(--text-faint)]">
-                                        {b.read_time_minutes > 0 && (
-                                            <span>
-                                                {b.read_time_minutes} min
-                                            </span>
-                                        )}
-                                        {b.published_at && (
-                                            <span>
-                                                {formatUtcDate(b.published_at, {
-                                                    month: "short",
-                                                    day: "numeric",
-                                                })}
-                                            </span>
-                                        )}
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Contribution graph */}
-                <div>
-                    <h3 className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-widest mb-3">
-                        Activity
-                    </h3>
-                    <ContributionGraph
-                        username={username}
-                        timezone={timezone}
-                    />
                 </div>
+            )}
 
-                {/* Topic chips */}
-                {tags.length > 0 && (
-                    <div>
-                        <h3 className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-widest mb-3">
-                            Topics
-                        </h3>
-                        <div className="flex flex-wrap gap-1.5">
-                            {tags.map((t) => (
-                                <button
-                                    key={t.tag}
-                                    onClick={() => handleTagClick(t.tag)}
-                                    aria-pressed={activeTag === t.tag}
-                                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
-                                        activeTag === t.tag
-                                            ? "bg-[#9b7bf7]/20 text-[#9b7bf7] border border-[#9b7bf7]/40"
-                                            : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--border-default)]"
-                                    }`}
-                                >
-                                    #{t.tag}{" "}
-                                    <span className="text-[var(--text-faint)] ml-0.5">
-                                        {t.count}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
+            {section === "badges" && (
+                <section role="tabpanel">
+                    <div className="mb-5">
+                        <h2 className="text-xl font-bold text-[var(--text-primary)]">Achievements</h2>
+                        <p className="mt-1 text-[13px] text-[var(--text-muted)]">Public milestones earned through writing, readership, and community work.</p>
                     </div>
-                )}
-            </aside>
+                    <ProfileBadgeGallery badges={badges} />
+                </section>
+            )}
         </div>
     );
 }
@@ -1473,7 +1489,7 @@ function HandlePageInner({ path, initialData = null }) {
 
         return (
             <AppShell>
-                <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+                <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
                     {/* ── Banner + Avatar ── */}
                     <div className="relative mb-16">
                         <div
@@ -1519,13 +1535,6 @@ function HandlePageInner({ path, initialData = null }) {
                                         </span>
                                     )}
                                 </h1>
-                                {(u.badges || []).length > 0 && (
-                                    <CreatorBadgeStrip
-                                        badges={u.badges}
-                                        compact
-                                        showDetails={false}
-                                    />
-                                )}
                             </div>
                             <p className="text-[var(--text-muted)] text-[15px] mt-0.5 font-medium">
                                 @{u.username}
@@ -1688,12 +1697,13 @@ function HandlePageInner({ path, initialData = null }) {
 
                     <div className="h-px bg-[var(--border-default)] mb-6" />
 
-                    {/* ── Two-column content area ── */}
+                    {/* ── Profile content ── */}
                     <ProfileContent
                         username={u.username}
                         initialBlogs={data.blogs || []}
                         tags={data.tags || []}
                         timezone={u.timezone}
+                        badges={u.badges || []}
                     />
                 </div>
             </AppShell>
