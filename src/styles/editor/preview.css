@@ -205,7 +205,7 @@
 
 .reader-page .blog-preview-title {
   max-width: 22ch;
-  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
   line-height: 1.12;
   letter-spacing: -0.025em;
 }
@@ -262,7 +262,7 @@
   }
 
   .reader-page .blog-preview-title {
-    font-size: clamp(1.8rem, 8vw, 2.25rem);
+    font-size: clamp(1.65rem, 7vw, 2rem);
   }
 
   .reader-page .blog-preview-byline {
