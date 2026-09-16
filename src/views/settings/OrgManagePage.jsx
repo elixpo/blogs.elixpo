@@ -21,13 +21,13 @@ const TIMEZONES = [
 ];
 
 const LINK_PRESETS = [
-  { key: 'website', label: 'Website', icon: 'globe-outline', placeholder: 'https://example.com' },
-  { key: 'github', label: 'GitHub', icon: 'logo-github', placeholder: 'https://github.com/org' },
-  { key: 'twitter', label: 'X / Twitter', icon: 'logo-twitter', placeholder: 'https://x.com/org' },
-  { key: 'linkedin', label: 'LinkedIn', icon: 'logo-linkedin', placeholder: 'https://linkedin.com/company/org' },
-  { key: 'discord', label: 'Discord', icon: 'logo-discord', placeholder: 'https://discord.gg/invite' },
-  { key: 'youtube', label: 'YouTube', icon: 'logo-youtube', placeholder: 'https://youtube.com/@org' },
-  { key: 'custom', label: 'Custom Link', icon: 'link-outline', placeholder: 'https://...' },
+  { key: 'website', label: 'Website', icon: 'globe-outline', placeholder: 'https://example.com', prefix: 'https://' },
+  { key: 'github', label: 'GitHub', icon: 'logo-github', placeholder: 'https://github.com/org', prefix: 'https://github.com/' },
+  { key: 'twitter', label: 'X / Twitter', icon: 'logo-twitter', placeholder: 'https://x.com/org', prefix: 'https://x.com/' },
+  { key: 'linkedin', label: 'LinkedIn', icon: 'logo-linkedin', placeholder: 'https://linkedin.com/company/org', prefix: 'https://linkedin.com/company/' },
+  { key: 'discord', label: 'Discord', icon: 'logo-discord', placeholder: 'https://discord.gg/invite', prefix: 'https://discord.gg/' },
+  { key: 'youtube', label: 'YouTube', icon: 'logo-youtube', placeholder: 'https://youtube.com/@org', prefix: 'https://youtube.com/@' },
+  { key: 'custom', label: 'Custom Link', icon: 'link-outline', placeholder: 'https://...', prefix: 'https://' },
 ];
 
 // Defined at module scope (NOT inside the component) so its identity is stable
@@ -139,7 +139,10 @@ export default function OrgManagePage({ slug }) {
     if (!org || saving) return;
     setSaveError('');
     // Websites must be https (server enforces this too).
-    const activeLinks = links.filter(l => l.url?.trim());
+    const activeLinks = links.filter(link => {
+      const preset = LINK_PRESETS.find(item => item.key === link.type);
+      return link.url?.trim() && link.url.trim() !== preset?.prefix;
+    });
     if (website?.trim() && !isHttpsUrl(website.trim())) {
       setSaveError('Website must be a valid https:// URL'); return;
     }
@@ -241,7 +244,7 @@ export default function OrgManagePage({ slug }) {
   // Link management — capped at 5 custom links per org.
   const addLink = (preset) => {
     if (links.length >= 5) { setSaveError('You can add up to 5 links.'); return; }
-    setLinks([...links, { type: preset.key, label: preset.label, url: '' }]);
+    setLinks([...links, { type: preset.key, label: preset.label, url: preset.prefix }]);
   };
   const updateLink = (index, field, value) => {
     const updated = [...links];
@@ -545,12 +548,17 @@ export default function OrgManagePage({ slug }) {
                   placeholder="hello@example.com"
                   type="email"
                 />
-                <Input
-                  label="Website"
-                  sublabel="Your org's homepage"
-                  value={website} onChange={e => setWebsite(e.target.value)}
-                  placeholder="https://example.com"
-                />
+                <div>
+                  <label className="text-[13px] text-[var(--text-primary)] mb-1 block font-medium">Website</label>
+                  <p className="text-[11px] text-[var(--text-faint)] mb-2">Your org&apos;s homepage</p>
+                  <div className="flex items-center overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-base)] focus-within:border-[#9b7bf7]/50">
+                    <span className="shrink-0 pl-3 text-[13px] text-[var(--text-muted)]">https://</span>
+                    <input value={website.replace(/^https?:\/\//, '')}
+                      onChange={e => setWebsite(e.target.value ? `https://${e.target.value.replace(/^https?:\/\//, '')}` : '')}
+                      placeholder="example.com"
+                      className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-[13px] text-[var(--text-primary)] outline-none placeholder-[var(--text-faint)]" />
+                  </div>
+                </div>
               </div>
             </section>
 
