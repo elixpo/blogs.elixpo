@@ -10,7 +10,7 @@ import { getLimits } from "../../../lib/tiers";
 async function fetchCoAuthors(db, blogId) {
     const res = await db
         .prepare(`
-    SELECT u.username, u.display_name, u.avatar_url, bc.role
+    SELECT u.username, u.display_name, u.designation, u.avatar_url, bc.role
     FROM blog_co_authors bc JOIN users u ON u.id = bc.user_id
     WHERE bc.blog_id = ? AND bc.status = 'accepted'
     ORDER BY bc.added_at LIMIT 10
@@ -20,6 +20,7 @@ async function fetchCoAuthors(db, blogId) {
     return (res?.results || []).map((c) => ({
         username: c.username,
         display_name: c.display_name,
+        designation: c.designation,
         avatar_url: c.avatar_url,
         role: c.role,
     }));
@@ -79,6 +80,7 @@ function stripSecretAuthor(blog) {
         author_id,
         author_username,
         author_name,
+        author_designation,
         author_avatar,
         author_tier,
         co_authors,
@@ -110,6 +112,7 @@ async function fetchBlogBySlugid(db, slugid) {
     const blog = await db
         .prepare(`
     SELECT b.*, u.username as author_username, u.display_name as author_name,
+      u.designation as author_designation,
       u.avatar_url as author_avatar, u.tier as author_tier
     FROM blogs b JOIN users u ON u.id = b.author_id
     WHERE b.id = ? AND b.status IN ('published', 'unlisted')
@@ -143,7 +146,7 @@ async function fetchBlogBySlugid(db, slugid) {
     ) {
         const org = await db
             .prepare(
-                "SELECT id, slug, name, description, bio, logo_url, logo_r2_key, owner_id FROM orgs WHERE id = ?",
+                "SELECT id, slug, name, description, bio, logo_url, logo_r2_key, owner_id, updated_at FROM orgs WHERE id = ?",
             )
             .bind(full.published_as.slice(4))
             .first();
@@ -288,7 +291,7 @@ export async function GET(request) {
         if (ownerType === "user") {
             const user = await db
                 .prepare(`
-        SELECT id, username, display_name, bio, avatar_url, banner_r2_key,
+        SELECT id, username, display_name, designation, bio, avatar_url, banner_r2_key,
           location, timezone, pronouns, website, company, links, tier, created_at, updated_at
         FROM users WHERE id = ?
       `)
@@ -309,7 +312,8 @@ export async function GET(request) {
             b.cover_pos_x, b.cover_pos_y, b.cover_zoom, b.member_only,
             b.status, b.published_as, b.page_emoji, b.read_time_minutes,
             b.published_at, b.created_at, b.updated_at, b.author_id,
-            u.username as author_username, u.display_name as author_name, u.avatar_url as author_avatar, u.tier as author_tier
+            u.username as author_username, u.display_name as author_name, u.designation as author_designation,
+            u.avatar_url as author_avatar, u.tier as author_tier
           FROM blogs b
           JOIN users u ON u.id = b.author_id
           WHERE LOWER(b.slug) = ? AND b.author_id = ? AND b.status IN ('published', 'unlisted')
@@ -363,7 +367,7 @@ export async function GET(request) {
         WHERE (b.author_id = ? OR b.id IN (
                  SELECT blog_id FROM blog_co_authors WHERE user_id = ? AND status = 'accepted' AND show_on_profile = 1
                ))
-          AND b.status IN ('published', 'unlisted')
+          AND b.status = 'published'
           -- Secret blogs never appear on a profile: listing them here would tie
           -- the anonymous post straight back to its author (or a co-author).
           AND b.secret = 0
@@ -403,7 +407,7 @@ export async function GET(request) {
                     .prepare(`
           SELECT bt.tag, COUNT(*) as count
           FROM blog_tags bt JOIN blogs b ON b.id = bt.blog_id
-          WHERE b.author_id = ? AND b.status IN ('published', 'unlisted') AND b.secret = 0
+          WHERE b.author_id = ? AND b.status = 'published' AND b.secret = 0
           GROUP BY bt.tag ORDER BY count DESC LIMIT 20
         `)
                     .bind(ownerId)
@@ -432,7 +436,7 @@ export async function GET(request) {
                 .prepare(`
         SELECT id, slug, name, description, bio, website, links, visibility,
           logo_url, logo_r2_key, banner_url, banner_r2_key, featured_blog_ids,
-          timezone, location, contact_email, owner_id, created_at
+          timezone, location, contact_email, owner_id, created_at, updated_at
         FROM orgs WHERE id = ?
       `)
                 .bind(ownerId)
@@ -480,7 +484,8 @@ export async function GET(request) {
 
                 const blog = await db
                     .prepare(`
-          SELECT b.*, u.username as author_username, u.display_name as author_name, u.avatar_url as author_avatar, u.tier as author_tier
+          SELECT b.*, u.username as author_username, u.display_name as author_name,
+            u.designation as author_designation, u.avatar_url as author_avatar, u.tier as author_tier
           FROM blogs b JOIN users u ON u.id = b.author_id
           WHERE LOWER(b.slug) = ? AND b.collection_id = ? AND b.status IN ('published', 'unlisted')
             AND b.secret = 0
@@ -530,11 +535,12 @@ export async function GET(request) {
                         .prepare(`
             SELECT b.id, b.slug, b.slugid, b.secret, b.title, b.subtitle, b.cover_image_r2_key, b.page_emoji,
               b.read_time_minutes, b.published_at, b.author_id,
-              u.username as author_username, u.display_name as author_name, u.avatar_url as author_avatar, u.tier as author_tier, b.member_only,
+              u.username as author_username, u.display_name as author_name, u.designation as author_designation,
+              u.avatar_url as author_avatar, u.tier as author_tier, b.member_only,
               (SELECT COUNT(*) FROM likes WHERE blog_id = b.id) as like_count,
               (SELECT COUNT(*) FROM comments WHERE blog_id = b.id) as comment_count
             FROM blogs b JOIN users u ON u.id = b.author_id
-            WHERE b.collection_id = ? AND b.status IN ('published', 'unlisted')
+            WHERE b.collection_id = ? AND b.status = 'published'
             ORDER BY b.published_at DESC LIMIT 50
           `)
                         .bind(col.id)
@@ -573,7 +579,8 @@ export async function GET(request) {
                 // Otherwise treat as a blog slug
                 const blog = await db
                     .prepare(`
-          SELECT b.*, u.username as author_username, u.display_name as author_name, u.avatar_url as author_avatar, u.tier as author_tier
+          SELECT b.*, u.username as author_username, u.display_name as author_name,
+            u.designation as author_designation, u.avatar_url as author_avatar, u.tier as author_tier
           FROM blogs b JOIN users u ON u.id = b.author_id
           WHERE LOWER(b.slug) = ? AND b.published_as = ? AND b.status IN ('published', 'unlisted')
             AND b.secret = 0
@@ -635,7 +642,7 @@ export async function GET(request) {
             b.page_emoji, b.read_time_minutes, b.published_at, b.published_as,
             c.slug AS collection_slug
           FROM blogs b LEFT JOIN collections c ON c.id = b.collection_id
-          WHERE b.published_as = ? AND b.status IN ('published', 'unlisted')
+          WHERE b.published_as = ? AND b.status = 'published'
           ORDER BY published_at DESC LIMIT 20
         `)
                     .bind(`org:${ownerId}`)

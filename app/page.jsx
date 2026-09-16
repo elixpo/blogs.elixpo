@@ -1,4 +1,8 @@
 import App from '../src/index';
+import { listPublicStories } from '../lib/publicDiscovery';
+
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   // Absolute: this is the landing page, so it carries the full brand statement and
@@ -9,6 +13,7 @@ export const metadata = {
   alternates: { canonical: 'https://blogs.elixpo.com' },
 };
 
-export default function Home() {
-  return <App />;
+export default async function Home() {
+  const discovery = await listPublicStories({ page: 1, pageSize: 12 }).catch(() => ({ stories: [] }));
+  return <App initialPosts={discovery.stories || []} />;
 }

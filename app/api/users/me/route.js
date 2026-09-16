@@ -9,13 +9,24 @@ export async function PUT(request) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
+  const body = await request.json();
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'Profile update must be a JSON object' }, { status: 400 });
+  }
   const {
     display_name, bio, location, timezone, pronouns, website, company, links,
-  } = await request.json();
+  } = body;
+  let designation;
+  try {
+    const { normalizeDesignation } = await import('../../../../lib/profile');
+    designation = normalizeDesignation(body.designation);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 
   // Content + website validation (https-only, no NSFW).
   const { findProfanity, normalizeHttpsUrl } = await import('../../../../lib/validate');
-  if (findProfanity(display_name) || findProfanity(bio) || findProfanity(company) || findProfanity(location) || findProfanity(pronouns)) {
+  if (findProfanity(display_name) || findProfanity(designation) || findProfanity(bio) || findProfanity(company) || findProfanity(location) || findProfanity(pronouns)) {
     return NextResponse.json({ error: 'Contains language that is not allowed' }, { status: 400 });
   }
   let normWebsite = website;
@@ -42,6 +53,7 @@ export async function PUT(request) {
     await db.prepare(`
       UPDATE users SET
         display_name = COALESCE(?, display_name),
+        designation = CASE WHEN ? THEN ? ELSE designation END,
         bio = COALESCE(?, bio),
         location = COALESCE(?, location),
         timezone = COALESCE(?, timezone),
@@ -52,7 +64,8 @@ export async function PUT(request) {
         updated_at = ?
       WHERE id = ?
     `).bind(
-      display_name || null, bio || null, location || null, timezone || null,
+      display_name || null, designation === undefined ? 0 : 1, designation ?? '',
+      bio || null, location || null, timezone || null,
       pronouns || null, normWebsite ?? null, company || null,
       normLinks ? JSON.stringify(normLinks) : null, now, session.userId,
     ).run();
@@ -87,6 +100,7 @@ export async function DELETE() {
       UPDATE users SET
         account_status = 'removed',
         display_name = 'Deleted User',
+        designation = '',
         bio = NULL,
         email = NULL,
         avatar_url = NULL,

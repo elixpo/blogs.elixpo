@@ -71,6 +71,14 @@ export class BlogClient {
     return (await this.request('/api/v1/me')).payload.data;
   }
 
+  async updateProfile(input) {
+    await this.requireScopes(['lixblogs:profile:write']);
+    return (await this.request('/api/v1/me', {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    })).payload.data;
+  }
+
   async list({ status = 'all', limit = 20, cursor } = {}) {
     await this.requireScopes(['lixblogs:blog:read']);
     const query = new URLSearchParams({ status, limit: String(limit) });

@@ -8,6 +8,16 @@ import { LIX_LOGO } from "./lixLogo";
 
 export const runtime = "edge";
 
+const OG_RESPONSE_OPTIONS = {
+    width: 1200,
+    height: 630,
+    headers: {
+        "Cache-Control": "public, max-age=3600, s-maxage=604800, stale-while-revalidate=2592000",
+        "CDN-Cache-Control": "public, max-age=604800, stale-while-revalidate=2592000",
+        "X-Content-Type-Options": "nosniff",
+    },
+};
+
 // GitHub-style social cards on a clean white background.
 //   type=profile    → real logo + avatar + name + @handle + bio (users & orgs)
 //   type=collection → collection name + owning publication + description
@@ -30,19 +40,22 @@ export async function GET(request) {
     const showBrand = searchParams.get("brand") !== "0";
 
     // satori can't decode WebP — force Cloudinary to deliver JPEG.
-    const ogSafeImage = (url) => {
+    const ogSafeImage = (url, width) => {
         if (!url || !/^https?:\/\//.test(url)) return "";
         if (url.includes("res.cloudinary.com")) {
             let u = url.replace(/f_webp/g, "f_jpg").replace(/f_auto/g, "f_jpg");
             if (!/f_(jpg|png)/.test(u))
                 u = u.replace("/upload/", "/upload/f_jpg/");
+            if (width && !new RegExp(`w_${width}(?:[,/]|$)`).test(u)) {
+                u = u.replace("/upload/", `/upload/f_jpg,q_auto:eco,w_${width},c_limit/`);
+            }
             return u;
         }
         return url;
     };
-    const avatar = ogSafeImage(searchParams.get("avatar") || "");
-    const cover = ogSafeImage(searchParams.get("cover") || "");
-    const banner = ogSafeImage(searchParams.get("banner") || "");
+    const avatar = ogSafeImage(searchParams.get("avatar") || "", 256);
+    const cover = ogSafeImage(searchParams.get("cover") || "", 1200);
+    const banner = ogSafeImage(searchParams.get("banner") || "", 1200);
     const seed = (searchParams.get("seed") || title).slice(0, 160);
     const avatarSeed = (searchParams.get("avatarSeed") || seed).slice(0, 160);
     const defaultCover = generateBlogBanner(seed);
@@ -256,7 +269,7 @@ export async function GET(request) {
                     </div>
                 </div>
             </div>,
-            { width: 1200, height: 630 },
+            OG_RESPONSE_OPTIONS,
         );
     }
 
@@ -409,7 +422,7 @@ export async function GET(request) {
                     </div>
                 </div>
             </div>,
-            { width: 1200, height: 630 },
+            OG_RESPONSE_OPTIONS,
         );
     }
 
@@ -540,6 +553,6 @@ export async function GET(request) {
                 </div>
             </div>
         </div>,
-        { width: 1200, height: 630 },
+        OG_RESPONSE_OPTIONS,
     );
 }
