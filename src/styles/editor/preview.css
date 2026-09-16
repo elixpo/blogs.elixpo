@@ -204,7 +204,7 @@
 }
 
 .reader-page .blog-preview-title {
-  max-width: 22ch;
+  max-width: 34ch;
   font-size: clamp(1.75rem, 3.2vw, 2.5rem);
   line-height: 1.12;
   letter-spacing: -0.025em;
