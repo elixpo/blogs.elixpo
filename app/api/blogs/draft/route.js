@@ -225,6 +225,16 @@ export async function POST(request) {
       await kvInvalidate(mediaInventoryCacheKey(session.userId));
     } catch {}
 
+    // Autosave can edit an already-published post. Its title, tags, slug-adjacent
+    // metadata, and updated timestamp must reach the sitemap without waiting for
+    // the cache TTL. New drafts do not belong in public discovery.
+    if (existing && existing.status === 'published') {
+      try {
+        const { invalidateBlogLifecycleCaches } = await import('../../../../lib/api/v1/blogCache');
+        await invalidateBlogLifecycleCaches(slugid);
+      } catch {}
+    }
+
     // Sync tags
     if (Array.isArray(tags)) {
       const normalizedTags = normalizeTags(tags);

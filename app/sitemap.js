@@ -1,10 +1,12 @@
 export const runtime = 'edge';
 // Must run in the edge runtime: the URL list comes from D1. The database rows are
 // cached briefly in KV so crawler bursts do not repeat the same five large queries.
+// Publication mutations invalidate the shared key; five minutes is only the
+// fallback window if a non-standard mutation path misses that invalidation.
 export const dynamic = 'force-dynamic';
 
 import { docsNavFlat } from '../src/config/docsNav';
-import { kvCache } from '../lib/cache';
+import { kvCache, PUBLIC_SITEMAP_CACHE_KEY } from '../lib/cache';
 
 const SITE_URL = 'https://blogs.elixpo.com';
 
@@ -45,7 +47,7 @@ export default async function sitemap() {
     const { getDB } = await import('../lib/cloudflare');
     const db = getDB();
 
-    const [blogs, users, orgs, collections, tags] = await kvCache('v2:public-sitemap-rows', 3600, () => Promise.all([
+    const [blogs, users, orgs, collections, tags] = await kvCache(PUBLIC_SITEMAP_CACHE_KEY, 300, () => Promise.all([
       db.prepare(`
         SELECT b.slug, b.updated_at, b.published_at, b.published_as,
                au.username AS author_username, o.slug AS org_slug, col.slug AS collection_slug

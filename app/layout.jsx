@@ -12,8 +12,8 @@ const SITE_NAME = 'LixBlogs';
 // carry the pitch on its own and the rest is bonus. Every claim here has to be true:
 // the old copy advertised "AI writing tools", which are not currently enabled.
 const SITE_DESC =
-  'LixBlogs is a modern publishing platform for writers, developers and teams. Write with a powerful block editor, work together in real time, publish under your own organization, and reach readers with beautiful, fast pages.';
-const SITE_TAGLINE = 'Write, collaborate and publish beautifully';
+  'LixBlogs is an open-source blogging platform for writers, developers and teams to create stories, collaborate live, and publish from the web, CLI or API.';
+const SITE_TAGLINE = 'Open-source blogging and publishing platform';
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
@@ -102,7 +102,7 @@ const SITE_JSONLD = {
       '@id': `${SITE_URL}/#website`,
       url: SITE_URL,
       name: SITE_NAME,
-      alternateName: ['Elixpo Blogs', 'Lix Blogs', 'blogs.elixpo.com'],
+      alternateName: ['LixBlogs by Elixpo', 'Elixpo Blogs', 'Lix Blogs', 'blogs.elixpo.com'],
       description: SITE_DESC,
       publisher: { '@id': `${SITE_URL}/#organization` },
       inLanguage: 'en',
@@ -111,6 +111,17 @@ const SITE_JSONLD = {
         target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
         'query-input': 'required name=search_term_string',
       },
+    },
+    {
+      '@type': 'Blog',
+      '@id': `${SITE_URL}/#blog`,
+      url: SITE_URL,
+      name: SITE_NAME,
+      alternateName: 'LixBlogs by Elixpo',
+      description: SITE_DESC,
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      isPartOf: { '@id': `${SITE_URL}/#website` },
+      inLanguage: 'en',
     },
     {
       '@type': 'Organization',
