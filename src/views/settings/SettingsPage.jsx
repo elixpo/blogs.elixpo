@@ -102,13 +102,44 @@ const TIMEZONES = [
 ];
 
 const USER_LINK_PRESETS = [
-  { key: 'website', label: 'Website', icon: 'globe-outline', placeholder: 'https://example.com' },
-  { key: 'github', label: 'GitHub', icon: 'logo-github', placeholder: 'https://github.com/username' },
-  { key: 'twitter', label: 'X / Twitter', icon: 'logo-twitter', placeholder: 'https://x.com/username' },
-  { key: 'linkedin', label: 'LinkedIn', icon: 'logo-linkedin', placeholder: 'https://linkedin.com/in/username' },
-  { key: 'mastodon', label: 'Mastodon', icon: 'globe-outline', placeholder: 'https://mastodon.social/@user' },
-  { key: 'custom', label: 'Custom Link', icon: 'link-outline', placeholder: 'https://...' },
+  { key: 'website', label: 'Website', icon: 'globe-outline', placeholder: 'https://example.com', prefix: 'https://' },
+  { key: 'github', label: 'GitHub', icon: 'logo-github', placeholder: 'https://github.com/username', prefix: 'https://github.com/' },
+  { key: 'twitter', label: 'X / Twitter', icon: 'logo-twitter', placeholder: 'https://x.com/username', prefix: 'https://x.com/' },
+  { key: 'linkedin', label: 'LinkedIn', icon: 'logo-linkedin', placeholder: 'https://linkedin.com/in/username', prefix: 'https://linkedin.com/in/' },
+  { key: 'mastodon', label: 'Mastodon', icon: 'globe-outline', placeholder: 'https://mastodon.social/@user', prefix: 'https://' },
+  { key: 'custom', label: 'Custom Link', icon: 'link-outline', placeholder: 'https://...', prefix: 'https://' },
 ];
+
+function OrganizationMentionField({ value, onChange, organizations, multiline = false, className, ...props }) {
+  const mention = value.match(/(?:^|\s)@([a-z0-9-]*)$/i);
+  const query = mention?.[1]?.toLowerCase() || '';
+  const suggestions = mention
+    ? organizations.filter(org => org.slug?.toLowerCase().includes(query) || org.name?.toLowerCase().includes(query)).slice(0, 5)
+    : [];
+
+  const choose = (org) => {
+    const start = mention.index + mention[0].lastIndexOf('@');
+    onChange(`${value.slice(0, start)}@${org.slug} ${value.slice(mention.index + mention[0].length)}`);
+  };
+  const Field = multiline ? 'textarea' : 'input';
+
+  return (
+    <div className="relative">
+      <Field value={value} onChange={e => onChange(e.target.value)} className={className} {...props} />
+      {suggestions.length > 0 && (
+        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-xl">
+          {suggestions.map(org => (
+            <button key={org.id} type="button" onMouseDown={event => event.preventDefault()} onClick={() => choose(org)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[var(--bg-elevated)]">
+              <span className="text-xs font-semibold text-[var(--accent)]">@{org.slug}</span>
+              <span className="truncate text-xs text-[var(--text-muted)]">{org.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Account Tab ──
 function AccountTab({ user, refetchUser }) {
@@ -125,25 +156,42 @@ function AccountTab({ user, refetchUser }) {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [organizations, setOrganizations] = useState([]);
 
-  const addLink = (preset) => setLinks([...links, { type: preset.key, label: preset.label, url: '' }]);
+  const profileFingerprint = JSON.stringify({ displayName, designation, bio, pronouns, location, timezone, website, company, links });
+  const [savedFingerprint, setSavedFingerprint] = useState(profileFingerprint);
+  const hasChanges = profileFingerprint !== savedFingerprint;
+
+  useEffect(() => {
+    fetch('/api/orgs')
+      .then(response => response.ok ? response.json() : { orgs: [] })
+      .then(data => setOrganizations((data.orgs || []).filter(org => org.visibility !== 'private')))
+      .catch(() => setOrganizations([]));
+  }, []);
+
+  const addLink = (preset) => setLinks([...links, { type: preset.key, label: preset.label, url: preset.prefix }]);
   const updateLink = (i, field, value) => { const u = [...links]; u[i] = { ...u[i], [field]: value }; setLinks(u); };
   const removeLink = (i) => setLinks(links.filter((_, idx) => idx !== i));
   const addedTypes = new Set(links.map(l => l.type));
 
   const handleSave = async () => {
-    if (saving) return;
+    if (saving || !hasChanges) return;
     setSaving(true);
     try {
+      const activeLinks = links.filter(link => {
+        const preset = USER_LINK_PRESETS.find(item => item.key === link.type);
+        return link.url?.trim() && link.url.trim() !== preset?.prefix;
+      });
       const res = await fetch('/api/users/me', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          display_name: displayName, designation, bio, pronouns, location, timezone, website, company,
-          links: links.filter(l => l.url?.trim()),
+          display_name: displayName, designation, bio, pronouns, location, timezone,
+          website: website === 'https://' ? '' : website, company, links: activeLinks,
         }),
       });
       if (res.ok) {
+        setSavedFingerprint(profileFingerprint);
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
         refetchUser?.();
@@ -167,14 +215,6 @@ function AccountTab({ user, refetchUser }) {
               <p className="text-[13px] text-[var(--text-faint)]">@{user.username} &middot; {user.email}</p>
             </div>
           </div>
-
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-[13px] text-[var(--text-body)] font-medium hover:text-[var(--text-primary)] hover:border-[#9b7bf7]/50 hover:bg-[#9b7bf7]/10 transition-all"
-          >
-            <ion-icon name="create-outline" style={{ fontSize: '16px' }} />
-            Edit profile
-          </Link>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -214,8 +254,8 @@ function AccountTab({ user, refetchUser }) {
           <div>
             <label className="text-[13px] text-[var(--text-primary)] mb-1 block font-medium">Bio</label>
             <p className="text-[11px] text-[var(--text-faint)] mb-2">Tell readers a little about yourself</p>
-            <textarea
-              value={bio} onChange={e => setBio(e.target.value)} rows={3} placeholder="Developer, writer, creator..."
+            <OrganizationMentionField
+              value={bio} onChange={setBio} organizations={organizations} multiline rows={3} placeholder="Developer, writer, creator... Mention an organization with @"
               maxLength={300}
               className={`${inputCls} resize-none`}
             />
@@ -241,7 +281,8 @@ function AccountTab({ user, refetchUser }) {
             <label className="text-[13px] text-[var(--text-primary)] mb-1 block font-medium">Company</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"><ion-icon name="business-outline" style={{ fontSize: '15px' }} /></span>
-              <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Where you work" className={`${inputCls} pl-9`} />
+              <OrganizationMentionField value={company} onChange={setCompany} organizations={organizations}
+                placeholder="Where you work — type @ to tag an organization" className={`${inputCls} pl-9`} />
             </div>
           </div>
           <div>
@@ -253,9 +294,10 @@ function AccountTab({ user, refetchUser }) {
           </div>
           <div>
             <label className="text-[13px] text-[var(--text-primary)] mb-1 block font-medium">Website</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"><ion-icon name="globe-outline" style={{ fontSize: '15px' }} /></span>
-              <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yoursite.com" className={`${inputCls} pl-9`} />
+            <div className="flex items-center overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-base)] focus-within:border-[#9b7bf7]/50">
+              <span className="shrink-0 pl-3 text-[13px] text-[var(--text-muted)]">https://</span>
+              <input value={website.replace(/^https?:\/\//, '')} onChange={e => setWebsite(e.target.value ? `https://${e.target.value.replace(/^https?:\/\//, '')}` : '')}
+                placeholder="yoursite.com" className="min-w-0 flex-1 bg-transparent px-1 py-2.5 text-[13px] text-[var(--text-primary)] outline-none placeholder-[var(--text-faint)]" />
             </div>
           </div>
         </div>
@@ -313,11 +355,11 @@ function AccountTab({ user, refetchUser }) {
 
       {/* ── Save ── */}
       <div className="flex items-center gap-3">
-        <button onClick={handleSave} disabled={saving}
+        <button onClick={handleSave} disabled={saving || !hasChanges}
           className="px-6 py-2.5 bg-[#9b7bf7] text-white font-semibold rounded-lg text-[13px] hover:bg-[#b69aff] transition-colors disabled:opacity-40">
-          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Profile'}
+          {saving ? 'Saving...' : saved && !hasChanges ? 'Saved!' : 'Save changes'}
         </button>
-        {saved && <span className="text-[12px] text-[#4ade80] flex items-center gap-1"><ion-icon name="checkmark-circle" style={{ fontSize: '14px' }} /> Profile updated</span>}
+        {saved && !hasChanges && <span className="text-[12px] text-[#4ade80] flex items-center gap-1"><ion-icon name="checkmark-circle" style={{ fontSize: '14px' }} /> Profile updated</span>}
       </div>
 
       <div className="h-px bg-[#1e2736]" />

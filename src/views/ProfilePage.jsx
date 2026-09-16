@@ -307,6 +307,13 @@ export default function ProfilePage() {
           </div>
           <div className="flex items-center gap-2">
             <Link
+              href={`/${encodeURIComponent(user.username)}`}
+              className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-[var(--text-body)] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-colors"
+            >
+              <ion-icon name="eye-outline" style={{ fontSize: '16px' }} />
+              View Public Profile
+            </Link>
+            <Link
               href="/settings"
               className="px-4 py-2 text-[13px] font-medium text-[var(--text-body)] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] transition-colors"
             >

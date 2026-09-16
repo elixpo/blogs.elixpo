@@ -65,13 +65,17 @@ export async function PUT(request) {
       WHERE id = ?
     `).bind(
       display_name || null, designation === undefined ? 0 : 1, designation ?? '',
-      bio || null, location || null, timezone || null,
-      pronouns || null, normWebsite ?? null, company || null,
+      bio === undefined ? null : bio, location === undefined ? null : location,
+      timezone === undefined ? null : timezone, pronouns === undefined ? null : pronouns,
+      normWebsite ?? null, company === undefined ? null : company,
       normLinks ? JSON.stringify(normLinks) : null, now, session.userId,
     ).run();
 
-    // Invalidate user cache
-    try { const { kvInvalidate } = await import('../../../../lib/cache'); await kvInvalidate(`v1:user:${session.userId}`); } catch {}
+    // Profile metadata and its sitemap last-modified value changed together.
+    try {
+      const { kvInvalidate, PUBLIC_SITEMAP_CACHE_KEY } = await import('../../../../lib/cache');
+      await kvInvalidate(`v1:user:${session.userId}`, PUBLIC_SITEMAP_CACHE_KEY);
+    } catch {}
 
     return NextResponse.json({ ok: true });
   } catch (e) {

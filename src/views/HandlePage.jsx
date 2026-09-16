@@ -41,6 +41,35 @@ function publicBlogHref(blog, fallbackUsername = "") {
     return `/${blog?.author_username || fallbackUsername}/${blog?.slug}`;
 }
 
+function OrganizationMentionText({ text, organizations = [] }) {
+    if (!text) return null;
+    const bySlug = new Map(
+        organizations.map((org) => [String(org.slug || "").toLowerCase(), org]),
+    );
+    const source = String(text);
+    const nodes = [];
+    let cursor = 0;
+    for (const match of source.matchAll(/(^|\s)(@[a-z0-9](?:[a-z0-9-]{0,47}))/gi)) {
+        const mentionStart = match.index + match[1].length;
+        const mention = match[2];
+        const org = bySlug.get(mention.slice(1).toLowerCase());
+        if (!org) continue;
+        nodes.push(source.slice(cursor, mentionStart));
+        nodes.push(
+                <Link
+                    key={`${org.id || org.slug}-${mentionStart}`}
+                    href={`/${org.slug}`}
+                    className="font-medium text-[var(--accent)] hover:underline"
+                >
+                    @{org.slug}
+                </Link>,
+        );
+        cursor = mentionStart + mention.length;
+    }
+    nodes.push(source.slice(cursor));
+    return nodes;
+}
+
 function StaticInline({ content = [] }) {
     if (!Array.isArray(content)) return null;
     return content.map((item, index) => {
@@ -1587,8 +1616,8 @@ function HandlePageInner({ path, initialData = null }) {
 
                     {/* ── Bio ── */}
                     {u.bio && (
-                        <p className="text-[var(--text-secondary)] text-[15px] leading-relaxed mb-4">
-                            {u.bio}
+                        <p className="whitespace-pre-wrap text-[var(--text-secondary)] text-[15px] leading-relaxed mb-4">
+                            <OrganizationMentionText text={u.bio} organizations={data.organizations} />
                         </p>
                     )}
 
@@ -1600,7 +1629,7 @@ function HandlePageInner({ path, initialData = null }) {
                                     name="business-outline"
                                     style={{ fontSize: "14px" }}
                                 />
-                                {u.company}
+                                <OrganizationMentionText text={u.company} organizations={data.organizations} />
                             </span>
                         )}
                         {u.location && (
