@@ -222,16 +222,15 @@ export async function POST(request) {
       try { const { snapshotVersion } = await import('../../../../lib/blogVersions'); await snapshotVersion(db, slugid, compressedContent, { label: 'published', userId: session.userId }); } catch {}
     }
 
-    // Invalidate caches
+    // Refresh both reader-facing discovery caches and the sitemap. This runs for
+    // publish, update, unlist, and draft transitions handled by this endpoint.
     try {
+      const { invalidateBlogLifecycleCaches } = await import('../../../../lib/api/v1/blogCache');
       const { kvInvalidate, mediaInventoryCacheKey } = await import('../../../../lib/cache');
-      await kvInvalidate(
-        `v1:tags:popular:30`, `v1:tags:popular:12`,
-        `v1:trending:3`, `v1:trending:5`, `v1:trending:10`,
-        `v1:feed:anon:trending:p1`,
-        `v1:interactions:${slugid}`,
-        mediaInventoryCacheKey(session.userId),
-      );
+      await Promise.all([
+        invalidateBlogLifecycleCaches(slugid),
+        kvInvalidate(mediaInventoryCacheKey(session.userId)),
+      ]);
     } catch {}
 
     // Canonical, scope-aware reader URL (personal / org / collection) keyed off

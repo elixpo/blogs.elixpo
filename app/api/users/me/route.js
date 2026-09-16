@@ -118,8 +118,13 @@ export async function DELETE() {
 
     // Unpublish all blogs
     await db.prepare(
-      "UPDATE blogs SET status = 'archived' WHERE author_id = ?"
-    ).bind(session.userId).run();
+      "UPDATE blogs SET status = 'archived', updated_at = ? WHERE author_id = ?"
+    ).bind(now, session.userId).run();
+
+    try {
+      const { kvInvalidate, PUBLIC_SITEMAP_CACHE_KEY } = await import('../../../../lib/cache');
+      await kvInvalidate(PUBLIC_SITEMAP_CACHE_KEY);
+    } catch {}
 
     // Send deletion confirmation email
     if (user?.email) {
