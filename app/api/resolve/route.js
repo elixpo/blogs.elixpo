@@ -420,6 +420,24 @@ export async function GET(request) {
                 }));
             } catch {}
 
+            // Public organization memberships make @org references in a creator's
+            // bio and company field verifiable and linkable. Private memberships
+            // are deliberately omitted from the public profile response.
+            let organizations = [];
+            try {
+                const orgResult = await db
+                    .prepare(`
+          SELECT DISTINCT o.id, o.slug, o.name
+          FROM orgs o
+          LEFT JOIN org_members om ON om.org_id = o.id AND om.user_id = ?
+          WHERE o.visibility != 'private' AND (o.owner_id = ? OR om.user_id IS NOT NULL)
+          ORDER BY LOWER(o.name) ASC
+        `)
+                    .bind(ownerId, ownerId)
+                    .all();
+                organizations = orgResult?.results || [];
+            } catch {}
+
             return NextResponse.json({
                 type: "user",
                 user: {
@@ -430,6 +448,7 @@ export async function GET(request) {
                 },
                 blogs: blogs?.results || [],
                 tags,
+                organizations,
             });
         }
 
