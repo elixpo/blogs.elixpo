@@ -83,6 +83,19 @@ lixblogs collab accept BLOG_ID --yes
 lixblogs collab decline BLOG_ID --yes
 ```
 
+Curate public stories without copying their content or changing attribution:
+
+```bash
+lixblogs collection list
+lixblogs collection create --title "Systems reading" --visibility private
+lixblogs collection add COLLECTION_ID --blog BLOG_ID --note "Start here"
+lixblogs collection entries COLLECTION_ID
+lixblogs collection edit COLLECTION_ID --visibility public
+lixblogs collection remove COLLECTION_ID --blog BLOG_ID --yes
+```
+
+Collection reads use `lixblogs:blog:read`; mutations use `lixblogs:blog:write`.
+
 ### Creator analytics
 
 Analytics is read-only and uses bounded date ranges and dimensions:

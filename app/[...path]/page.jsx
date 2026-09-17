@@ -41,6 +41,16 @@ const resolvePublicPage = cache(
     },
 );
 
+const resolvePublicReadingList = cache(async (origin, username, slug) => {
+    const { GET: resolveCollection } = await import("../api/library/public/route");
+    const response = await resolveCollection(new Request(
+        `${origin}/api/library/public?${new URLSearchParams({ username, slug })}`,
+    ));
+    if (response.status === 404) return { type: "notFound" };
+    if (!response.ok) throw new Error(`Curated collection resolution failed (${response.status})`);
+    return { type: "readingList", ...(await response.json()) };
+});
+
 // Profile and organization banners are stored as Cloudinary public IDs. Build a
 // delivery URL directly so an OG render does not have to follow our media redirect.
 function seoMediaUrl(value, version, transforms = "f_jpg,q_auto:eco") {
@@ -338,6 +348,30 @@ export async function generateMetadata({ params, searchParams }) {
             return {};
         }
 
+        if (collection === "reads" && slug) {
+            const data = await resolvePublicReadingList(origin, name, slug);
+            if (!data || data.type === "notFound") return {};
+            const url = `${origin}/${path.join("/")}`;
+            const title = data.list?.name || "Curated collection";
+            const owner = data.owner?.display_name || data.owner?.username || name;
+            const description = describe([
+                data.list?.description,
+                `${title} is curated by ${owner} on LixBlogs.`,
+                (data.blogs || []).length ? `${plural(data.blogs.length, "post", "posts")} with original author attribution.` : "",
+            ]);
+            const og = ogUrl({
+                type: "collection",
+                kind: "Curated collection",
+                title,
+                sub: `by ${owner}`,
+                subtitle: data.list?.description || "",
+                avatar: seoMediaUrl(data.owner?.avatar_url, data.list?.updated_at, "f_jpg,q_auto:eco,w_256,h_256,c_fill,g_face"),
+                banner: seoMediaUrl(data.list?.cover_url, data.list?.updated_at, "f_jpg,q_auto:eco,w_1200,h_630,c_fill"),
+                seed: data.list?.id || slug,
+            });
+            return cardMeta({ title: `${title}, curated by ${owner} on LixBlogs`, description, url, og });
+        }
+
         // ── 2/3-segment: blog, collection, or a blog invite link ──
         const data = await resolvePublicPage(origin, name, slug, collection);
         if (!data) return {};
@@ -452,6 +486,33 @@ async function buildJsonLd(path, origin) {
     });
 
     try {
+        if (collection === "reads" && slug) {
+            const data = await resolvePublicReadingList(origin, name, slug);
+            if (!data || data.type === "notFound") return null;
+            const url = `${origin}/${path.join("/")}`;
+            return {
+                "@context": "https://schema.org",
+                "@type": "CollectionPage",
+                "@id": `${url}#collection`,
+                url,
+                name: data.list?.name || "Curated collection",
+                description: data.list?.description || undefined,
+                creator: {
+                    "@type": "Person",
+                    name: data.owner?.display_name || data.owner?.username,
+                    url: `${origin}/${data.owner?.username || name}`,
+                },
+                hasPart: (data.blogs || []).map((blog) => ({
+                    "@type": "BlogPosting",
+                    "@id": `${origin}${blog.canonicalUrl}#post`,
+                    url: `${origin}${blog.canonicalUrl}`,
+                    headline: blog.title || "Untitled",
+                    author: { "@type": "Person", name: blog.author?.displayName || blog.author_name },
+                    license: blog.license || "all-rights-reserved",
+                })),
+                isPartOf: { "@id": `${origin}/#website` },
+            };
+        }
         const data = await resolvePublicPage(origin, name, slug, collection);
         if (!data) return null;
 
@@ -655,18 +716,11 @@ export default async function CatchAllHandle({ params }) {
     const collection = path?.length === 3 ? (path[1] || "").toLowerCase() : "";
     const isReadingList =
         path?.length === 3 && (path[1] || "").toLowerCase() === "reads";
-    const resolvedData = await resolvePublicPage(
-        origin,
-        rawName.toLowerCase(),
-        slug,
-        collection,
+    const resolvedData = await (isReadingList
+        ? resolvePublicReadingList(origin, rawName.toLowerCase(), slug)
+        : resolvePublicPage(origin, rawName.toLowerCase(), slug, collection)
     ).catch(() => null);
-    // Reading lists have their own API and are hydrated by the reader client.
-    // A 404 from the general resolver must not suppress that dedicated lookup.
-    const initialData =
-        isReadingList && resolvedData?.type === "notFound"
-            ? null
-            : resolvedData;
+    const initialData = resolvedData;
     if (initialData?.type === "notFound" && !isReadingList) notFound();
     const jsonLd =
         initialData && initialData.type !== "notFound"

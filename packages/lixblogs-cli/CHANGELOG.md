@@ -2,6 +2,12 @@
 
 Release notes are generated from merged pull requests. This file records contract-level changes that users must see before upgrading.
 
+## 1.6.0
+
+- Add personal curated-collection create, inspect, edit, delete, entry-add, entry-remove, and list commands.
+- Preserve canonical authorship and licenses when automating collection curation.
+- Continue using the registered `lixblogs:blog:read` and `lixblogs:blog:write` scopes; no new Accounts scope is required.
+
 ## 1.5.0
 
 - Add complete publish metadata, version history and restore, comments and replies, and provider-backed media deletion.

@@ -19,11 +19,13 @@ const TABS = [
   { label: 'Subscription', icon: 'diamond-outline' },
 ];
 
-function Toggle({ checked, onChange }) {
+function Toggle({ checked, onChange, disabled = false }) {
   return (
     <button
+      type="button"
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative w-10 h-[22px] rounded-full transition-colors flex-shrink-0 ${checked ? 'bg-[#9b7bf7]' : 'bg-[var(--bg-elevated)]'}`}
+      className={`relative w-10 h-[22px] rounded-full transition-colors flex-shrink-0 disabled:cursor-not-allowed disabled:opacity-50 ${checked ? 'bg-[#9b7bf7]' : 'bg-[var(--bg-elevated)]'}`}
     >
       <span className={`absolute top-[3px] w-4 h-4 rounded-full bg-white transition-transform ${checked ? 'left-[22px]' : 'left-[3px]'}`} />
     </button>
@@ -376,7 +378,34 @@ function PublishingTab({ user }) {
   const [tipping, setTipping] = useState(false);
   const [emailReplies, setEmailReplies] = useState(false);
   const [replyTo, setReplyTo] = useState(user.email || '');
-  const [license, setLicense] = useState('all-rights');
+  const [license, setLicense] = useState('all-rights-reserved');
+  const [allowPublicCuration, setAllowPublicCuration] = useState(true);
+  const [curationLoading, setCurationLoading] = useState(true);
+  const [curationSaved, setCurationSaved] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/library/curation-preferences')
+      .then(response => response.ok ? response.json() : Promise.reject())
+      .then(data => {
+        setAllowPublicCuration(data.allowPublicCuration !== false);
+        setLicense(data.defaultLicense || 'all-rights-reserved');
+      })
+      .catch(() => {})
+      .finally(() => setCurationLoading(false));
+  }, []);
+
+  const updateCurationPreferences = async (changes) => {
+    setCurationSaved(false);
+    const response = await fetch('/api/library/curation-preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(changes),
+    });
+    if (response.ok) {
+      setCurationSaved(true);
+      setTimeout(() => setCurationSaved(false), 1800);
+    }
+  };
 
   return (
     <div>
@@ -404,17 +433,24 @@ function PublishingTab({ user }) {
         right={
           <DropdownSelect
             value={license}
-            onChange={setLicense}
+            onChange={(value) => { setLicense(value); updateCurationPreferences({ defaultLicense: value }); }}
             options={[
-              { value: 'all-rights', label: 'All Rights Reserved' },
-              { value: 'cc-by', label: 'CC BY 4.0' },
-              { value: 'cc-by-sa', label: 'CC BY-SA 4.0' },
-              { value: 'cc-by-nc', label: 'CC BY-NC 4.0' },
-              { value: 'cc0', label: 'Public Domain (CC0)' },
+              { value: 'all-rights-reserved', label: 'All Rights Reserved' },
+              { value: 'cc-by-4.0', label: 'CC BY 4.0' },
+              { value: 'cc-by-sa-4.0', label: 'CC BY-SA 4.0' },
+              { value: 'cc-by-nc-4.0', label: 'CC BY-NC 4.0' },
+              { value: 'cc0-1.0', label: 'Public Domain (CC0)' },
             ]}
           />
         }
       />
+
+      <SettingRow
+        title="Allow public curation"
+        description="Let other users add your public stories to their collections. Attribution, canonical ownership, and your selected license are always preserved."
+        right={<Toggle checked={allowPublicCuration} disabled={curationLoading} onChange={(value) => { setAllowPublicCuration(value); updateCurationPreferences({ allowPublicCuration: value }); }} />}
+      />
+      {curationSaved && <p className="px-1 pb-3 text-[12px] text-emerald-500">Publishing preferences saved.</p>}
 
       <div className="h-px bg-[var(--bg-elevated)] mt-2" />
 

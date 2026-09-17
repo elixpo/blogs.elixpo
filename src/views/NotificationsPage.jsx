@@ -17,6 +17,7 @@ const NOTIF_CONFIG = {
   blog_invite:    { icon: 'create-outline',          color: '#c084fc', label: 'invited you to collaborate on' },
   blog_published: { icon: 'document-text-outline',   color: '#60a5fa', label: 'published' },
   badge_awarded:  { icon: 'ribbon-outline',          color: '#ec4899', label: 'awarded you' },
+  collection_add: { icon: 'albums-outline',          color: '#14b8a6', label: 'added your story to' },
 };
 
 const FILTERS = [
