@@ -116,6 +116,18 @@ Reads require `lixblogs:blog:read`; mutations require `lixblogs:blog:write`. An 
 
 Adding a post fails when it is not public, is secret, has been deleted, or its author has disabled third-party curation. Authors may remove their own work from another user's collection through the signed-in web interface.
 
+## Writing contests
+
+Contest automation uses the existing blog scopes:
+
+- `GET|POST /api/v1/contests` discovers or creates contests;
+- `GET|PATCH /api/v1/contests/{id}` inspects a contest or changes its lifecycle;
+- `GET|POST|DELETE /api/v1/contests/{id}/submissions` lists, submits, or withdraws entries;
+- `GET|POST|DELETE /api/v1/contests/{id}/members` manages moderator and judge roles; and
+- `POST /api/v1/contests/{id}/results` assigns and finalizes placements.
+
+Submission reads and discovery require `lixblogs:blog:read`; creation, roles, and entries require `lixblogs:blog:write`; final results require `lixblogs:blog:publish`. Snapshot content is returned only with `?snapshot=true` and only to the organizer or an assigned judge. A submitted blog remains owned by its author and the API stores an immutable judging snapshot.
+
 ## Responses and operational safety
 
 Successful responses use the stable `data` envelope. Errors include a machine-readable `code`, message, and request ID. Pagination uses opaque cursors. Rate-limit headers report the active window; automation should honor `429` and `Retry-After` rather than retrying immediately.

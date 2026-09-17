@@ -18,6 +18,12 @@ const NOTIF_CONFIG = {
   blog_published: { icon: 'document-text-outline',   color: '#60a5fa', label: 'published' },
   badge_awarded:  { icon: 'ribbon-outline',          color: '#ec4899', label: 'awarded you' },
   collection_add: { icon: 'albums-outline',          color: '#14b8a6', label: 'added your story to' },
+  contest_submission: { icon: 'document-attach-outline', color: '#0ea5e9', label: 'submitted an entry to' },
+  contest_role: { icon: 'people-circle-outline', color: '#8b5cf6', label: 'assigned you a contest role in' },
+  contest_results: { icon: 'trophy-outline', color: '#f59e0b', label: 'published results for' },
+  contest_opened: { icon: 'flag-outline', color: '#22c55e', label: 'opened' },
+  contest_deadline: { icon: 'timer-outline', color: '#f97316', label: 'is closing soon:' },
+  contest_judging: { icon: 'scale-outline', color: '#6366f1', label: 'entered judging:' },
 };
 
 const FILTERS = [
