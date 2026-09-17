@@ -47,7 +47,7 @@ export default async function sitemap() {
     const { getDB } = await import('../lib/cloudflare');
     const db = getDB();
 
-    const [blogs, users, orgs, collections, tags] = await kvCache(PUBLIC_SITEMAP_CACHE_KEY, 300, () => Promise.all([
+    const [blogs, users, orgs, collections, curatedCollections, tags] = await kvCache(PUBLIC_SITEMAP_CACHE_KEY, 300, () => Promise.all([
       db.prepare(`
         SELECT b.slug, b.updated_at, b.published_at, b.published_as,
                au.username AS author_username, o.slug AS org_slug, col.slug AS collection_slug
@@ -79,6 +79,17 @@ export default async function sitemap() {
         JOIN blogs b ON b.collection_id = c.id AND b.status = 'published' AND b.secret = 0
         WHERE o.visibility != ? GROUP BY c.id, c.slug, o.slug LIMIT 2000
       `).bind('private').all(),
+      db.prepare(`
+        SELECT bc.slug AS cslug, u.username, bc.updated_at
+        FROM bookmark_collections bc
+        JOIN users u ON u.id = bc.user_id
+        WHERE bc.visibility = 'public' AND EXISTS (
+          SELECT 1 FROM curated_collection_entries ce
+          JOIN blogs b ON b.id = ce.blog_id
+          WHERE ce.collection_id = bc.id AND b.status = 'published' AND b.secret = 0 AND b.deleted_at IS NULL
+        )
+        ORDER BY bc.updated_at DESC LIMIT 2000
+      `).all(),
       db.prepare(`
         SELECT MIN(bt.tag) AS tag, MAX(b.updated_at) AS updated_at
         FROM blog_tags bt JOIN blogs b ON b.id = bt.blog_id
@@ -123,6 +134,13 @@ export default async function sitemap() {
       priority: 0.6,
     }));
 
+    const curatedCollectionUrls = (curatedCollections?.results || []).map((c) => ({
+      url: `${SITE_URL}/${c.username}/reads/${c.cslug}`,
+      lastModified: ts(c.updated_at),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    }));
+
     const tagUrls = (tags?.results || []).filter((row) => row.tag).map((row) => ({
       url: `${SITE_URL}/tag/${encodeURIComponent(row.tag.toLowerCase())}`,
       lastModified: ts(row.updated_at),
@@ -130,7 +148,7 @@ export default async function sitemap() {
       priority: 0.6,
     }));
 
-    return [...staticPages, ...blogUrls, ...userUrls, ...orgUrls, ...collectionUrls, ...tagUrls];
+    return [...staticPages, ...blogUrls, ...userUrls, ...orgUrls, ...collectionUrls, ...curatedCollectionUrls, ...tagUrls];
   } catch {
     // D1 unavailable (local dev, or a bad deploy): still serve the static pages
     // rather than a 500, which search engines treat as a broken sitemap.

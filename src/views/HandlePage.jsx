@@ -1148,7 +1148,7 @@ function HandlePageInner({ path, initialData = null }) {
         );
     }
 
-    // ── Shared reading list ──
+    // ── Shared curated collection ──
     if (data.type === "readingList") {
         const { owner, list, blogs = [] } = data;
         return (
@@ -1173,7 +1173,7 @@ function HandlePageInner({ path, initialData = null }) {
                                 </span>
                             </Link>
                             <span style={{ color: "var(--text-faint)" }}>
-                                / reading list
+                                / curated collection
                             </span>
                         </div>
                         <h1
@@ -1189,6 +1189,14 @@ function HandlePageInner({ path, initialData = null }) {
                             >
                                 {list.description}
                             </p>
+                        )}
+                        {list.introduction && (
+                            <div
+                                className="text-[14px] mt-4 leading-relaxed rounded-xl p-4"
+                                style={{ color: "var(--text-secondary)", backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-default)" }}
+                            >
+                                {list.introduction}
+                            </div>
                         )}
                         <p
                             className="text-[13px] mt-3"
@@ -1245,6 +1253,9 @@ function HandlePageInner({ path, initialData = null }) {
                                                     {b.author_name ||
                                                         b.author_username}
                                                 </span>
+                                                <span style={{ color: "var(--text-faint)" }}>
+                                                    · original author
+                                                </span>
                                             </div>
                                             <h2
                                                 className="text-[19px] font-extrabold leading-[1.3] mb-1 group-hover:opacity-80 transition-opacity"
@@ -1275,6 +1286,20 @@ function HandlePageInner({ path, initialData = null }) {
                                                 >
                                                     {b.read_time_minutes} min
                                                     read
+                                                </p>
+                                            )}
+                                            <p
+                                                className="text-[11px] mt-2 uppercase tracking-wide"
+                                                style={{ color: "var(--text-faint)" }}
+                                            >
+                                                License: {b.license || "all-rights-reserved"}
+                                            </p>
+                                            {b.curatorNote && (
+                                                <p
+                                                    className="text-[13px] mt-2 italic"
+                                                    style={{ color: "var(--text-muted)" }}
+                                                >
+                                                    Curator note: {b.curatorNote}
                                                 </p>
                                             )}
                                         </div>
@@ -1309,7 +1334,7 @@ function HandlePageInner({ path, initialData = null }) {
                                 className="text-[15px] mt-4"
                                 style={{ color: "var(--text-muted)" }}
                             >
-                                This reading list is empty.
+                                This collection is empty.
                             </p>
                         </div>
                     )}
