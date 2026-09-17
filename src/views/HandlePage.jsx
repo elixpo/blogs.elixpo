@@ -1155,6 +1155,13 @@ function HandlePageInner({ path, initialData = null }) {
             <AppShell>
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 w-full">
                     <div className="mb-8">
+                        {list.cover_url && (
+                            <img
+                                src={list.cover_url}
+                                alt=""
+                                className="mb-6 h-52 w-full rounded-2xl object-cover"
+                            />
+                        )}
                         <div
                             className="flex items-center gap-2 text-[13px] mb-3"
                             style={{ color: "var(--text-muted)" }}
@@ -1301,6 +1308,20 @@ function HandlePageInner({ path, initialData = null }) {
                                                 >
                                                     Curator note: {b.curatorNote}
                                                 </p>
+                                            )}
+                                            {currentUser?.id === b.author_id && (
+                                                <button
+                                                    type="button"
+                                                    className="text-[12px] mt-3 font-medium text-red-500 hover:underline"
+                                                    onClick={async (event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        const response = await fetch(`/api/library/collections/${encodeURIComponent(list.id)}/entries?blogId=${encodeURIComponent(b.id)}`, { method: "DELETE" });
+                                                        if (response.ok) setData((current) => ({ ...current, blogs: (current.blogs || []).filter((entry) => entry.id !== b.id) }));
+                                                    }}
+                                                >
+                                                    Remove my story
+                                                </button>
                                             )}
                                         </div>
                                         <img

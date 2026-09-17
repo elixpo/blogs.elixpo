@@ -37,6 +37,7 @@ WHERE b.collection_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS curation_preferences (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   allow_public_curation INTEGER NOT NULL DEFAULT 1,
+  default_license TEXT NOT NULL DEFAULT 'all-rights-reserved',
   updated_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 

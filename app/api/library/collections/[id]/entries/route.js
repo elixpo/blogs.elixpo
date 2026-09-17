@@ -86,6 +86,19 @@ export async function POST(request, { params }) {
       cleanText(body.category, 80),
     ).run();
     await db.prepare('UPDATE bookmark_collections SET updated_at = unixepoch() WHERE id = ?').bind(id).run();
+    if (blog.author_id !== session.userId && collection.visibility !== 'private') {
+      const { notify } = await import('../../../../../../lib/notify');
+      await notify(db, {
+        userId: blog.author_id,
+        type: 'collection_add',
+        actorId: session.userId,
+        actorName: session.profile?.display_name || session.profile?.username,
+        actorAvatar: session.profile?.avatar_url,
+        targetId: collection.id,
+        targetTitle: collection.name,
+        targetUrl: `/${session.profile?.username || 'user'}/reads/${collection.slug}`,
+      });
+    }
     return NextResponse.json({ ok: true, blogId: blog.id }, { status: 201 });
   } catch (error) {
     console.error('[curated-collections] add entry failed:', error?.message || error);

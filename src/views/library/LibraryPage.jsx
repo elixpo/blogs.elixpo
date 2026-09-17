@@ -50,6 +50,8 @@ export default function LibraryPage() {
   const [entryBlogId, setEntryBlogId] = useState('');
   const [entryError, setEntryError] = useState('');
   const [entryBusy, setEntryBusy] = useState(false);
+  const [collectionDraft, setCollectionDraft] = useState(null);
+  const [collectionSaving, setCollectionSaving] = useState(false);
 
   const loadCollections = useCallback(() => {
     fetch('/api/library/collections').then(r => r.json()).then(d => setCollections(d.collections || [])).catch(() => {});
@@ -58,6 +60,13 @@ export default function LibraryPage() {
   const openCollection = async (collection) => {
     if (collection.isDefault) { setActiveTab(1); return; }
     setSelectedCollection(collection);
+    setCollectionDraft({
+      name: collection.name || '',
+      description: collection.description || '',
+      introduction: collection.introduction || '',
+      coverUrl: collection.coverUrl || '',
+      visibility: collection.visibility || 'private',
+    });
     setCollectionEntries([]);
     setEntryError('');
     const response = await fetch(`/api/library/collections/${encodeURIComponent(collection.id)}/entries`);
@@ -135,6 +144,42 @@ export default function LibraryPage() {
       setCollectionEntries(items => items.filter(item => item.blogId !== entry.blogId));
       loadCollections();
     }
+  };
+
+  const saveCollection = async () => {
+    if (!selectedCollection || !collectionDraft?.name.trim() || collectionSaving) return;
+    setCollectionSaving(true);
+    setEntryError('');
+    try {
+      const response = await fetch('/api/library/collections', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedCollection.id, ...collectionDraft }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Collection details could not be saved');
+      const updated = { ...selectedCollection, ...collectionDraft };
+      setSelectedCollection(updated);
+      setCollections(items => items.map(item => item.id === updated.id ? updated : item));
+    } catch (error) {
+      setEntryError(error.message);
+    } finally {
+      setCollectionSaving(false);
+    }
+  };
+
+  const moveEntry = async (index, direction) => {
+    const target = index + direction;
+    if (!selectedCollection || target < 0 || target >= collectionEntries.length) return;
+    const next = [...collectionEntries];
+    [next[index], next[target]] = [next[target], next[index]];
+    setCollectionEntries(next);
+    const response = await fetch(`/api/library/collections/${encodeURIComponent(selectedCollection.id)}/entries`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: next.map(entry => entry.blogId) }),
+    });
+    if (!response.ok) openCollection(selectedCollection);
   };
 
   if (loading) {
@@ -232,14 +277,36 @@ export default function LibraryPage() {
                   <button onClick={addEntry} disabled={entryBusy || !entryBlogId.trim()} className="px-4 py-2 text-[13px] font-medium text-white bg-[#9b7bf7] rounded-lg disabled:opacity-50">{entryBusy ? 'Adding…' : 'Add post'}</button>
                 </div>
                 {entryError && <p className="text-[12px] mb-3 text-red-500">{entryError}</p>}
+                {collectionDraft && (
+                  <div className="grid gap-3 my-5 rounded-xl p-4" style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-default)' }}>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <label className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>Name
+                        <input value={collectionDraft.name} onChange={event => setCollectionDraft(draft => ({ ...draft, name: event.target.value }))} className="mt-1 w-full rounded-lg px-3 py-2 text-[13px] outline-none" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }} />
+                      </label>
+                      <label className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>Visibility
+                        <select value={collectionDraft.visibility} onChange={event => setCollectionDraft(draft => ({ ...draft, visibility: event.target.value }))} className="mt-1 w-full rounded-lg px-3 py-2 text-[13px] outline-none" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>
+                          <option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option>
+                        </select>
+                      </label>
+                    </div>
+                    <input value={collectionDraft.description} onChange={event => setCollectionDraft(draft => ({ ...draft, description: event.target.value }))} placeholder="Short description" className="w-full rounded-lg px-3 py-2 text-[13px] outline-none" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }} />
+                    <textarea value={collectionDraft.introduction} onChange={event => setCollectionDraft(draft => ({ ...draft, introduction: event.target.value }))} placeholder="Editorial introduction" rows={3} className="w-full resize-y rounded-lg px-3 py-2 text-[13px] outline-none" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }} />
+                    <input value={collectionDraft.coverUrl} onChange={event => setCollectionDraft(draft => ({ ...draft, coverUrl: event.target.value }))} placeholder="https://… cover image" type="url" className="w-full rounded-lg px-3 py-2 text-[13px] outline-none" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }} />
+                    <button onClick={saveCollection} disabled={collectionSaving || !collectionDraft.name.trim()} className="justify-self-start rounded-lg bg-[#9b7bf7] px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50">{collectionSaving ? 'Saving…' : 'Save collection details'}</button>
+                  </div>
+                )}
                 <div>
-                  {collectionEntries.map(entry => (
+                  {collectionEntries.map((entry, index) => (
                     <div key={entry.blogId} className="flex items-center gap-3 py-3" style={{ borderTop: '1px solid var(--divider)' }}>
                       <div className="flex-1 min-w-0">
                         <p className="text-[14px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{entry.title}</p>
                         <p className="text-[12px] truncate" style={{ color: 'var(--text-muted)' }}>By {entry.author.displayName} · {entry.license}</p>
                       </div>
                       <Link href={entry.canonicalUrl} className="text-[12px]" style={{ color: 'var(--accent)' }}>View original</Link>
+                      <div className="flex flex-col">
+                        <button onClick={() => moveEntry(index, -1)} disabled={index === 0} title="Move up" className="h-5 px-1 disabled:opacity-25" style={{ color: 'var(--text-muted)' }}><ion-icon name="chevron-up-outline" /></button>
+                        <button onClick={() => moveEntry(index, 1)} disabled={index === collectionEntries.length - 1} title="Move down" className="h-5 px-1 disabled:opacity-25" style={{ color: 'var(--text-muted)' }}><ion-icon name="chevron-down-outline" /></button>
+                      </div>
                       <button onClick={() => removeEntry(entry)} title="Remove from collection" className="p-2" style={{ color: 'var(--text-faint)' }}><ion-icon name="close-circle-outline" /></button>
                     </div>
                   ))}

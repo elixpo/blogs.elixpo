@@ -102,6 +102,19 @@ lixblogs media delete MEDIA_ID --yes
 
 Image generation uses the Pollinations account connected in **Settings → Integrations**. The provider key stays on the server. Each generate command is one explicit billable attempt and is never automatically retried; keep the local output so a failed Cloudinary upload can be retried without regenerating.
 
+## Curated collections
+
+```bash
+lixblogs collection list
+lixblogs collection create --title "Systems reading" --visibility private
+lixblogs collection add COLLECTION_ID --blog BLOG_ID --note "Recommended introduction"
+lixblogs collection entries COLLECTION_ID
+lixblogs collection edit COLLECTION_ID --visibility public
+lixblogs collection remove COLLECTION_ID --blog BLOG_ID --yes
+```
+
+Collections reference the canonical public story and retain its original author and license. Reads use `lixblogs:blog:read`; changes use `lixblogs:blog:write`. See [Curated collections](/docs/collections) for visibility and author-control rules.
+
 ## Automation contract
 
 Use `--json --no-input` in scripts and agent workflows:

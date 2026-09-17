@@ -104,6 +104,18 @@ The API also exposes the workflows used by the CLI:
 
 Media continues through the normal optimization, storage quota, provider selection, ownership, and deletion pipeline. Provider credentials are never returned to API clients.
 
+## Curated collections
+
+Personal tokens can automate collection curation with the existing blog scopes:
+
+- `GET|POST /api/v1/collections` lists or creates collections;
+- `GET|PATCH|DELETE /api/v1/collections/{id}` reads, edits, or deletes one collection; and
+- `GET|POST|DELETE /api/v1/collections/{id}/entries` lists, adds, or removes referenced public blogs.
+
+Reads require `lixblogs:blog:read`; mutations require `lixblogs:blog:write`. An entry stores the blog reference, ordering, category, and optional curator note. The response resolves the original author, canonical URL, and author-selected license from the source blog. Organization-scoped tokens cannot manage personal collections.
+
+Adding a post fails when it is not public, is secret, has been deleted, or its author has disabled third-party curation. Authors may remove their own work from another user's collection through the signed-in web interface.
+
 ## Responses and operational safety
 
 Successful responses use the stable `data` envelope. Errors include a machine-readable `code`, message, and request ID. Pagination uses opaque cursors. Rate-limit headers report the active window; automation should honor `429` and `Retry-After` rather than retrying immediately.

@@ -41,6 +41,7 @@ import { CollaborationClient } from "../src/api/CollaborationClient.js";
 import { AnalyticsClient } from "../src/api/AnalyticsClient.js";
 import { IntegrationsClient } from "../src/api/IntegrationsClient.js";
 import { MediaClient } from "../src/api/MediaClient.js";
+import { CollectionClient } from "../src/api/CollectionClient.js";
 import { EXIT_CODES, errorEnvelope, normalizeCommand } from "../src/cli/contract.js";
 import {
   colorEnabled,
@@ -88,6 +89,16 @@ import { cloudinaryDisconnect } from "../src/commands/integrations/cloudinary-di
 import { cloudinaryStatus } from "../src/commands/integrations/cloudinary-status.js";
 import { mediaDelete, mediaGenerate, mediaUpload } from "../src/commands/media/index.js";
 import { commentAdd, commentDelete, commentList, commentReply } from "../src/commands/comment/index.js";
+import {
+  collectionAdd,
+  collectionCreate,
+  collectionDelete,
+  collectionEdit,
+  collectionEntries,
+  collectionGet,
+  collectionList,
+  collectionRemove,
+} from "../src/commands/collection/index.js";
 
 
 const OPTIONS = {
@@ -125,7 +136,13 @@ const OPTIONS = {
   emoji: { type: "string" },
   publication: { type: "string" },
   collection: { type: "string" },
+  visibility: { type: "string" },
+  description: { type: "string" },
+  introduction: { type: "string" },
+  note: { type: "string" },
+  category: { type: "string" },
   cover: { type: "string" },
+  license: { type: "string" },
   "member-only": { type: "boolean", default: false },
   "no-member-only": { type: "boolean", default: false },
   secret: { type: "boolean", default: false },
@@ -199,6 +216,14 @@ Usage:
   lixblogs org collections <id> [--json]
   lixblogs org members <id>  [--json]
   lixblogs org targets       [--json]
+  lixblogs collection list   [--json]
+  lixblogs collection get <id> [--json]
+  lixblogs collection create --title <name> [--slug <slug>] [--visibility private|unlisted|public]
+  lixblogs collection edit <id> [--title <name>] [--description <text>] [--introduction <text>] [--visibility <value>]
+  lixblogs collection delete <id> --yes
+  lixblogs collection entries <id> [--json]
+  lixblogs collection add <id> --blog <blog-id> [--note <text>] [--category <name>]
+  lixblogs collection remove <id> --blog <blog-id> --yes
   lixblogs collab list <blog-id> [--json]
   lixblogs collab invitations   [--json]
   lixblogs collab invite <blog-id> --user <username> --role <viewer|editor|admin> --yes
@@ -238,6 +263,7 @@ Global flags:
   --tag <tag>                 set a tag (repeatable, up to five)
   --publication <target>      personal or org:<id>
   --collection <id>           organization collection ID
+  --license <id>              all-rights-reserved, cc-by-4.0, cc-by-sa-4.0, cc-by-nc-4.0, or cc0-1.0
   --dry-run                   validate and show the intended action without writing
   --permanent                 permanently delete instead of moving to trash
   --open                      open the device verification URL immediately
@@ -676,6 +702,16 @@ const ANALYTICS_COMMANDS = {
 
 const MEDIA_COMMANDS = { generate: mediaGenerate, upload: mediaUpload, delete: mediaDelete };
 const COMMENT_COMMANDS = { list: commentList, add: commentAdd, reply: commentReply, delete: commentDelete };
+const COLLECTION_COMMANDS = {
+  list: collectionList,
+  get: collectionGet,
+  create: collectionCreate,
+  edit: collectionEdit,
+  delete: collectionDelete,
+  entries: collectionEntries,
+  add: collectionAdd,
+  remove: collectionRemove,
+};
 
 async function runBlog(opts, args, action) {
   const context = await authenticatedBlogClient(opts);
@@ -753,6 +789,29 @@ async function runOrg(opts, args, action) {
         row.slug || row.username,
         row.name || row.displayName,
       ].filter(Boolean).join('\t'));
+    }
+  } catch (error) {
+    fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR);
+  }
+}
+
+async function runCollection(opts, args, action) {
+  const context = await authenticatedBlogClient(opts);
+  if (!context) return;
+  try {
+    const result = await withProgress(opts, action === 'list' || action === 'get' || action === 'entries' ? 'Loading collections…' : 'Updating collection…', () => COLLECTION_COMMANDS[action]({
+      client: new CollectionClient(context.http), id: args[0], options: opts,
+    }));
+    output(opts, { ok: true, data: result });
+    if (opts.json || opts.quiet) return;
+    if (action === 'list') {
+      for (const collection of result || []) console.log(`${collection.id}\t${collection.visibility}\t${collection.count} posts\t${collection.name}`);
+    } else if (action === 'entries') {
+      for (const entry of result || []) console.log(`${entry.blogId}\t${entry.author?.username || ''}\t${entry.title}`);
+    } else if (action === 'get') {
+      console.log(`${result.id}\t${result.visibility}\t${result.count} posts\t${result.name}`);
+    } else {
+      console.log(successLine(action === 'delete' ? 'Collection deleted.' : action === 'remove' ? 'Post removed from collection.' : action === 'add' ? 'Post added to collection.' : 'Collection updated.', colorEnabled()));
     }
   } catch (error) {
     fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR);
@@ -896,6 +955,10 @@ const ROUTES = {
   org: Object.fromEntries(Object.keys(ORG_COMMANDS).map((action) => [
     action,
     (opts, args) => runOrg(opts, args, action),
+  ])),
+  collection: Object.fromEntries(Object.keys(COLLECTION_COMMANDS).map((action) => [
+    action,
+    (opts, args) => runCollection(opts, args, action),
   ])),
   collab: Object.fromEntries(Object.keys(COLLAB_COMMANDS).map((action) => [
     action,

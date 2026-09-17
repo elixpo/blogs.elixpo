@@ -4,6 +4,7 @@ import { getSession } from '../../../../lib/auth';
 import {
   COLLECTION_VISIBILITIES,
   collectionSlug,
+  curatedCoverUrl,
   serializeCuratedCollection,
 } from '../../../../lib/curatedCollections';
 
@@ -42,6 +43,8 @@ export async function POST(request) {
   const slugBase = collectionSlug(name);
   if (!name?.trim() || slugBase.length < 3) return NextResponse.json({ error: 'Collection name must be at least 3 characters' }, { status: 400 });
   if (!COLLECTION_VISIBILITIES.has(visibility)) return NextResponse.json({ error: 'Invalid visibility' }, { status: 400 });
+  let cleanCoverUrl;
+  try { cleanCoverUrl = curatedCoverUrl(coverUrl); } catch { return NextResponse.json({ error: 'Cover URL must use HTTPS' }, { status: 400 }); }
   try {
     const { getDB } = await import('../../../../lib/cloudflare');
     const db = getDB();
@@ -60,12 +63,12 @@ export async function POST(request) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())
     `).bind(
       id, session.userId, name.trim(), (description || '').trim().slice(0, 500),
-      (introduction || '').trim().slice(0, 5000), coverUrl || null, slug,
+      (introduction || '').trim().slice(0, 5000), cleanCoverUrl, slug,
       visibility === 'public' ? 1 : 0, visibility,
     ).run();
     return NextResponse.json({
       ok: true,
-      collection: { id, name: name.trim(), slug, description: (description || '').trim(), introduction: (introduction || '').trim(), coverUrl: coverUrl || null, visibility, count: 0 },
+      collection: { id, name: name.trim(), slug, description: (description || '').trim(), introduction: (introduction || '').trim(), coverUrl: cleanCoverUrl, visibility, count: 0 },
     }, { status: 201 });
   } catch (e) {
     if (e?.message?.includes('UNIQUE')) return NextResponse.json({ error: 'List name already exists' }, { status: 409 });
@@ -90,7 +93,11 @@ export async function PATCH(request) {
     }
     if (typeof description === 'string') { sets.push('description = ?'); binds.push(description.trim().slice(0, 500)); }
     if (typeof introduction === 'string') { sets.push('introduction = ?'); binds.push(introduction.trim().slice(0, 5000)); }
-    if (typeof coverUrl === 'string' || coverUrl === null) { sets.push('cover_url = ?'); binds.push(coverUrl || null); }
+    if (typeof coverUrl === 'string' || coverUrl === null) {
+      let cleanCoverUrl;
+      try { cleanCoverUrl = curatedCoverUrl(coverUrl); } catch { return NextResponse.json({ error: 'Cover URL must use HTTPS' }, { status: 400 }); }
+      sets.push('cover_url = ?'); binds.push(cleanCoverUrl);
+    }
     const requestedVisibility = typeof visibility === 'string'
       ? visibility
       : typeof isPublic !== 'undefined' ? (isPublic ? 'public' : 'private') : null;

@@ -30,6 +30,9 @@ logged by the resource API.
 | `POST` | `/api/v1/blogs/{id}/unpublish` | `lixblogs:blog:publish` | Return a post to draft |
 | `DELETE` | `/api/v1/blogs/{id}` | `lixblogs:blog:delete` | Move a post to trash |
 | `POST` | `/api/v1/blogs/{id}/restore` | `lixblogs:blog:delete` | Restore a trashed post |
+| `GET`, `POST` | `/api/v1/collections` | `lixblogs:blog:read`, `lixblogs:blog:write` | List or create personal curated collections |
+| `GET`, `PATCH`, `DELETE` | `/api/v1/collections/{id}` | `lixblogs:blog:read`, `lixblogs:blog:write` | Inspect, edit, or delete an owned collection |
+| `GET`, `POST`, `DELETE` | `/api/v1/collections/{id}/entries` | `lixblogs:blog:read`, `lixblogs:blog:write` | List, add, or remove canonical public-blog references |
 | `GET` | `/api/v1/orgs` | `lixblogs:organizations:read` | Organizations the caller belongs to |
 | `GET` | `/api/v1/orgs/{id}` | `lixblogs:organizations:read` | One caller-visible organization and role |
 | `GET` | `/api/v1/orgs/{id}/collections` | `lixblogs:organizations:read` | Collections within a caller membership |

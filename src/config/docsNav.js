@@ -7,6 +7,7 @@ export const docsNav = [
       { title: 'Collaboration', slug: 'collaboration', description: 'Invite co-authors and edit a story together safely.' },
       { title: 'Media and storage', slug: 'media-storage', description: 'Upload, track, replace, and delete covers and editor images.' },
       { title: 'Creator analytics', slug: 'creator-analytics', description: 'Read creator metrics, compare date ranges, and export reports.' },
+      { title: 'Curated collections', slug: 'collections', description: 'Curate public stories while preserving authorship, canonical ownership, and licenses.' },
       { title: 'LixBlogs CLI', slug: 'cli', description: 'Authenticate, write, publish, and automate through the supported command line.' },
       { title: 'API automation', slug: 'api', description: 'Create scoped access tokens and automate publishing through the versioned API.' },
     ],
