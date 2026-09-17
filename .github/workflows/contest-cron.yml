@@ -1,0 +1,30 @@
+name: Contest lifecycle cron
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contest-lifecycle-cron
+  cancel-in-progress: false
+
+jobs:
+  advance-contests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Advance contest lifecycle and send notifications
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$CRON_SECRET"
+          curl --fail --silent --show-error \
+            --retry 3 \
+            --retry-all-errors \
+            --max-time 30 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://blogs.elixpo.com/api/cron/contests
