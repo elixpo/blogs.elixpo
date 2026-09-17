@@ -2,6 +2,12 @@
 
 Release notes are generated from merged pull requests. This file records contract-level changes that users must see before upgrading.
 
+## 1.7.0
+
+- Add contest creation, lifecycle, role, submission, frozen-snapshot review, and results commands.
+- Require explicit confirmation for contest publication, cancellation, withdrawal, and final result publication.
+- Reuse registered blog scopes so existing OAuth and personal-access-token clients need no new Accounts registration.
+
 ## 1.6.0
 
 - Add personal curated-collection create, inspect, edit, delete, entry-add, entry-remove, and list commands.

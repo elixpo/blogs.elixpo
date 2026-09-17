@@ -42,6 +42,7 @@ import { AnalyticsClient } from "../src/api/AnalyticsClient.js";
 import { IntegrationsClient } from "../src/api/IntegrationsClient.js";
 import { MediaClient } from "../src/api/MediaClient.js";
 import { CollectionClient } from "../src/api/CollectionClient.js";
+import { ContestClient } from "../src/api/ContestClient.js";
 import { EXIT_CODES, errorEnvelope, normalizeCommand } from "../src/cli/contract.js";
 import {
   colorEnabled,
@@ -99,6 +100,21 @@ import {
   collectionList,
   collectionRemove,
 } from "../src/commands/collection/index.js";
+import {
+  contestCancel,
+  contestCreate,
+  contestEdit,
+  contestGet,
+  contestList,
+  contestMembers,
+  contestPublish,
+  contestRemoveMember,
+  contestResults,
+  contestRole,
+  contestSubmissions,
+  contestSubmit,
+  contestWithdraw,
+} from "../src/commands/contest/index.js";
 
 
 const OPTIONS = {
@@ -177,6 +193,19 @@ const OPTIONS = {
   "cover-x": { type: "string" },
   "cover-y": { type: "string" },
   "cover-zoom": { type: "string" },
+  "starts-at": { type: "string" },
+  "submissions-close-at": { type: "string" },
+  "judging-closes-at": { type: "string" },
+  "results-at": { type: "string" },
+  "allowed-target": { type: "string", multiple: true },
+  problem: { type: "string" },
+  rules: { type: "string" },
+  theme: { type: "string" },
+  template: { type: "string" },
+  submission: { type: "string" },
+  snapshot: { type: "boolean", default: false },
+  award: { type: "string", multiple: true },
+  finalize: { type: "boolean", default: false },
   help: { type: "boolean", short: "h", default: false },
 };
 
@@ -224,6 +253,19 @@ Usage:
   lixblogs collection entries <id> [--json]
   lixblogs collection add <id> --blog <blog-id> [--note <text>] [--category <name>]
   lixblogs collection remove <id> --blog <blog-id> --yes
+  lixblogs contest list [--json]
+  lixblogs contest get <id-or-slug> [--json]
+  lixblogs contest create --title <title> --starts-at <date> --submissions-close-at <date> --judging-closes-at <date> [options]
+  lixblogs contest edit <id> [--description <text>] [--problem <text>] [--rules <text>] [--theme <text>]
+  lixblogs contest publish <id> --yes
+  lixblogs contest cancel <id> --yes
+  lixblogs contest submissions <id> [--snapshot] [--json]
+  lixblogs contest submit <id> --blog <blog-id>
+  lixblogs contest withdraw <id> --submission <submission-id> --yes
+  lixblogs contest members <id> [--json]
+  lixblogs contest role <id> --user <username-or-id> --role <moderator|judge>
+  lixblogs contest remove-member <id> --user <user-id> --yes
+  lixblogs contest results <id> --award winner:<submission-id> [--award runner-up:<id>] [--finalize --yes]
   lixblogs collab list <blog-id> [--json]
   lixblogs collab invitations   [--json]
   lixblogs collab invite <blog-id> --user <username> --role <viewer|editor|admin> --yes
@@ -712,6 +754,21 @@ const COLLECTION_COMMANDS = {
   add: collectionAdd,
   remove: collectionRemove,
 };
+const CONTEST_COMMANDS = {
+  list: contestList,
+  get: contestGet,
+  create: contestCreate,
+  edit: contestEdit,
+  publish: contestPublish,
+  cancel: contestCancel,
+  submissions: contestSubmissions,
+  submit: contestSubmit,
+  withdraw: contestWithdraw,
+  members: contestMembers,
+  role: contestRole,
+  'remove-member': contestRemoveMember,
+  results: contestResults,
+};
 
 async function runBlog(opts, args, action) {
   const context = await authenticatedBlogClient(opts);
@@ -813,6 +870,24 @@ async function runCollection(opts, args, action) {
     } else {
       console.log(successLine(action === 'delete' ? 'Collection deleted.' : action === 'remove' ? 'Post removed from collection.' : action === 'add' ? 'Post added to collection.' : 'Collection updated.', colorEnabled()));
     }
+  } catch (error) {
+    fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR);
+  }
+}
+
+async function runContest(opts, args, action) {
+  const context = await authenticatedBlogClient(opts);
+  if (!context) return;
+  try {
+    const loading = ['list', 'get', 'submissions', 'members'].includes(action);
+    const result = await withProgress(opts, loading ? 'Loading contests…' : 'Updating contest…', () => CONTEST_COMMANDS[action]({ client: new ContestClient(context.http), id: args[0], options: opts }));
+    output(opts, { ok: true, data: result });
+    if (opts.json || opts.quiet) return;
+    if (action === 'list') for (const contest of result || []) console.log(`${contest.id}\t${contest.status}\t${contest.submissionCount} entries\t${contest.title}`);
+    else if (action === 'submissions') for (const item of result || []) console.log(`${item.id}\t${item.author?.username || ''}\t${item.placement || 'entry'}\t${item.title}`);
+    else if (action === 'members') for (const item of result || []) console.log(`${item.user_id}\t${item.role}\t${item.username}`);
+    else if (action === 'get') console.log(`${result.id}\t${result.status}\t${result.submissionCount} entries\t${result.title}`);
+    else console.log(successLine(`Contest ${action} completed.`, colorEnabled()));
   } catch (error) {
     fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR);
   }
@@ -959,6 +1034,10 @@ const ROUTES = {
   collection: Object.fromEntries(Object.keys(COLLECTION_COMMANDS).map((action) => [
     action,
     (opts, args) => runCollection(opts, args, action),
+  ])),
+  contest: Object.fromEntries(Object.keys(CONTEST_COMMANDS).map((action) => [
+    action,
+    (opts, args) => runContest(opts, args, action),
   ])),
   collab: Object.fromEntries(Object.keys(COLLAB_COMMANDS).map((action) => [
     action,

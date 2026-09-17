@@ -96,6 +96,24 @@ lixblogs collection remove COLLECTION_ID --blog BLOG_ID --yes
 
 Collection reads use `lixblogs:blog:read`; mutations use `lixblogs:blog:write`.
 
+Run and enter writing contests while keeping every submitted post under its author's canonical URL:
+
+```bash
+lixblogs contest list
+lixblogs contest create --title "Open web" \
+  --starts-at 2026-10-01T00:00:00Z \
+  --submissions-close-at 2026-10-15T23:59:59Z \
+  --judging-closes-at 2026-10-20T23:59:59Z \
+  --problem "Write about the open web" --rules "Original work only"
+lixblogs contest publish CONTEST_ID --yes
+lixblogs contest submit CONTEST_ID --blog BLOG_ID
+lixblogs contest submissions CONTEST_ID --snapshot --json
+lixblogs contest role CONTEST_ID --user reviewer --role judge
+lixblogs contest results CONTEST_ID --award winner:SUBMISSION_ID --finalize --yes
+```
+
+Only organizers and judges can request frozen snapshots. Publishing, cancelling, withdrawing, and finalizing results require explicit confirmation where applicable.
+
 ### Creator analytics
 
 Analytics is read-only and uses bounded date ranges and dimensions:

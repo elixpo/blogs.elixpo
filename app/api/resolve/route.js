@@ -401,6 +401,27 @@ export async function GET(request) {
                 );
                 badges = await listUserBadges(db, ownerId);
             } catch {}
+            try {
+                const honors = await db.prepare(`
+                  SELECT c.id AS contest_id, c.slug, c.title, a.placement, a.position, a.awarded_at
+                  FROM contest_awards a
+                  JOIN contest_submissions s ON s.id = a.submission_id
+                  JOIN contests c ON c.id = a.contest_id
+                  WHERE s.author_id = ? AND c.status = 'completed' AND s.withdrawn_at IS NULL
+                  ORDER BY a.awarded_at DESC LIMIT 20
+                `).bind(ownerId).all();
+                badges.push(...(honors?.results || []).map((honor) => ({
+                    id: `contest-${honor.contest_id}-${honor.placement}-${honor.position}`,
+                    name: honor.placement === 'winner' ? `${honor.title} Winner` : `${honor.title} ${honor.placement}`,
+                    description: `Recognized as ${honor.placement}${honor.position > 1 ? ` #${honor.position}` : ''} in ${honor.title}.`,
+                    category: 'Contest recognition',
+                    difficulty: 'Awarded',
+                    icon: 'trophy-outline',
+                    artwork: null,
+                    awarded_at: honor.awarded_at,
+                    source_url: `/contests/${honor.slug}`,
+                })));
+            } catch {}
 
             // Tag frequency for topic filter chips on the redesigned profile page.
             let tags = [];

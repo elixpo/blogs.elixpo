@@ -34,6 +34,7 @@ export default async function sitemap() {
     { url: `${SITE_URL}/docs`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${SITE_URL}/help`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${SITE_URL}/badges`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${SITE_URL}/contests`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${SITE_URL}/terms`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
     ...docsNavFlat.map((doc) => ({
@@ -47,7 +48,7 @@ export default async function sitemap() {
     const { getDB } = await import('../lib/cloudflare');
     const db = getDB();
 
-    const [blogs, users, orgs, collections, curatedCollections, tags] = await kvCache(PUBLIC_SITEMAP_CACHE_KEY, 300, () => Promise.all([
+    const [blogs, users, orgs, collections, curatedCollections, tags, contests] = await kvCache(PUBLIC_SITEMAP_CACHE_KEY, 300, () => Promise.all([
       db.prepare(`
         SELECT b.slug, b.updated_at, b.published_at, b.published_as,
                au.username AS author_username, o.slug AS org_slug, col.slug AS collection_slug
@@ -96,6 +97,11 @@ export default async function sitemap() {
         WHERE b.status = 'published' AND b.secret = 0
         GROUP BY LOWER(bt.tag)
         ORDER BY COUNT(*) DESC LIMIT 2000
+      `).all(),
+      db.prepare(`
+        SELECT slug, status, updated_at FROM contests
+        WHERE status != 'draft'
+        ORDER BY starts_at DESC LIMIT 2000
       `).all(),
     ]));
 
@@ -148,7 +154,14 @@ export default async function sitemap() {
       priority: 0.6,
     }));
 
-    return [...staticPages, ...blogUrls, ...userUrls, ...orgUrls, ...collectionUrls, ...curatedCollectionUrls, ...tagUrls];
+    const contestUrls = (contests?.results || []).map((contest) => ({
+      url: `${SITE_URL}/contests/${contest.slug}`,
+      lastModified: ts(contest.updated_at),
+      changeFrequency: contest.status === 'completed' || contest.status === 'cancelled' ? 'monthly' : 'daily',
+      priority: 0.7,
+    }));
+
+    return [...staticPages, ...blogUrls, ...userUrls, ...orgUrls, ...collectionUrls, ...curatedCollectionUrls, ...tagUrls, ...contestUrls];
   } catch {
     // D1 unavailable (local dev, or a bad deploy): still serve the static pages
     // rather than a 500, which search engines treat as a broken sitemap.
