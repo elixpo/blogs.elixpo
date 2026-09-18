@@ -4,10 +4,10 @@ function eligibility(options, includeDefaults = false) {
   if (options['require-bio'] && options['no-require-bio']) throw new Error('Use only one of --require-bio or --no-require-bio.');
   if (options['eligible-user']?.length && options['clear-eligible-users']) throw new Error('Use either --eligible-user or --clear-eligible-users.');
   const result = {};
-  if (includeDefaults || options['minimum-account-age-days'] !== undefined) {
-    const days = Number(options['minimum-account-age-days'] || 0);
-    if (!Number.isFinite(days) || days < 0) throw new Error('--minimum-account-age-days must be zero or greater.');
-    result.minimumAccountAgeDays = Math.floor(days);
+  if (includeDefaults || options['minimum-account-age-months'] !== undefined) {
+    const months = Number(options['minimum-account-age-months'] || 0);
+    if (!Number.isInteger(months) || months < 0) throw new Error('--minimum-account-age-months must be a whole number that is zero or greater.');
+    result.minimumAccountAgeMonths = months;
   }
   if (includeDefaults || options['require-bio'] || options['no-require-bio']) result.requireBio = Boolean(options['require-bio']);
   if (includeDefaults || options['eligible-user'] || options['clear-eligible-users']) result.allowedUsernames = options['clear-eligible-users'] ? [] : options['eligible-user'] || [];
@@ -18,25 +18,27 @@ export const contestList = ({ client, options }) => client.list({ status: option
 export function contestGet({ client, id }) { requireId(id); return client.get(id); }
 export function contestCreate({ client, options }) {
   if (!options.title || !options['starts-at'] || !options['submissions-close-at'] || !options['judging-closes-at']) throw new Error('--title, --starts-at, --submissions-close-at, and --judging-closes-at are required.');
+  if (options.limit && (Number(options.limit) < 1 || Number(options.limit) > 5)) throw new Error('--limit must be between 1 and 5.');
   return client.create({
     title: options.title, slug: options.slug, description: options.description,
     problemStatement: options.problem, rules: options.rules, theme: options.theme,
     coverUrl: options.cover, templateContent: options.template,
     startsAt: options['starts-at'], submissionsCloseAt: options['submissions-close-at'],
     judgingClosesAt: options['judging-closes-at'], resultsAt: options['results-at'],
-    requiredTopics: options.tag || [], allowedTargets: options['allowed-target'] || ['personal'],
+    requiredTopics: options.tag || [], tags: options['contest-tag'] || [], allowedTargets: options['allowed-target'] || ['personal'],
     perAuthorLimit: options.limit ? Number(options.limit) : 1,
     eligibility: eligibility(options, true),
   });
 }
 export function contestEdit({ client, id, options }) {
   requireId(id);
+  if (options.limit && (Number(options.limit) < 1 || Number(options.limit) > 5)) throw new Error('--limit must be between 1 and 5.');
   return client.update(id, Object.fromEntries(Object.entries({
-    title: options.title, description: options.description, problemStatement: options.problem,
+    title: options.title, slug: options.slug, description: options.description, problemStatement: options.problem,
     rules: options.rules, theme: options.theme, templateContent: options.template,
     coverUrl: options.cover, startsAt: options['starts-at'],
     submissionsCloseAt: options['submissions-close-at'], judgingClosesAt: options['judging-closes-at'],
-    resultsAt: options['results-at'], requiredTopics: options.tag,
+    resultsAt: options['results-at'], requiredTopics: options.tag, tags: options['contest-tag'],
     allowedTargets: options['allowed-target'], perAuthorLimit: options.limit ? Number(options.limit) : undefined,
     eligibility: eligibility(options),
   }).filter(([, value]) => value !== undefined)));

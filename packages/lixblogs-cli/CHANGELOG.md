@@ -7,6 +7,7 @@ Release notes are generated from merged pull requests. This file records contrac
 - Complete contest automation with lifecycle and ownership filters, eligibility controls, and private-draft deletion.
 - Allow organizers to manage minimum account age, required bios, and invited-author lists from the CLI.
 - Preserve published contest history by restricting deletion to organizer-owned private drafts.
+- Add contest discovery tags, custom slugs, month-based account age, and the five-entry hard limit.
 
 ## 1.7.0
 

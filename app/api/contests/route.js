@@ -7,6 +7,7 @@ import { getDB } from '../../../lib/cloudflare';
 import {
   contestCoverUrl,
   contestSlug,
+  normalizeContestEligibility,
   normalizeStringArray,
   recordContestAudit,
   serializeContest,
@@ -61,10 +62,14 @@ export async function POST(request) {
   const judgingClosesAt = timestamp(input.judgingClosesAt);
   const resultsAt = input.resultsAt ? timestamp(input.resultsAt) : null;
   if (!title || title.length > 160 || slug.length < 3) return NextResponse.json({ error: 'A title and valid slug are required' }, { status: 400 });
-  if (!startsAt || startsAt >= submissionsCloseAt || submissionsCloseAt > judgingClosesAt) {
-    return NextResponse.json({ error: 'Contest dates must be ordered: start, submission deadline, judging deadline' }, { status: 400 });
+  const now = Math.floor(Date.now() / 1000);
+  if (startsAt <= now || startsAt >= submissionsCloseAt || submissionsCloseAt > judgingClosesAt || (input.resultsAt && (!resultsAt || resultsAt < judgingClosesAt))) {
+    return NextResponse.json({ error: 'Contest dates must be in the future and ordered: start, submission deadline, judging deadline' }, { status: 400 });
   }
-  const perAuthorLimit = Math.min(10, Math.max(1, Number(input.perAuthorLimit || 1)));
+  const perAuthorLimit = Number(input.perAuthorLimit ?? 1);
+  const minimumAccountAgeMonths = Number(input.eligibility?.minimumAccountAgeMonths ?? 0);
+  if (!Number.isInteger(perAuthorLimit) || perAuthorLimit < 1 || perAuthorLimit > 5) return NextResponse.json({ error: 'Entries per author must be a whole number from 1 to 5' }, { status: 400 });
+  if (!Number.isInteger(minimumAccountAgeMonths) || minimumAccountAgeMonths < 0) return NextResponse.json({ error: 'Minimum account age must be a whole number of months from 0' }, { status: 400 });
   let coverUrl;
   try { coverUrl = contestCoverUrl(input.coverUrl); } catch { return NextResponse.json({ error: 'Cover URL must use HTTPS' }, { status: 400 }); }
   try {
@@ -79,9 +84,9 @@ export async function POST(request) {
       INSERT INTO contests (
         id, organizer_id, slug, title, description, problem_statement, rules, theme,
         cover_url, template_content, status, starts_at, submissions_close_at,
-        judging_closes_at, results_at, required_topics, allowed_targets, eligibility,
+        judging_closes_at, results_at, required_topics, tags, allowed_targets, eligibility,
         per_author_limit, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())
     `).bind(
       id, session.userId, slug, title,
       String(input.description || '').trim().slice(0, 1000),
@@ -91,8 +96,9 @@ export async function POST(request) {
       String(input.templateContent || '').slice(0, 50000),
       startsAt, submissionsCloseAt, judgingClosesAt, resultsAt,
       JSON.stringify(normalizeStringArray(input.requiredTopics)),
+      JSON.stringify(normalizeStringArray(input.tags)),
       JSON.stringify(normalizeStringArray(input.allowedTargets || ['personal'])),
-      JSON.stringify(input.eligibility && typeof input.eligibility === 'object' ? input.eligibility : {}),
+      JSON.stringify(normalizeContestEligibility({ ...input.eligibility, minimumAccountAgeMonths })),
       perAuthorLimit,
     ).run();
     await recordContestAudit(db, { contestId: id, actorId: session.userId, action: 'contest.created' });

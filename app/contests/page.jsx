@@ -62,7 +62,7 @@ function ContestCard({ contest }) {
         {contest.theme && <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">{contest.theme}</p>}
         <h2 className="mt-2 line-clamp-2 font-serif text-xl font-bold leading-7 text-[var(--text-primary)] transition group-hover:text-[var(--accent)]">{contest.title}</h2>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--text-muted)]">{contest.description || contest.problemStatement}</p>
-        {contest.requiredTopics.length > 0 && <div className="mt-4 flex flex-wrap gap-1.5">{contest.requiredTopics.slice(0, 3).map((topic) => <span key={topic} className="rounded-full bg-[var(--bg-surface)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">#{topic}</span>)}</div>}
+        {contest.tags.length > 0 && <div className="mt-4 flex flex-wrap gap-1.5">{contest.tags.slice(0, 3).map((tag) => <span key={tag} className="rounded-full bg-[var(--bg-surface)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">#{tag}</span>)}</div>}
         <div className="mt-auto pt-5"><div className="flex items-center justify-between gap-3 border-t border-[var(--divider)] pt-4"><Organizer contest={contest} /><span className="shrink-0 text-xs font-semibold text-[var(--text-faint)]">{contest.submissionCount} {contest.submissionCount === 1 ? 'entry' : 'entries'}</span></div><p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)]"><ion-icon name="time-outline" />{timing(contest)}</p></div>
       </div>
     </Link>

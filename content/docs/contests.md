@@ -30,6 +30,8 @@ Submitting stores the source blog ID and a frozen copy of its title, metadata, t
 
 Required topics, publication targets, and per-author limits are checked when the entry is submitted. A withdrawal is allowed only while the contest remains live.
 
+Account age is configured in whole months from `0`. An organizer can accept between `1` and `5` entries per author. Contest tags are for discovery; required topics are enforced against each submitted blog.
+
 ## Results
 
 The first release supports one winner plus runner-up and honorable-mention placements. Finalizing results closes the contest, notifies participants, and adds public contest recognition to the winning authors' profiles.
@@ -50,9 +52,9 @@ lixblogs contest create \
   --starts-at 2026-10-01T00:00:00Z \
   --submissions-close-at 2026-10-15T23:59:59Z \
   --judging-closes-at 2026-10-20T23:59:59Z \
-  --tag open-web \
+  --tag open-web --contest-tag community \
   --allowed-target personal \
-  --minimum-account-age-days 7 \
+  --minimum-account-age-months 1 \
   --require-bio
 lixblogs contest publish CONTEST_ID --yes
 lixblogs contest role CONTEST_ID --user reviewer --role judge

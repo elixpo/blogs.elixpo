@@ -200,7 +200,8 @@ const OPTIONS = {
   "judging-closes-at": { type: "string" },
   "results-at": { type: "string" },
   "allowed-target": { type: "string", multiple: true },
-  "minimum-account-age-days": { type: "string" },
+  "minimum-account-age-months": { type: "string" },
+  "contest-tag": { type: "string", multiple: true },
   "require-bio": { type: "boolean", default: false },
   "no-require-bio": { type: "boolean", default: false },
   "eligible-user": { type: "string", multiple: true },
@@ -262,8 +263,8 @@ Usage:
   lixblogs collection remove <id> --blog <blog-id> --yes
   lixblogs contest list [--status <status>] [--mine] [--json]
   lixblogs contest get <id-or-slug> [--json]
-  lixblogs contest create --title <title> --starts-at <date> --submissions-close-at <date> --judging-closes-at <date> [--problem <text>] [--rules <text>] [eligibility]
-  lixblogs contest edit <id> [--description <text>] [--problem <text>] [--rules <text>] [--theme <text>] [eligibility]
+  lixblogs contest create --title <title> --starts-at <date> --submissions-close-at <date> --judging-closes-at <date> [--slug <slug>] [--contest-tag <tag>] [--minimum-account-age-months <n>] [--limit <1-5>]
+  lixblogs contest edit <id> [--slug <slug>] [--description <text>] [--problem <markdown>] [--rules <markdown>] [--contest-tag <tag>] [--minimum-account-age-months <n>] [--limit <1-5>]
   lixblogs contest publish <id> --yes
   lixblogs contest cancel <id> --yes
   lixblogs contest delete <id> --yes

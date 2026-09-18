@@ -8,8 +8,11 @@ import {
   canManageContest,
   contestCoverUrl,
   contestRole,
+  contestSlug,
   getContest,
   normalizeStringArray,
+  normalizeContestEligibility,
+  parseJson,
   recordContestAudit,
   serializeContest,
 } from '../../../../lib/contests';
@@ -87,6 +90,16 @@ export async function PATCH(request, { params }) {
     const datesLocked = hasSubmissions || now >= Number(contest.starts_at);
     const changes = [];
     const values = [];
+    let resultingSlug = contest.slug;
+    if (input.slug !== undefined && contestSlug(input.slug) !== contest.slug) {
+      if (role !== 'organizer' || contest.status !== 'draft') return NextResponse.json({ error: 'Only the organizer can change the slug while the contest is a draft' }, { status: 403 });
+      const nextSlug = contestSlug(input.slug);
+      if (nextSlug.length < 3) return NextResponse.json({ error: 'Contest slug must contain at least three characters' }, { status: 400 });
+      const conflict = await db.prepare('SELECT 1 FROM contests WHERE LOWER(slug) = LOWER(?) AND id != ?').bind(nextSlug, contest.id).first();
+      if (conflict) return NextResponse.json({ error: 'That contest slug is already used' }, { status: 409 });
+      changes.push('slug = ?'); values.push(nextSlug);
+      resultingSlug = nextSlug;
+    }
     for (const [key, [column, max]] of editable) {
       if (input[key] !== undefined) {
         changes.push(`${column} = ?`);
@@ -99,9 +112,20 @@ export async function PATCH(request, { params }) {
       changes.push('cover_url = ?'); values.push(value);
     }
     if (input.requiredTopics !== undefined) { changes.push('required_topics = ?'); values.push(JSON.stringify(normalizeStringArray(input.requiredTopics))); }
+    if (input.tags !== undefined) { changes.push('tags = ?'); values.push(JSON.stringify(normalizeStringArray(input.tags))); }
     if (input.allowedTargets !== undefined) { changes.push('allowed_targets = ?'); values.push(JSON.stringify(normalizeStringArray(input.allowedTargets))); }
-    if (input.eligibility !== undefined) { changes.push('eligibility = ?'); values.push(JSON.stringify(input.eligibility || {})); }
-    if (input.perAuthorLimit !== undefined) { changes.push('per_author_limit = ?'); values.push(Math.min(10, Math.max(1, Number(input.perAuthorLimit || 1)))); }
+    if (input.eligibility !== undefined) {
+      const currentEligibility = parseJson(contest.eligibility, {});
+      const currentMonths = currentEligibility.minimumAccountAgeMonths ?? Math.ceil(Number(currentEligibility.minimumAccountAgeDays || 0) / 30);
+      const months = Number(input.eligibility?.minimumAccountAgeMonths ?? currentMonths);
+      if (!Number.isInteger(months) || months < 0) return NextResponse.json({ error: 'Minimum account age must be a whole number of months from 0' }, { status: 400 });
+      changes.push('eligibility = ?'); values.push(JSON.stringify(normalizeContestEligibility({ ...input.eligibility, minimumAccountAgeMonths: months }, currentEligibility)));
+    }
+    if (input.perAuthorLimit !== undefined) {
+      const limit = Number(input.perAuthorLimit);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 5) return NextResponse.json({ error: 'Entries per author must be a whole number from 1 to 5' }, { status: 400 });
+      changes.push('per_author_limit = ?'); values.push(limit);
+    }
     if (['startsAt', 'submissionsCloseAt', 'judgingClosesAt', 'resultsAt'].some((key) => input[key] !== undefined)) {
       if (datesLocked) return NextResponse.json({ error: 'Contest dates are locked after opening or receiving a submission' }, { status: 409 });
       const dates = {
@@ -111,16 +135,33 @@ export async function PATCH(request, { params }) {
         resultsAt: input.resultsAt ?? contest.results_at,
       };
       for (const key of Object.keys(dates)) dates[key] = dates[key] ? asEpoch(dates[key]) : null;
-      if (!(dates.startsAt < dates.submissionsCloseAt && dates.submissionsCloseAt <= dates.judgingClosesAt)) return NextResponse.json({ error: 'Invalid contest date order' }, { status: 400 });
+      if (!(dates.startsAt > now && dates.startsAt < dates.submissionsCloseAt && dates.submissionsCloseAt <= dates.judgingClosesAt && (dates.resultsAt === null || dates.resultsAt >= dates.judgingClosesAt))) return NextResponse.json({ error: 'Contest dates must be in the future and ordered' }, { status: 400 });
       changes.push('starts_at = ?', 'submissions_close_at = ?', 'judging_closes_at = ?', 'results_at = ?');
       values.push(dates.startsAt, dates.submissionsCloseAt, dates.judgingClosesAt, dates.resultsAt);
     }
     if (!changes.length) return NextResponse.json({ error: 'No changes supplied' }, { status: 400 });
     await db.prepare(`UPDATE contests SET ${changes.join(', ')}, updated_at = unixepoch() WHERE id = ?`).bind(...values, contest.id).run();
     await recordContestAudit(db, { contestId: contest.id, actorId: session.userId, action: 'contest.updated', metadata: { fields: [...editable.keys()].filter((key) => input[key] !== undefined) } });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, slug: resultingSlug });
   } catch (error) {
     console.error('[contest] update failed:', error?.message || error);
     return NextResponse.json({ error: 'Contest could not be updated' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request, { params }) {
+  const { slug } = await params;
+  const session = await getSession();
+  if (!session?.userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  try {
+    const db = getDB();
+    const contest = await getContest(db, slug);
+    if (!contest || contest.organizer_id !== session.userId) return NextResponse.json({ error: 'Only the organizer can delete this contest' }, { status: 403 });
+    if (contest.status !== 'draft') return NextResponse.json({ error: 'Only a private draft contest can be deleted' }, { status: 409 });
+    await db.prepare('DELETE FROM contests WHERE id = ?').bind(contest.id).run();
+    return NextResponse.json({ ok: true, deleted: true });
+  } catch (error) {
+    console.error('[contest] delete failed:', error?.message || error);
+    return NextResponse.json({ error: 'Contest could not be deleted' }, { status: 500 });
   }
 }

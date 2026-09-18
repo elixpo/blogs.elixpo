@@ -105,8 +105,8 @@ lixblogs contest create --title "Open web" \
   --submissions-close-at 2026-10-15T23:59:59Z \
   --judging-closes-at 2026-10-20T23:59:59Z \
   --problem "Write about the open web" --rules "Original work only" \
-  --tag open-web --allowed-target personal \
-  --minimum-account-age-days 7 --require-bio
+  --tag open-web --contest-tag community --allowed-target personal \
+  --minimum-account-age-months 1 --require-bio
 lixblogs contest publish CONTEST_ID --yes
 lixblogs contest submit CONTEST_ID --blog BLOG_ID
 lixblogs contest submissions CONTEST_ID --snapshot --json

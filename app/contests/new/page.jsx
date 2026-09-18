@@ -9,5 +9,9 @@ export const metadata = { title: 'Create a writing contest', robots: { index: fa
 export default async function NewContestPage() {
   const session = await getSession().catch(() => null);
   if (!session?.userId) redirect('/sign-in?next=%2Fcontests%2Fnew');
-  return <AppShell><ContestCreateForm /></AppShell>;
+  return <AppShell><ContestCreateForm organizer={{
+    username: session.profile?.username,
+    displayName: session.profile?.display_name,
+    avatarUrl: session.profile?.avatar_url,
+  }} /></AppShell>;
 }

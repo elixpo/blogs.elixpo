@@ -4,8 +4,10 @@ import test from 'node:test';
 import {
   CONTEST_PLACEMENTS,
   CONTEST_ROLES,
+  contestCoverUrl,
   contestSlug,
   contestState,
+  normalizeContestEligibility,
   serializeSubmission,
 } from '../lib/contests.js';
 
@@ -33,4 +35,19 @@ test('contest slugs and frozen submission metadata are stable', () => {
   assert.equal(submission.title, 'Frozen title');
   assert.deepEqual(submission.tags, ['web']);
   assert.deepEqual(submission.snapshot.content, [{ id: 'block-1' }]);
+});
+
+test('contest covers require absolute credential-free HTTPS URLs', () => {
+  assert.equal(contestCoverUrl('https://images.example.com/cover.webp'), 'https://images.example.com/cover.webp');
+  assert.throws(() => contestCoverUrl('http://images.example.com/cover.webp'), /invalid_cover_url/);
+  assert.throws(() => contestCoverUrl('https://user:secret@images.example.com/cover.webp'), /invalid_cover_url/);
+  assert.throws(() => contestCoverUrl('/relative-cover.webp'), /invalid_cover_url/);
+});
+
+test('contest eligibility stores whole non-negative account months', () => {
+  assert.deepEqual(normalizeContestEligibility({ minimumAccountAgeMonths: 2.8, requireBio: true }), {
+    minimumAccountAgeMonths: 2,
+    requireBio: true,
+  });
+  assert.equal(normalizeContestEligibility({ minimumAccountAgeMonths: -4 }).minimumAccountAgeMonths, 0);
 });

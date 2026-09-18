@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AppShell from '../../../src/components/AppShell';
 import ContestControls from '../../../src/components/contests/ContestControls';
+import ContestMarkdown from '../../../src/components/contests/ContestMarkdown';
 import { getSession } from '../../../lib/auth';
 import { getDB } from '../../../lib/cloudflare';
 import {
@@ -38,8 +39,9 @@ function date(value) {
   return value ? new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(new Date(value * 1000)) : 'Not set';
 }
 
-export default async function ContestPage({ params }) {
+export default async function ContestPage({ params, searchParams }) {
   const { slug } = await params;
+  const requestedTab = String((await searchParams)?.tab || 'overview');
   const db = getDB();
   const session = await getSession().catch(() => null);
   const contestRow = await getContest(db, slug);
@@ -55,6 +57,8 @@ export default async function ContestPage({ params }) {
   ]);
   const contest = serializeContest(contestRow, { role });
   const submissions = (submissionRows?.results || []).map((row) => serializeSubmission(row));
+  const availableTabs = ['overview', 'entries', ...(role ? ['manage'] : [])];
+  const activeTab = availableTabs.includes(requestedTab) ? requestedTab : 'overview';
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'Event', name: contest.title,
     description: contest.description || contest.problemStatement,
@@ -73,23 +77,18 @@ export default async function ContestPage({ params }) {
         <Link href="/contests" className="text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--accent)]">← All contests</Link>
         {contest.coverUrl && <img src={contest.coverUrl} alt="" className="mt-6 max-h-80 w-full rounded-3xl object-cover" />}
         <header className="border-b border-[var(--divider)] py-8">
-          <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-[var(--accent-subtle)] px-3 py-1 text-[10px] font-bold uppercase text-[var(--accent)]">{contest.status}</span>{contest.theme && <span className="text-xs text-[var(--text-faint)]">{contest.theme}</span>}</div>
+          <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-[var(--accent-subtle)] px-3 py-1 text-[10px] font-bold uppercase text-[var(--accent)]">{contest.status}</span>{contest.theme && <span className="text-xs text-[var(--text-faint)]">{contest.theme}</span>}{contest.tags.map((tag) => <span key={tag} className="rounded-full bg-[var(--bg-surface)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">#{tag}</span>)}</div>
           <h1 className="mt-4 max-w-4xl font-serif text-4xl font-extrabold leading-tight text-[var(--text-primary)] sm:text-5xl">{contest.title}</h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-[var(--text-muted)]">{contest.description}</p>
-          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[var(--text-faint)]">
-            <Link href={`/${contest.organizer.username}`} className="font-semibold hover:text-[var(--accent)]">Organized by @{contest.organizer.username}</Link>
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-xs text-[var(--text-faint)]">
+            <Link href={`/${contest.organizer.username}`} className="flex items-center gap-2 font-semibold hover:text-[var(--accent)]">{contest.organizer.avatarUrl ? <img src={contest.organizer.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" /> : <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent)]">{String(contest.organizer.displayName || contest.organizer.username || '?').slice(0, 1).toUpperCase()}</span>}<span>Organized by @{contest.organizer.username}</span></Link>
             <span>Starts {date(contest.startsAt)} UTC</span><span>Entries close {date(contest.submissionsCloseAt)} UTC</span><span>Judging ends {date(contest.judgingClosesAt)} UTC</span>
           </div>
         </header>
-        <div className="grid gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="space-y-8">
-            <section><h2 className="font-serif text-2xl font-bold text-[var(--text-primary)]">Problem statement</h2><div className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-[var(--text-secondary)]">{contest.problemStatement}</div></section>
-            <section><h2 className="font-serif text-2xl font-bold text-[var(--text-primary)]">Rules</h2><div className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-[var(--text-secondary)]">{contest.rules}</div></section>
-            {contest.templateContent && <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5"><h2 className="font-bold text-[var(--text-primary)]">Writing template</h2><pre className="mt-3 overflow-auto whitespace-pre-wrap text-xs leading-6 text-[var(--text-muted)]">{contest.templateContent}</pre></section>}
-          </div>
-          <aside><ContestControls contest={contest} members={memberRows?.results || []} submissions={submissions} signedIn={Boolean(session?.userId)} /></aside>
-        </div>
-        <section className="border-t border-[var(--divider)] py-9">
+        <nav aria-label="Contest sections" className="mt-6 flex gap-1 overflow-x-auto rounded-2xl border border-[var(--border-default)] bg-[var(--card-bg)] p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><Link href={`/contests/${contest.slug}?tab=overview`} scroll={false} aria-current={activeTab === 'overview' ? 'page' : undefined} className={`shrink-0 rounded-xl px-5 py-3 text-sm font-bold ${activeTab === 'overview' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--bg-surface)]'}`}>Overview</Link><Link href={`/contests/${contest.slug}?tab=entries`} scroll={false} aria-current={activeTab === 'entries' ? 'page' : undefined} className={`shrink-0 rounded-xl px-5 py-3 text-sm font-bold ${activeTab === 'entries' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--bg-surface)]'}`}>Entries <span className="ml-1 opacity-70">{submissions.length}</span></Link>{role && <Link href={`/contests/${contest.slug}?tab=manage`} scroll={false} aria-current={activeTab === 'manage' ? 'page' : undefined} className={`shrink-0 rounded-xl px-5 py-3 text-sm font-bold ${activeTab === 'manage' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:bg-[var(--bg-surface)]'}`}>Manage contest</Link>}</nav>
+        {activeTab === 'overview' && <div className="grid gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_320px]"><div className="space-y-10"><section><h2 className="font-serif text-2xl font-bold text-[var(--text-primary)]">Problem statement</h2><ContestMarkdown className="mt-4">{contest.problemStatement}</ContestMarkdown></section><section><h2 className="font-serif text-2xl font-bold text-[var(--text-primary)]">Rules</h2><ContestMarkdown className="mt-4">{contest.rules}</ContestMarkdown></section>{contest.templateContent && <details className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5" open><summary className="cursor-pointer font-serif text-xl font-bold text-[var(--text-primary)]">Writing template</summary><ContestMarkdown className="mt-4">{contest.templateContent}</ContestMarkdown></details>}</div><aside><ContestControls compact contest={contest} members={memberRows?.results || []} submissions={submissions} signedIn={Boolean(session?.userId)} /></aside></div>}
+        {activeTab === 'manage' && role && <div className="py-8"><ContestControls contest={contest} members={memberRows?.results || []} submissions={submissions} signedIn={Boolean(session?.userId)} /></div>}
+        {activeTab === 'entries' && <section className="py-9">
           <div className="flex items-end justify-between gap-4"><div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Submission gallery</p><h2 className="mt-2 font-serif text-3xl font-extrabold text-[var(--text-primary)]">{contest.status === 'completed' ? 'Results and entries' : 'Published entries'}</h2></div><span className="text-sm text-[var(--text-faint)]">{submissions.length} entries</span></div>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             {submissions.map((submission) => <article key={submission.id} className="overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--card-bg)]">
@@ -98,7 +97,7 @@ export default async function ContestPage({ params }) {
             </article>)}
             {!submissions.length && <p className="col-span-full rounded-2xl border border-dashed border-[var(--border-default)] p-10 text-center text-sm text-[var(--text-muted)]">No entries have been submitted yet.</p>}
           </div>
-        </section>
+        </section>}
       </main>
     </AppShell>
   );
