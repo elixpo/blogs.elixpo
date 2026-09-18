@@ -103,6 +103,7 @@ import {
 import {
   contestCancel,
   contestCreate,
+  contestDelete,
   contestEdit,
   contestGet,
   contestList,
@@ -133,6 +134,7 @@ const OPTIONS = {
   scope: { type: "string", multiple: true },
   open: { type: "boolean", default: false },
   status: { type: "string" },
+  mine: { type: "boolean", default: false },
   limit: { type: "string" },
   cursor: { type: "string" },
   range: { type: "string" },
@@ -198,6 +200,12 @@ const OPTIONS = {
   "judging-closes-at": { type: "string" },
   "results-at": { type: "string" },
   "allowed-target": { type: "string", multiple: true },
+  "minimum-account-age-months": { type: "string" },
+  "contest-tag": { type: "string", multiple: true },
+  "require-bio": { type: "boolean", default: false },
+  "no-require-bio": { type: "boolean", default: false },
+  "eligible-user": { type: "string", multiple: true },
+  "clear-eligible-users": { type: "boolean", default: false },
   problem: { type: "string" },
   rules: { type: "string" },
   theme: { type: "string" },
@@ -253,12 +261,13 @@ Usage:
   lixblogs collection entries <id> [--json]
   lixblogs collection add <id> --blog <blog-id> [--note <text>] [--category <name>]
   lixblogs collection remove <id> --blog <blog-id> --yes
-  lixblogs contest list [--json]
+  lixblogs contest list [--status <status>] [--mine] [--json]
   lixblogs contest get <id-or-slug> [--json]
-  lixblogs contest create --title <title> --starts-at <date> --submissions-close-at <date> --judging-closes-at <date> [options]
-  lixblogs contest edit <id> [--description <text>] [--problem <text>] [--rules <text>] [--theme <text>]
+  lixblogs contest create --title <title> --starts-at <date> --submissions-close-at <date> --judging-closes-at <date> [--slug <slug>] [--contest-tag <tag>] [--minimum-account-age-months <n>] [--limit <1-5>]
+  lixblogs contest edit <id> [--slug <slug>] [--description <text>] [--problem <markdown>] [--rules <markdown>] [--contest-tag <tag>] [--minimum-account-age-months <n>] [--limit <1-5>]
   lixblogs contest publish <id> --yes
   lixblogs contest cancel <id> --yes
+  lixblogs contest delete <id> --yes
   lixblogs contest submissions <id> [--snapshot] [--json]
   lixblogs contest submit <id> --blog <blog-id>
   lixblogs contest withdraw <id> --submission <submission-id> --yes
@@ -761,6 +770,7 @@ const CONTEST_COMMANDS = {
   edit: contestEdit,
   publish: contestPublish,
   cancel: contestCancel,
+  delete: contestDelete,
   submissions: contestSubmissions,
   submit: contestSubmit,
   withdraw: contestWithdraw,
@@ -887,7 +897,16 @@ async function runContest(opts, args, action) {
     else if (action === 'submissions') for (const item of result || []) console.log(`${item.id}\t${item.author?.username || ''}\t${item.placement || 'entry'}\t${item.title}`);
     else if (action === 'members') for (const item of result || []) console.log(`${item.user_id}\t${item.role}\t${item.username}`);
     else if (action === 'get') console.log(`${result.id}\t${result.status}\t${result.submissionCount} entries\t${result.title}`);
-    else console.log(successLine(`Contest ${action} completed.`, colorEnabled()));
+    else {
+      const messages = {
+        create: `Contest draft created: ${result.slug} (${result.id}).`,
+        edit: 'Contest updated.', publish: 'Contest published.', cancel: 'Contest cancelled.',
+        delete: 'Contest draft deleted.', submit: `Entry submitted: ${result.id}.`,
+        withdraw: 'Entry withdrawn.', role: 'Contest role updated.',
+        'remove-member': 'Contest member removed.', results: result.finalized ? 'Contest results finalized.' : 'Contest results saved.',
+      };
+      console.log(successLine(messages[action] || `Contest ${action} completed.`, colorEnabled()));
+    }
   } catch (error) {
     fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR);
   }

@@ -825,6 +825,12 @@ export default function WritePage({ slugid }) {
         }
         return false;
     });
+    const [contestOptions, setContestOptions] = useState([]);
+    const [contestSearch, setContestSearch] = useState("");
+    const [selectedContest, setSelectedContest] = useState("");
+    const [contestLoading, setContestLoading] = useState(false);
+    const [contestMessage, setContestMessage] = useState("");
+    const [dangerBusy, setDangerBusy] = useState("");
     const [showPublishMenu, setShowPublishMenu] = useState(false);
     const [showCoverModal, setShowCoverModal] = useState(false);
     const [coverCropSrc, setCoverCropSrc] = useState(null); // device image awaiting crop+stylise
@@ -965,6 +971,27 @@ export default function WritePage({ slugid }) {
     // `blogId` is the canonical DB id used for every read/write; it's resolved from
     // the server on load (for slug URLs) and defaults to the param for new blogs.
     const [blogId, setBlogId] = useState(slugid);
+
+    useEffect(() => {
+        if (!showPublishPanel || !user) return;
+        let active = true;
+        setContestLoading(true);
+        fetch("/api/contests", { cache: "no-store" })
+            .then((response) => (response.ok ? response.json() : null))
+            .then((data) => {
+                if (active)
+                    setContestOptions(
+                        (data?.contests || []).filter(
+                            (contest) => contest.status === "live",
+                        ),
+                    );
+            })
+            .catch(() => {})
+            .finally(() => active && setContestLoading(false));
+        return () => {
+            active = false;
+        };
+    }, [showPublishPanel, user]);
 
     const refreshMediaStorageStatus = useCallback(async () => {
         try {
@@ -2519,6 +2546,60 @@ export default function WritePage({ slugid }) {
         setSecret((s) => !s);
     };
 
+    const submitBlogToContest = async (contestSlug = selectedContest) => {
+        if (!contestSlug || !blogId) return true;
+        setContestMessage("Submitting an immutable contest snapshot…");
+        try {
+            const response = await fetch(
+                `/api/contests/${encodeURIComponent(contestSlug)}/submissions`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ blogId }),
+                },
+            );
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                setContestMessage(
+                    result.error || "The contest submission failed.",
+                );
+                return false;
+            }
+            setContestMessage("Submitted to the contest successfully.");
+            return true;
+        } catch {
+            setContestMessage(
+                "The contest submission failed. Check your connection and retry.",
+            );
+            return false;
+        }
+    };
+
+    const manageBlogPublication = async (action) => {
+        if (!blogId || dangerBusy) return;
+        const label = action === "archive" ? "archive" : "remove from listings";
+        if (!window.confirm(`Are you sure you want to ${label} this blog?`))
+            return;
+        setDangerBusy(action);
+        setPublishError("");
+        try {
+            const response = await fetch(`/api/blogs/${blogId}/manage`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok)
+                throw new Error(result.error || "The action failed.");
+            bypassUnloadRef.current = true;
+            window.location.assign("/profile");
+        } catch (error) {
+            setPublishError(error.message || "The action failed.");
+        } finally {
+            setDangerBusy("");
+        }
+    };
+
     // Secret posts can't carry sub-pages/canvases. Warn whenever the post is secret
     // and some already exist — covers both toggling it on and reopening a draft that
     // was already secret. Best-effort: the server refuses them regardless.
@@ -2628,6 +2709,16 @@ export default function WritePage({ slugid }) {
                 );
                 setHasUnsavedEdits(false);
                 settingsSnapshotRef.current = settingsKey();
+                if (selectedContest) {
+                    const submitted = await submitBlogToContest();
+                    if (!submitted) {
+                        setPublishError(
+                            "The blog is published, but its contest submission failed. Review the contest requirements and retry below.",
+                        );
+                        setPublishing(false);
+                        return;
+                    }
+                }
                 setShowPublishPanel(false);
                 // Redirect to published blog. Suppress the beforeunload leave-prompt —
                 // state updates above haven't flushed yet, so the handler would still
@@ -5339,6 +5430,69 @@ export default function WritePage({ slugid }) {
                         {tags.length < 5 && <BufferedTagInput onAdd={addTag} />}
                     </div>
 
+                    {/* Competitive publishing — only the owner may enter the blog. */}
+                    {isOwner && <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-app)] p-3.5">
+                        <label className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-primary)]">
+                            <ion-icon
+                                name="trophy-outline"
+                                style={{ fontSize: "16px", color: "#9b7bf7" }}
+                            />
+                            Submit as a contest entry
+                        </label>
+                        <p className="mt-1 text-[11px] leading-5 text-[var(--text-faint)]">
+                            Select a live contest. LixBlogs submits an immutable
+                            snapshot after this blog is successfully published.
+                        </p>
+                        <input
+                            type="search"
+                            value={contestSearch}
+                            onChange={(event) => setContestSearch(event.target.value)}
+                            placeholder="Search live contests…"
+                            className="mt-3 w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-[12px] text-[var(--text-primary)] outline-none focus:border-[#9b7bf7]"
+                        />
+                        <select
+                            value={selectedContest}
+                            onChange={(event) => {
+                                setSelectedContest(event.target.value);
+                                setContestMessage("");
+                            }}
+                            disabled={contestLoading}
+                            className="mt-2 w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] outline-none focus:border-[#9b7bf7] disabled:opacity-60"
+                        >
+                            <option value="">
+                                {contestLoading
+                                    ? "Loading live contests…"
+                                    : "Not a contest entry"}
+                            </option>
+                            {contestOptions.filter((contest) => `${contest.title} ${contest.theme || ''} ${(contest.tags || []).join(' ')}`.toLowerCase().includes(contestSearch.trim().toLowerCase())).map((contest) => (
+                                <option key={contest.id} value={contest.slug}>
+                                    {contest.title} · closes{" "}
+                                    {new Date(
+                                        contest.submissionsCloseAt * 1000,
+                                    ).toLocaleDateString()}
+                                </option>
+                            ))}
+                        </select>
+                        {selectedContest && isPublished && (
+                            <button
+                                type="button"
+                                onClick={() => submitBlogToContest()}
+                                className="mt-3 w-full rounded-lg bg-[#9b7bf7] px-3 py-2 text-[12px] font-bold text-white"
+                            >
+                                Submit current published revision now
+                            </button>
+                        )}
+                        {contestMessage && (
+                            <p
+                                role="status"
+                                className="mt-2 text-[11px] leading-5"
+                                style={{ color: "var(--text-muted)" }}
+                            >
+                                {contestMessage}
+                            </p>
+                        )}
+                    </div>}
+
                     {/* Collaborators — invite co-authors (cross-posts to their profile) */}
                     <div>
                         <label
@@ -5577,6 +5731,46 @@ export default function WritePage({ slugid }) {
                             </div>
                         )}
                     </div>
+
+                    {isOwner && isPublished && (
+                        <section className="rounded-xl border border-red-500/25 bg-red-500/[0.04] p-4">
+                            <div className="flex items-center gap-2 text-red-500">
+                                <ion-icon name="warning-outline" />
+                                <h3 className="text-[12px] font-bold">
+                                    Danger zone
+                                </h3>
+                            </div>
+                            <p className="mt-2 text-[11px] leading-5 text-[var(--text-faint)]">
+                                These actions remove the blog from normal reader
+                                access. Contest snapshots already submitted remain
+                                frozen.
+                            </p>
+                            <div className="mt-3 grid gap-2">
+                                <button
+                                    type="button"
+                                    disabled={Boolean(dangerBusy)}
+                                    onClick={() =>
+                                        manageBlogPublication("unlist")
+                                    }
+                                    className="flex items-center justify-between rounded-lg border border-red-500/25 px-3 py-2.5 text-left text-[12px] font-semibold text-red-500 disabled:opacity-50"
+                                >
+                                    <span>Remove from public listings</span>
+                                    <ion-icon name="eye-off-outline" />
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={Boolean(dangerBusy)}
+                                    onClick={() =>
+                                        manageBlogPublication("archive")
+                                    }
+                                    className="flex items-center justify-between rounded-lg bg-red-600 px-3 py-2.5 text-left text-[12px] font-bold text-white disabled:opacity-50"
+                                >
+                                    <span>Archive blog</span>
+                                    <ion-icon name="archive-outline" />
+                                </button>
+                            </div>
+                        </section>
+                    )}
                 </div>
 
                 {/* Bottom actions */}

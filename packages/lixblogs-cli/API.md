@@ -34,7 +34,7 @@ logged by the resource API.
 | `GET`, `PATCH`, `DELETE` | `/api/v1/collections/{id}` | `lixblogs:blog:read`, `lixblogs:blog:write` | Inspect, edit, or delete an owned collection |
 | `GET`, `POST`, `DELETE` | `/api/v1/collections/{id}/entries` | `lixblogs:blog:read`, `lixblogs:blog:write` | List, add, or remove canonical public-blog references |
 | `GET`, `POST` | `/api/v1/contests` | `lixblogs:blog:read`, `lixblogs:blog:write` | Discover or create contests |
-| `GET`, `PATCH` | `/api/v1/contests/{id}` | `lixblogs:blog:read`, `lixblogs:blog:write` | Inspect or manage a contest lifecycle |
+| `GET`, `PATCH`, `DELETE` | `/api/v1/contests/{id}` | `lixblogs:blog:read`, `lixblogs:blog:write`, `lixblogs:blog:delete` | Inspect or manage a contest lifecycle; delete private drafts |
 | `GET`, `POST`, `DELETE` | `/api/v1/contests/{id}/submissions` | `lixblogs:blog:read`, `lixblogs:blog:write` | Review, submit, or withdraw immutable entries |
 | `GET`, `POST`, `DELETE` | `/api/v1/contests/{id}/members` | `lixblogs:blog:read`, `lixblogs:blog:write` | Manage moderator and judge roles |
 | `POST` | `/api/v1/contests/{id}/results` | `lixblogs:blog:publish` | Save or finalize placements |
