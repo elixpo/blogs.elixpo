@@ -41,7 +41,8 @@ Community voting, automated judging, sponsors, monetary prizes, payouts, advance
 The CLI uses existing blog scopes. Reads require `lixblogs:blog:read`, contest and submission mutations require `lixblogs:blog:write`, and final results require `lixblogs:blog:publish`.
 
 ```bash
-lixblogs contest list
+lixblogs contest list --status live
+lixblogs contest list --mine
 lixblogs contest create \
   --title "Build for the open web" \
   --problem "Explain a practical improvement to the open web." \
@@ -49,8 +50,12 @@ lixblogs contest create \
   --starts-at 2026-10-01T00:00:00Z \
   --submissions-close-at 2026-10-15T23:59:59Z \
   --judging-closes-at 2026-10-20T23:59:59Z \
-  --tag open-web
+  --tag open-web \
+  --allowed-target personal \
+  --minimum-account-age-days 7 \
+  --require-bio
 lixblogs contest publish CONTEST_ID --yes
+lixblogs contest role CONTEST_ID --user reviewer --role judge
 lixblogs contest submit CONTEST_ID --blog BLOG_ID
 lixblogs contest submissions CONTEST_ID --snapshot --json
 lixblogs contest results CONTEST_ID \
@@ -58,6 +63,8 @@ lixblogs contest results CONTEST_ID \
   --award runner-up:OTHER_SUBMISSION_ID \
   --finalize --yes
 ```
+
+Eligibility can be restricted with repeated `--eligible-user USERNAME` flags and reopened with `contest edit CONTEST_ID --clear-eligible-users`. `--no-require-bio` removes the bio requirement. Organizers may remove only private drafts with `contest delete CONTEST_ID --yes`; published contest history must be cancelled and retained.
 
 Use `--json --no-input` with a scoped personal access token for workflows. The API enforces the same ownership, role, deadline, and eligibility boundaries as the website.
 Organization-scoped tokens cannot create or manage contests in this release; eligible organization-published entries can still be allowed explicitly by the organizer.

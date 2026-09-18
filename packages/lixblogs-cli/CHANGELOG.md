@@ -2,6 +2,12 @@
 
 Release notes are generated from merged pull requests. This file records contract-level changes that users must see before upgrading.
 
+## 1.8.0
+
+- Complete contest automation with lifecycle and ownership filters, eligibility controls, and private-draft deletion.
+- Allow organizers to manage minimum account age, required bios, and invited-author lists from the CLI.
+- Preserve published contest history by restricting deletion to organizer-owned private drafts.
+
 ## 1.7.0
 
 - Add contest creation, lifecycle, role, submission, frozen-snapshot review, and results commands.

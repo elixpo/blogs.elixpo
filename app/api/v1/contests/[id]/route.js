@@ -6,7 +6,7 @@ import { recordApiAudit } from '../../../../../lib/api/v1/operations';
 import { apiError, apiSuccess, requestContext } from '../../../../../lib/api/v1/responses';
 import {
   canManageContest, contestCoverUrl, contestRole, getContest,
-  normalizeStringArray, recordContestAudit, serializeContest,
+  normalizeStringArray, parseJson, recordContestAudit, serializeContest,
 } from '../../../../../lib/contests';
 
 function epoch(value) {
@@ -61,7 +61,11 @@ export async function PATCH(request, { params }) {
       }
       if (input.requiredTopics !== undefined) { changes.push('required_topics = ?'); values.push(JSON.stringify(normalizeStringArray(input.requiredTopics))); }
       if (input.allowedTargets !== undefined) { changes.push('allowed_targets = ?'); values.push(JSON.stringify(normalizeStringArray(input.allowedTargets))); }
-      if (input.eligibility !== undefined) { changes.push('eligibility = ?'); values.push(JSON.stringify(input.eligibility || {})); }
+      if (input.eligibility !== undefined) {
+        const eligibility = input.eligibility && typeof input.eligibility === 'object' ? input.eligibility : {};
+        changes.push('eligibility = ?');
+        values.push(JSON.stringify({ ...parseJson(contest.eligibility, {}), ...eligibility }));
+      }
       if (input.perAuthorLimit !== undefined) { changes.push('per_author_limit = ?'); values.push(Math.min(10, Math.max(1, Number(input.perAuthorLimit || 1)))); }
       if (['startsAt', 'submissionsCloseAt', 'judgingClosesAt', 'resultsAt'].some((key) => input[key] !== undefined)) {
         const hasSubmissions = Boolean(await db.prepare('SELECT 1 FROM contest_submissions WHERE contest_id = ? LIMIT 1').bind(contest.id).first());
@@ -81,4 +85,20 @@ export async function PATCH(request, { params }) {
     await recordApiAudit(db, { requestId: context.requestId, userId: auth.userId, clientId: auth.clientId, action: 'contests.update', resourceType: 'contest', resourceId: contest.id });
     return apiSuccess(context, { id: contest.id, updated: true }, { headers: rateHeaders });
   } catch { return apiError(context, 'internal_error', 'The contest could not be updated.', 500, { headers: rateHeaders }); }
+}
+
+export async function DELETE(request, { params }) {
+  const context = requestContext();
+  const authorized = await authorizeApiRequest(request, context, ['lixblogs:blog:delete'], 'contests.delete');
+  if (authorized.response) return authorized.response;
+  const { auth, db, rateHeaders } = authorized;
+  const { id } = await params;
+  try {
+    const contest = await getContest(db, id);
+    if (!contest || contest.organizer_id !== auth.userId) return apiError(context, 'organizer_required', 'Only the organizer can delete this contest.', 403, { headers: rateHeaders });
+    if (contest.status !== 'draft') return apiError(context, 'invalid_transition', 'Only a private draft contest can be deleted. Cancel published contests instead.', 409, { headers: rateHeaders });
+    await recordApiAudit(db, { requestId: context.requestId, userId: auth.userId, clientId: auth.clientId, action: 'contests.delete', resourceType: 'contest', resourceId: contest.id });
+    await db.prepare('DELETE FROM contests WHERE id = ?').bind(contest.id).run();
+    return apiSuccess(context, { deleted: true, id: contest.id }, { headers: rateHeaders });
+  } catch { return apiError(context, 'internal_error', 'The contest could not be deleted.', 500, { headers: rateHeaders }); }
 }

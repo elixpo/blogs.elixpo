@@ -31,3 +31,25 @@ test('contest result publication requires the publish scope', async () => {
   assert.deepEqual(scopes, [['lixblogs:blog:publish']]);
   assert.equal(body.finalize, true);
 });
+
+test('contest list supports lifecycle and organizer filters', async () => {
+  const calls = [];
+  const client = new ContestClient({
+    requireScopes: async () => {},
+    request: async (path, options = {}) => { calls.push({ path, options }); return response([]); },
+  });
+  await client.list({ status: 'live', mine: true });
+  assert.equal(calls[0].path, '/api/v1/contests?status=live&mine=true');
+});
+
+test('contest draft deletion requires the delete scope', async () => {
+  const scopes = [];
+  let method;
+  const client = new ContestClient({
+    requireScopes: async (required) => scopes.push(required),
+    request: async (_path, options = {}) => { method = options.method; return response({ deleted: true }); },
+  });
+  await client.delete('contest-1');
+  assert.deepEqual(scopes, [['lixblogs:blog:delete']]);
+  assert.equal(method, 'DELETE');
+});

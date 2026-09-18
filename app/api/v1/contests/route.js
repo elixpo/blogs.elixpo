@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { authorizeApiRequest } from '../../../../lib/api/v1/authorize';
 import { recordApiAudit } from '../../../../lib/api/v1/operations';
 import { apiError, apiSuccess, requestContext } from '../../../../lib/api/v1/responses';
-import { contestCoverUrl, contestSlug, normalizeStringArray, recordContestAudit, serializeContest } from '../../../../lib/contests';
+import { CONTEST_STATUSES, contestCoverUrl, contestSlug, normalizeStringArray, recordContestAudit, serializeContest } from '../../../../lib/contests';
 
 const epoch = (value) => typeof value === 'number' ? Math.floor(value) : Math.floor(Date.parse(String(value || '')) / 1000);
 
@@ -13,6 +13,10 @@ export async function GET(request) {
   const authorized = await authorizeApiRequest(request, context, ['lixblogs:blog:read'], 'contests.list');
   if (authorized.response) return authorized.response;
   const { auth, db, rateHeaders } = authorized;
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status');
+  const mine = url.searchParams.get('mine') === 'true';
+  if (status && !CONTEST_STATUSES.has(status)) return apiError(context, 'invalid_status', 'Unknown contest status.', 400, { headers: rateHeaders });
   try {
     const rows = await db.prepare(`SELECT c.*, u.username AS organizer_username, u.display_name AS organizer_name,
       u.avatar_url AS organizer_avatar,
@@ -21,8 +25,11 @@ export async function GET(request) {
       WHERE c.status != 'draft' OR c.organizer_id = ? OR EXISTS (
         SELECT 1 FROM contest_members cm WHERE cm.contest_id = c.id AND cm.user_id = ?)
       ORDER BY c.starts_at DESC LIMIT 100`).bind(auth.userId, auth.userId).all();
+    let contests = (rows?.results || []).map(serializeContest);
+    if (status) contests = contests.filter((contest) => contest.status === status);
+    if (mine) contests = contests.filter((contest) => contest.organizer.id === auth.userId);
     await recordApiAudit(db, { requestId: context.requestId, userId: auth.userId, clientId: auth.clientId, action: 'contests.list', resourceType: 'contest' });
-    return apiSuccess(context, (rows?.results || []).map(serializeContest), { headers: rateHeaders });
+    return apiSuccess(context, contests, { headers: rateHeaders });
   } catch { return apiError(context, 'internal_error', 'Contests could not be listed.', 500, { headers: rateHeaders }); }
 }
 

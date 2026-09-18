@@ -121,7 +121,7 @@ Adding a post fails when it is not public, is secret, has been deleted, or its a
 Contest automation uses the existing blog scopes:
 
 - `GET|POST /api/v1/contests` discovers or creates contests;
-- `GET|PATCH /api/v1/contests/{id}` inspects a contest or changes its lifecycle;
+- `GET|PATCH|DELETE /api/v1/contests/{id}` inspects or manages a contest; deletion is limited to organizer-owned private drafts;
 - `GET|POST|DELETE /api/v1/contests/{id}/submissions` lists, submits, or withdraws entries;
 - `GET|POST|DELETE /api/v1/contests/{id}/members` manages moderator and judge roles; and
 - `POST /api/v1/contests/{id}/results` assigns and finalizes placements.

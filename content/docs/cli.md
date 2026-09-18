@@ -115,6 +115,25 @@ lixblogs collection remove COLLECTION_ID --blog BLOG_ID --yes
 
 Collections reference the canonical public story and retain its original author and license. Reads use `lixblogs:blog:read`; changes use `lixblogs:blog:write`. See [Curated collections](/docs/collections) for visibility and author-control rules.
 
+## Writing contests
+
+```bash
+lixblogs contest list --status live
+lixblogs contest create --title "Open web" \
+  --starts-at 2026-10-01T00:00:00Z \
+  --submissions-close-at 2026-10-15T23:59:59Z \
+  --judging-closes-at 2026-10-20T23:59:59Z \
+  --problem "Write about the open web" \
+  --rules "Original work only" \
+  --minimum-account-age-days 7 --require-bio
+lixblogs contest publish CONTEST_ID --yes
+lixblogs contest submit CONTEST_ID --blog BLOG_ID
+lixblogs contest submissions CONTEST_ID --snapshot --json
+lixblogs contest results CONTEST_ID --award winner:SUBMISSION_ID --finalize --yes
+```
+
+The CLI covers contest drafts, metadata and eligibility edits, lifecycle filtering, publication and cancellation, moderator and judge roles, entries and withdrawals, frozen judging snapshots, placements, and final results. `contest delete` is restricted to organizer-owned private drafts and requires `lixblogs:blog:delete`. See [Writing contests](/docs/contests) for the full lifecycle and authorization model.
+
 ## Automation contract
 
 Use `--json --no-input` in scripts and agent workflows:

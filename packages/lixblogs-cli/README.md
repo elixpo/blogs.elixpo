@@ -104,7 +104,9 @@ lixblogs contest create --title "Open web" \
   --starts-at 2026-10-01T00:00:00Z \
   --submissions-close-at 2026-10-15T23:59:59Z \
   --judging-closes-at 2026-10-20T23:59:59Z \
-  --problem "Write about the open web" --rules "Original work only"
+  --problem "Write about the open web" --rules "Original work only" \
+  --tag open-web --allowed-target personal \
+  --minimum-account-age-days 7 --require-bio
 lixblogs contest publish CONTEST_ID --yes
 lixblogs contest submit CONTEST_ID --blog BLOG_ID
 lixblogs contest submissions CONTEST_ID --snapshot --json
@@ -112,7 +114,9 @@ lixblogs contest role CONTEST_ID --user reviewer --role judge
 lixblogs contest results CONTEST_ID --award winner:SUBMISSION_ID --finalize --yes
 ```
 
-Only organizers and judges can request frozen snapshots. Publishing, cancelling, withdrawing, and finalizing results require explicit confirmation where applicable.
+Use `contest list --mine` for contests you organize and `--status live` to filter by lifecycle. Repeat `--eligible-user <username>` to create an invite-only eligibility list; use `contest edit --clear-eligible-users` to reopen eligibility. Organizers can edit contest copy, dates, topics, targets, entry limits, and eligibility; assign or remove moderators and judges; publish or cancel; save or finalize results; and delete a private draft with `contest delete <id> --yes`.
+
+Only organizers and judges can request frozen snapshots. Publishing, cancelling, deleting, withdrawing, and finalizing results require explicit confirmation where applicable. Published contests cannot be deleted; cancel them to preserve submissions and audit history.
 
 ### Creator analytics
 

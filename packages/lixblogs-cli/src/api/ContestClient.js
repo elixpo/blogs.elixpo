@@ -18,10 +18,18 @@ export class ContestClient {
     return parseResponse(response);
   }
   async requireScopes(scopes) { if (typeof this.http.requireScopes === 'function') await this.http.requireScopes(scopes); }
-  async list() { await this.requireScopes(['lixblogs:blog:read']); return this.request('/api/v1/contests'); }
+  async list({ status, mine = false } = {}) {
+    await this.requireScopes(['lixblogs:blog:read']);
+    const query = new URLSearchParams();
+    if (status) query.set('status', status);
+    if (mine) query.set('mine', 'true');
+    const search = query.toString();
+    return this.request(`/api/v1/contests${search ? `?${search}` : ''}`);
+  }
   async get(id) { await this.requireScopes(['lixblogs:blog:read']); return this.request(`/api/v1/contests/${encodeURIComponent(id)}`); }
   async create(input) { await this.requireScopes(['lixblogs:blog:write']); return this.request('/api/v1/contests', { method: 'POST', body: JSON.stringify(input) }); }
   async update(id, input) { await this.requireScopes(['lixblogs:blog:write']); return this.request(`/api/v1/contests/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) }); }
+  async delete(id) { await this.requireScopes(['lixblogs:blog:delete']); return this.request(`/api/v1/contests/${encodeURIComponent(id)}`, { method: 'DELETE' }); }
   async submissions(id, { snapshot = false } = {}) { await this.requireScopes(['lixblogs:blog:read']); return this.request(`/api/v1/contests/${encodeURIComponent(id)}/submissions${snapshot ? '?snapshot=true' : ''}`); }
   async submit(id, blogId) { await this.requireScopes(['lixblogs:blog:write']); return this.request(`/api/v1/contests/${encodeURIComponent(id)}/submissions`, { method: 'POST', body: JSON.stringify({ blogId }) }); }
   async withdraw(id, submissionId) { await this.requireScopes(['lixblogs:blog:write']); return this.request(`/api/v1/contests/${encodeURIComponent(id)}/submissions?submissionId=${encodeURIComponent(submissionId)}`, { method: 'DELETE' }); }
