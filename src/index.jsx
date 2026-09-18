@@ -141,6 +141,10 @@ function LiveContestFeedCard({ contest, additional = 0 }) {
   const closes = contest.submissionsCloseAt
     ? new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(contest.submissionsCloseAt * 1000))
     : 'soon';
+  const secondsLeft = Number(contest.submissionsCloseAt || 0) - Math.floor(Date.now() / 1000);
+  const timeLeft = secondsLeft > 86400
+    ? `${Math.ceil(secondsLeft / 86400)} days left`
+    : `${Math.max(1, Math.ceil(secondsLeft / 3600))}h left`;
   return (
     <section className="mb-4 overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--card-bg)] shadow-sm" aria-label="Live writing contest">
       <Link href={`/contests/${contest.slug}#enter-contest`} className="group grid grid-cols-[108px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)]">
@@ -152,7 +156,7 @@ function LiveContestFeedCard({ contest, additional = 0 }) {
           <div className="flex items-center justify-between gap-3"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Writing contest</p>{additional > 0 && <span className="text-[10px] font-semibold text-[var(--text-faint)]">+{additional} more live</span>}</div>
           <h2 className="mt-1.5 line-clamp-2 font-serif text-lg font-bold leading-6 text-[var(--text-primary)] transition group-hover:text-[var(--accent)]">{contest.title}</h2>
           <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[var(--text-muted)] sm:text-xs">{contest.description || contest.problemStatement}</p>
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3"><span className="flex min-w-0 items-center gap-2 text-[11px] text-[var(--text-faint)]">{contest.organizer?.avatarUrl && <img src={contest.organizer.avatarUrl} alt="" className="h-5 w-5 rounded-full object-cover" />}<span className="truncate">@{contest.organizer?.username || 'host'} · closes {closes}</span></span><span className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-[10px] font-bold text-white">Enter now</span></div>
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3"><span className="flex min-w-0 items-center gap-2 text-[11px] text-[var(--text-faint)]">{contest.organizer?.avatarUrl && <img src={contest.organizer.avatarUrl} alt="" className="h-5 w-5 rounded-full object-cover" />}<span className="truncate">@{contest.organizer?.username || 'host'} · ends {closes} · {timeLeft}</span></span><span className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-[10px] font-bold text-white">Enter now</span></div>
         </div>
       </Link>
     </section>

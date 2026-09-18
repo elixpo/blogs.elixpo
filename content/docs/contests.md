@@ -32,6 +32,10 @@ Required topics, publication targets, and per-author limits are checked when the
 
 Account age is configured in whole months from `0`. An organizer can accept between `1` and `5` entries per author. Contest tags are for discovery; required topics are enforced against each submitted blog.
 
+## Public contest workspace
+
+Every published contest separates its information into Overview, Discussion, Leaderboard, Rules, and Write-up Format tabs. Discussion posts are public, limited to 4,000 characters, and removable by their author or a contest host. Cancelled contests keep their discussion history in read-only form. The leaderboard lists frozen submissions throughout the contest and adds final placements when judging is complete.
+
 ## Results
 
 The first release supports one winner plus runner-up and honorable-mention placements. Finalizing results closes the contest, notifies participants, and adds public contest recognition to the winning authors' profiles.

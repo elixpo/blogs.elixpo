@@ -35,9 +35,18 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(value * 1000));
 }
 
+function timeRemaining(value) {
+  const seconds = Number(value || 0) - Math.floor(Date.now() / 1000);
+  if (seconds <= 0) return 'closed';
+  const days = Math.ceil(seconds / 86400);
+  if (days > 1) return `${days} days left`;
+  const hours = Math.max(1, Math.ceil(seconds / 3600));
+  return `${hours} ${hours === 1 ? 'hour' : 'hours'} left`;
+}
+
 function timing(contest) {
   if (contest.status === 'scheduled') return `Starts ${formatDate(contest.startsAt)}`;
-  if (contest.status === 'live') return `Entries close ${formatDate(contest.submissionsCloseAt)}`;
+  if (contest.status === 'live') return `Ends ${formatDate(contest.submissionsCloseAt)} · ${timeRemaining(contest.submissionsCloseAt)}`;
   if (contest.status === 'judging') return `Results by ${formatDate(contest.judgingClosesAt)}`;
   if (contest.status === 'completed') return `Completed ${formatDate(contest.resultsAt || contest.judgingClosesAt)}`;
   return 'Contest cancelled';
@@ -63,7 +72,7 @@ function ContestCard({ contest }) {
         <h2 className="mt-2 line-clamp-2 font-serif text-xl font-bold leading-7 text-[var(--text-primary)] transition group-hover:text-[var(--accent)]">{contest.title}</h2>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--text-muted)]">{contest.description || contest.problemStatement}</p>
         {contest.tags.length > 0 && <div className="mt-4 flex flex-wrap gap-1.5">{contest.tags.slice(0, 3).map((tag) => <span key={tag} className="rounded-full bg-[var(--bg-surface)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">#{tag}</span>)}</div>}
-        <div className="mt-auto pt-5"><div className="flex items-center justify-between gap-3 border-t border-[var(--divider)] pt-4"><Organizer contest={contest} /><span className="shrink-0 text-xs font-semibold text-[var(--text-faint)]">{contest.submissionCount} {contest.submissionCount === 1 ? 'entry' : 'entries'}</span></div><p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)]"><ion-icon name="time-outline" />{timing(contest)}</p></div>
+        <div className="mt-auto pt-5"><div className="flex items-center justify-between gap-3 border-t border-[var(--divider)] pt-4"><Organizer contest={contest} /><span className="shrink-0 text-xs font-semibold text-[var(--text-faint)]">{contest.submissionCount} {contest.submissionCount === 1 ? 'entry' : 'entries'}</span></div><p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)]"><ion-icon name="time-outline" />{timing(contest)}</p>{contest.status === 'scheduled' && <p className="mt-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Entries end {formatDate(contest.submissionsCloseAt)}</p>}</div>
       </div>
     </Link>
   );
