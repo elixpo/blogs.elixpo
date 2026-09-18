@@ -136,6 +136,29 @@ function DailyTipCard({ user, authLoading }) {
   );
 }
 
+function LiveContestFeedCard({ contest, additional = 0 }) {
+  if (!contest) return null;
+  const closes = contest.submissionsCloseAt
+    ? new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(contest.submissionsCloseAt * 1000))
+    : 'soon';
+  return (
+    <section className="mb-4 overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--card-bg)] shadow-sm" aria-label="Live writing contest">
+      <Link href={`/contests/${contest.slug}#enter-contest`} className="group grid grid-cols-[108px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)]">
+        <div className="relative min-h-40 overflow-hidden bg-[radial-gradient(circle_at_30%_30%,rgba(139,92,246,0.34),transparent_40%),linear-gradient(135deg,var(--bg-surface),var(--card-bg))]">
+          {contest.coverUrl ? <img src={contest.coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <span className="grid h-full place-items-center text-3xl text-[var(--accent)]"><ion-icon name="trophy-outline" /></span>}
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-emerald-700 shadow-sm"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />Live</span>
+        </div>
+        <div className="flex min-w-0 flex-col p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-3"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">Writing contest</p>{additional > 0 && <span className="text-[10px] font-semibold text-[var(--text-faint)]">+{additional} more live</span>}</div>
+          <h2 className="mt-1.5 line-clamp-2 font-serif text-lg font-bold leading-6 text-[var(--text-primary)] transition group-hover:text-[var(--accent)]">{contest.title}</h2>
+          <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[var(--text-muted)] sm:text-xs">{contest.description || contest.problemStatement}</p>
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3"><span className="flex min-w-0 items-center gap-2 text-[11px] text-[var(--text-faint)]">{contest.organizer?.avatarUrl && <img src={contest.organizer.avatarUrl} alt="" className="h-5 w-5 rounded-full object-cover" />}<span className="truncate">@{contest.organizer?.username || 'host'} · closes {closes}</span></span><span className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-[10px] font-bold text-white">Enter now</span></div>
+        </div>
+      </Link>
+    </section>
+  );
+}
+
 function timeAgo(ts) {
   if (!ts) return '';
   const diff = Math.floor(Date.now() / 1000) - ts;
@@ -550,6 +573,7 @@ export default function App({ initialPosts = [] }) {
   const [topPicks, setTopPicks] = useState([]);
   const [popularTags, setPopularTags] = useState([]);
   const [userInterests, setUserInterests] = useState([]);
+  const [liveContests, setLiveContests] = useState([]);
   const [loading, setLoading] = useState(initialPosts.length === 0);
   const [activeTopic, setActiveTopic] = useState(0);
   const [tagFilter, setTagFilter] = useState(null); // active Recommended-topic pill
@@ -603,6 +627,7 @@ export default function App({ initialPosts = [] }) {
   useEffect(() => {
     fetch('/api/feed/trending?limit=3').then(r => r.json()).then(d => setTopPicks(d.posts || [])).catch(() => {});
     fetch('/api/tags/popular?limit=12').then(r => r.json()).then(d => setPopularTags(d.tags || [])).catch(() => {});
+    fetch('/api/contests', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => setLiveContests((d?.contests || []).filter(contest => contest.status === 'live').slice(0, 4))).catch(() => {});
     if (user) {
       fetch('/api/users/me/interests').then(r => r.json()).then(d => setUserInterests(d.interests || [])).catch(() => {});
     }
@@ -645,6 +670,7 @@ export default function App({ initialPosts = [] }) {
           {/* Feed */}
           <div className="px-6 pt-4 max-w-[680px] mx-auto">
             <NewUserActions user={user} authLoading={authLoading} />
+            {!tagFilter && activeTopic === 0 && liveContests.length > 0 && <LiveContestFeedCard contest={liveContests[0]} additional={liveContests.length - 1} />}
             <DailyTipCard user={user} authLoading={authLoading} />
             {tagFilter && (
               <div className="flex items-center gap-2 mb-1 py-2">
