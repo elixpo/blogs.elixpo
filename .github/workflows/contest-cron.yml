@@ -21,10 +21,34 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          test -n "$CRON_SECRET"
-          curl --fail --silent --show-error \
-            --retry 3 \
-            --retry-all-errors \
-            --max-time 30 \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            https://blogs.elixpo.com/api/cron/contests
+          node --input-type=module <<'NODE'
+          const secret = (process.env.CRON_SECRET || '').trim();
+          if (!secret) throw new Error('CRON_SECRET is not configured');
+
+          const endpoint = 'https://blogs.elixpo.com/api/cron/contests';
+          let lastError;
+
+          for (let attempt = 1; attempt <= 4; attempt += 1) {
+            try {
+              const response = await fetch(endpoint, {
+                headers: { Authorization: `Bearer ${secret}` },
+                signal: AbortSignal.timeout(30_000),
+              });
+              const body = await response.text();
+
+              if (!response.ok) {
+                throw new Error(`Contest cron returned ${response.status}: ${body}`);
+              }
+
+              console.log(body);
+              process.exit(0);
+            } catch (error) {
+              lastError = error;
+              if (attempt < 4) {
+                await new Promise((resolve) => setTimeout(resolve, 1_000 * 2 ** (attempt - 1)));
+              }
+            }
+          }
+
+          throw lastError;
+          NODE
