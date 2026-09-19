@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { profileAgeStage } from '../utils/siteTips';
 
 const STORAGE_KEY = 'lixblogs:contextual-tips:v1';
 const SESSION_KEY = 'lixblogs:contextual-tips:session:v1';
@@ -12,10 +14,18 @@ const ROUTE_COOLDOWN_MS = 20 * 60_000;
 const EVENT_COOLDOWN_MS = 90_000;
 const REPEAT_AFTER_MS = 30 * 86_400_000;
 const MAX_PER_SESSION = 3;
+const STAGE_LABELS = {
+  guest: 'Quick tip',
+  newcomer: 'Getting started',
+  growing: 'Next step',
+  established: 'Creator tip',
+  veteran: 'Power workflow',
+};
 
 const TIPS = [
   {
     id: 'editor-slash-menu',
+    audience: ['newcomer'],
     match: path => path === '/new-blog' || path.startsWith('/edit/'),
     icon: 'sparkles-outline',
     title: 'Try the slash menu',
@@ -25,6 +35,7 @@ const TIPS = [
   },
   {
     id: 'editor-markdown-paste',
+    audience: ['newcomer', 'growing'],
     match: path => path === '/new-blog' || path.startsWith('/edit/'),
     icon: 'code-slash-outline',
     title: 'Markdown works here',
@@ -34,6 +45,7 @@ const TIPS = [
   },
   {
     id: 'editor-version-history',
+    audience: ['growing', 'established', 'veteran'],
     event: 'draft-saved',
     icon: 'time-outline',
     title: 'Your work is recoverable',
@@ -50,6 +62,7 @@ const TIPS = [
   },
   {
     id: 'feed-live-contests',
+    audience: ['growing', 'established', 'veteran'],
     match: path => path === '/' || path === '/explore',
     icon: 'trophy-outline',
     title: 'Write for a contest',
@@ -59,6 +72,7 @@ const TIPS = [
   },
   {
     id: 'profile-badge-controls',
+    audience: ['newcomer', 'growing'],
     match: path => path === '/profile',
     icon: 'ribbon-outline',
     title: 'Curate your badges',
@@ -68,6 +82,7 @@ const TIPS = [
   },
   {
     id: 'settings-integrations',
+    audience: ['established', 'veteran'],
     match: path => path.startsWith('/settings'),
     icon: 'extension-puzzle-outline',
     title: 'Bring your own services',
@@ -84,6 +99,7 @@ const TIPS = [
   },
   {
     id: 'library-collections',
+    audience: ['growing', 'established', 'veteran'],
     match: path => path === '/library',
     icon: 'albums-outline',
     title: 'Curate public writing',
@@ -98,7 +114,49 @@ const TIPS = [
     title: 'Jump through the docs',
     message: 'Press Ctrl or Cmd + K to search the documentation from anywhere in this section.',
   },
+  {
+    id: 'feed-first-story',
+    audience: ['newcomer'],
+    match: path => path === '/' || path === '/explore',
+    icon: 'create-outline',
+    title: 'Your first story can stay a draft',
+    message: 'Start with a title and one idea. Cloud saves and preview let you shape it before anyone else sees it.',
+    action: 'Start a draft',
+    href: '/new-blog',
+  },
+  {
+    id: 'feed-creator-analytics',
+    audience: ['established', 'veteran'],
+    match: path => path === '/' || path === '/explore',
+    icon: 'stats-chart-outline',
+    title: 'Look beyond total views',
+    message: 'Compare stories, topics, and date ranges to see what consistently brings readers back.',
+    action: 'Open analytics',
+    href: '/settings/stats',
+  },
+  {
+    id: 'editor-collaboration',
+    audience: ['established', 'veteran'],
+    match: path => path === '/new-blog' || path.startsWith('/edit/'),
+    icon: 'people-outline',
+    title: 'Bring review into the draft',
+    message: 'Invite reviewers or co-authors from publish settings instead of passing document copies around.',
+  },
+  {
+    id: 'settings-automation',
+    audience: ['veteran'],
+    match: path => path.startsWith('/settings'),
+    icon: 'terminal-outline',
+    title: 'Automate a trusted workflow',
+    message: 'Scoped personal access tokens can power the CLI, scheduled publishing, and repository workflows.',
+    action: 'API settings',
+    href: '/settings?tab=API',
+  },
 ];
+
+function matchesProfile(tip, stage) {
+  return !tip.audience || tip.audience.includes(stage);
+}
 
 function readJson(storage, key, fallback) {
   try {
@@ -144,11 +202,13 @@ export function emitContextualTip(eventName) {
 
 export default function ContextualTipToast() {
   const pathname = usePathname() || '/';
+  const { user, loading: authLoading } = useAuth();
+  const stage = profileAgeStage(user);
   const [tip, setTip] = useState(null);
   const hideTimerRef = useRef(null);
 
   const showTip = useCallback((candidate, { eventDriven = false } = {}) => {
-    if (!candidate || document.visibilityState === 'hidden' || sessionCount() >= MAX_PER_SESSION) return;
+    if (!candidate || !matchesProfile(candidate, stage) || document.visibilityState === 'hidden' || sessionCount() >= MAX_PER_SESSION) return;
     const now = Date.now();
     const state = readState();
     const cooldown = eventDriven ? EVENT_COOLDOWN_MS : ROUTE_COOLDOWN_MS;
@@ -158,30 +218,32 @@ export default function ContextualTipToast() {
     rememberTip(candidate, now);
     setTip(candidate);
     hideTimerRef.current = setTimeout(() => setTip(null), 11_000);
-  }, []);
+  }, [stage]);
 
   useEffect(() => {
     setTip(null);
     clearTimeout(hideTimerRef.current);
-    const candidates = TIPS.filter(candidate => candidate.match?.(pathname));
+    if (authLoading) return undefined;
+    const candidates = TIPS.filter(candidate => candidate.match?.(pathname) && matchesProfile(candidate, stage));
     if (!candidates.length) return undefined;
     const state = readState();
     const now = Date.now();
     const unseen = candidates.filter(candidate => eligible(candidate, state, now));
     if (!unseen.length) return undefined;
-    const index = Math.abs(pathname.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)) % unseen.length;
+    const selectionKey = `${pathname}:${stage}`;
+    const index = Math.abs(selectionKey.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)) % unseen.length;
     const timer = setTimeout(() => showTip(unseen[index]), ROUTE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [pathname, showTip]);
+  }, [authLoading, pathname, showTip, stage]);
 
   useEffect(() => {
     const handleTipEvent = event => {
-      const candidate = TIPS.find(item => item.event === event.detail?.eventName);
+      const candidate = TIPS.find(item => item.event === event.detail?.eventName && matchesProfile(item, stage));
       if (candidate) setTimeout(() => showTip(candidate, { eventDriven: true }), 900);
     };
     window.addEventListener(TIP_EVENT, handleTipEvent);
     return () => window.removeEventListener(TIP_EVENT, handleTipEvent);
-  }, [showTip]);
+  }, [showTip, stage]);
 
   useEffect(() => () => clearTimeout(hideTimerRef.current), []);
 
@@ -205,7 +267,7 @@ export default function ContextualTipToast() {
         </span>
         <div className="min-w-0">
           <p className="mb-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
-            <span className="contextual-tip-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> Quick tip
+            <span className="contextual-tip-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> {STAGE_LABELS[stage]}
           </p>
           <p className="text-[13px] font-bold leading-tight text-[var(--text-primary)]">{tip.title}</p>
           <p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-muted)]">{tip.message}</p>
