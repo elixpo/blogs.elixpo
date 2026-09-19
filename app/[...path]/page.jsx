@@ -176,6 +176,7 @@ export async function generateMetadata({ params, searchParams }) {
             // metadata and structured-data fields.
             const description = blogSearchDescription(b) || describe([byline, readTime ? `${readTime}.` : ""]);
             const og = ogUrl({
+                v: b.updated_at || b.published_at || "1",
                 type: "blog",
                 title,
                 subtitle: b.subtitle || "",
@@ -278,6 +279,7 @@ export async function generateMetadata({ params, searchParams }) {
                     stats ? `${stats}.` : "",
                 ]);
                 const og = ogUrl({
+                    v: data.user.updated_at || "1",
                     type: "profile",
                     kind: "Author Profile",
                     title: dn,
@@ -319,6 +321,7 @@ export async function generateMetadata({ params, searchParams }) {
                     stats ? `${stats}.` : "",
                 ]);
                 const og = ogUrl({
+                    v: data.org.updated_at || "1",
                     type: "profile",
                     kind: "Organisation",
                     title: dn,
@@ -357,6 +360,7 @@ export async function generateMetadata({ params, searchParams }) {
                 (data.blogs || []).length ? `${plural(data.blogs.length, "post", "posts")} with original author attribution.` : "",
             ]);
             const og = ogUrl({
+                v: data.list?.updated_at || "1",
                 type: "collection",
                 kind: "Curated collection",
                 title,
@@ -387,6 +391,7 @@ export async function generateMetadata({ params, searchParams }) {
                     : "",
             ]);
             const og = ogUrl({
+                v: data.collection.updated_at || data.owner?.updated_at || "1",
                 type: "collection",
                 kind: "Collection",
                 title,
@@ -426,6 +431,7 @@ export async function generateMetadata({ params, searchParams }) {
             const title = inviterName || "LixBlogs";
             const description = `You're invited to collaborate on "${b.title || "a post"}".`;
             const og = ogUrl({
+                v: b.updated_at || "1",
                 type: "profile",
                 kind: "Invitation to collaborate",
                 title,

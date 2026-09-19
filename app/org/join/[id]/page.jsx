@@ -24,6 +24,7 @@ export async function generateMetadata({ params }) {
       `You're invited to join ${title}${ownerName ? ` (by ${ownerName})` : ''} on LixBlogs.`,
     ].filter(Boolean).join(' ');
     const og = `${origin}/api/og?${new URLSearchParams({
+      v: d.org.updated_at || '1',
       type: 'profile',
       kind: 'Invitation to join',
       title,
