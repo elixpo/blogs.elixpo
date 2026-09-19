@@ -1,7 +1,10 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import AppShell from '../../src/components/AppShell';
 import { getDB } from '../../lib/cloudflare';
+import { getSession } from '../../lib/auth';
 import { serializeContest } from '../../lib/contests';
+import { loadRecommendationContext, rankContests } from '../../lib/recommendations';
 import { safeJsonLd } from '../../src/utils/seoContent';
 
 export const runtime = 'edge';
@@ -68,6 +71,7 @@ function ContestCard({ contest }) {
         <div className="absolute left-4 top-4"><StatusBadge status={contest.status} /></div>
       </div>
       <div className="flex flex-1 flex-col p-5">
+        {contest.recommendation_reason?.[0] && <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold text-[var(--text-faint)]"><ion-icon name="sparkles-outline" />Suggested · {contest.recommendation_reason[0]}</p>}
         {contest.theme && <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">{contest.theme}</p>}
         <h2 className="mt-2 line-clamp-2 font-serif text-xl font-bold leading-7 text-[var(--text-primary)] transition group-hover:text-[var(--accent)]">{contest.title}</h2>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--text-muted)]">{contest.description || contest.problemStatement}</p>
@@ -83,16 +87,17 @@ export default async function ContestsPage({ searchParams }) {
   const activeFilter = filters.some((item) => item.value === requestedFilter) ? requestedFilter : 'all';
   let contests = [];
   try {
-    const rows = await getDB().prepare(`SELECT c.*, u.username AS organizer_username,
+    const db = getDB();
+    const rows = await db.prepare(`SELECT c.*, u.username AS organizer_username,
       u.display_name AS organizer_name, u.avatar_url AS organizer_avatar,
       (SELECT COUNT(*) FROM contest_submissions s WHERE s.contest_id = c.id AND s.withdrawn_at IS NULL) AS submission_count
       FROM contests c JOIN users u ON u.id = c.organizer_id
       WHERE c.status != 'draft' ORDER BY c.starts_at DESC LIMIT 100`).all();
     contests = (rows?.results || []).map((row) => serializeContest(row));
+    const [session, requestHeaders] = await Promise.all([getSession().catch(() => null), headers()]);
+    const context = await loadRecommendationContext(db, session?.userId, requestHeaders);
+    contests = rankContests(contests, context);
   } catch {}
-  const statusRank = { live: 0, scheduled: 1, judging: 2, completed: 3, cancelled: 4 };
-  contests.sort((a, b) => (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9)
-    || (a.status === 'scheduled' ? a.startsAt - b.startsAt : b.startsAt - a.startsAt));
   const visibleContests = activeFilter === 'all' ? contests : contests.filter((contest) => contest.status === activeFilter);
   const featured = activeFilter === 'all' ? visibleContests.find((contest) => contest.status === 'live') : null;
   const remaining = featured ? visibleContests.filter((contest) => contest.id !== featured.id) : visibleContests;

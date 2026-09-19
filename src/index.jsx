@@ -415,6 +415,11 @@ function FeedCard({ post, onHide }) {
           Reposted by {post.reshared_by.display_name || post.reshared_by.username}
         </div>
       )}
+      {!post.reshared_by && post.recommendation_reason?.[0] && (
+        <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium" style={{ color: 'var(--text-faint)' }}>
+          <ion-icon name="sparkles-outline" /> Suggested · {post.recommendation_reason[0]}
+        </div>
+      )}
       <Link href={href} className="flex gap-5 cursor-pointer">
         <div className="flex-1 min-w-0">
           {(() => {
