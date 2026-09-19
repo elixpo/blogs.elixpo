@@ -189,23 +189,28 @@ export default function ContextualTipToast() {
 
   return (
     <aside
-      className="contextual-tip fixed right-3 top-[68px] z-[70] w-[calc(100vw-24px)] max-w-[390px] overflow-hidden rounded-xl border px-3.5 py-3 shadow-xl backdrop-blur-xl sm:right-5"
+      className="contextual-tip fixed right-3 top-[68px] z-[70] w-[calc(100vw-24px)] max-w-[410px] overflow-hidden rounded-2xl border px-4 py-4 backdrop-blur-xl sm:right-5"
       style={{
-        background: 'color-mix(in srgb, var(--bg-surface) 94%, transparent)',
-        borderColor: 'color-mix(in srgb, var(--accent) 24%, var(--border-default))',
+        background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--bg-surface)) 0%, color-mix(in srgb, var(--bg-surface) 96%, transparent) 58%, color-mix(in srgb, var(--accent) 5%, var(--bg-surface)) 100%)',
+        borderColor: 'color-mix(in srgb, var(--accent) 42%, var(--border-default))',
+        boxShadow: '0 18px 48px rgba(15, 10, 35, 0.2), 0 4px 14px color-mix(in srgb, var(--accent) 16%, transparent)',
       }}
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-start gap-3 pr-6">
-        <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)]">
-          <ion-icon name={tip.icon || 'bulb-outline'} style={{ fontSize: '17px' }} />
+      <span aria-hidden="true" className="contextual-tip-glow pointer-events-none absolute -left-8 -top-10 h-24 w-24 rounded-full bg-[var(--accent)] opacity-[0.1] blur-2xl" />
+      <div className="relative flex items-start gap-3.5 pr-7">
+        <span className="contextual-tip-icon mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl border bg-[var(--accent-subtle)] text-[var(--accent)] shadow-sm" style={{ borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)' }}>
+          <ion-icon name={tip.icon || 'bulb-outline'} style={{ fontSize: '20px' }} />
         </span>
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-[var(--text-primary)]">{tip.title}</p>
-          <p className="mt-0.5 text-[12px] leading-[1.45] text-[var(--text-muted)]">{tip.message}</p>
+          <p className="mb-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+            <span className="contextual-tip-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> Quick tip
+          </p>
+          <p className="text-[13px] font-bold leading-tight text-[var(--text-primary)]">{tip.title}</p>
+          <p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-muted)]">{tip.message}</p>
           {tip.href && (
-            <Link href={tip.href} onClick={() => setTip(null)} className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent)] hover:underline">
+            <Link href={tip.href} onClick={() => setTip(null)} className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-[var(--accent-subtle)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--accent)] transition hover:-translate-y-px hover:bg-[var(--bg-hover)]">
               {tip.action || 'Try it'} <ion-icon name="arrow-forward-outline" style={{ fontSize: '12px' }} />
             </Link>
           )}
@@ -214,25 +219,41 @@ export default function ContextualTipToast() {
       <button
         type="button"
         onClick={() => setTip(null)}
-        className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-[var(--text-faint)] transition-colors hover:bg-[var(--bg-hover)]"
+        className="absolute right-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full text-[var(--text-faint)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]"
         aria-label="Dismiss tip"
       >
         <ion-icon name="close-outline" style={{ fontSize: '15px' }} />
       </button>
-      <span className="contextual-tip-progress absolute inset-x-0 bottom-0 h-0.5 origin-left bg-[var(--accent)] opacity-50" />
+      <span className="contextual-tip-progress absolute inset-x-0 bottom-0 h-[3px] origin-left bg-[linear-gradient(90deg,var(--accent),#60a5fa,var(--accent))] opacity-80" />
       <style jsx>{`
-        .contextual-tip { animation: contextual-tip-in 220ms ease-out both; }
+        .contextual-tip { animation: contextual-tip-in 420ms cubic-bezier(.2,.9,.25,1.15) both; }
+        .contextual-tip-icon { animation: contextual-tip-icon-in 520ms 90ms cubic-bezier(.2,.9,.25,1.2) both; }
+        .contextual-tip-glow { animation: contextual-tip-glow 900ms 180ms ease-out both; }
+        .contextual-tip-dot { animation: contextual-tip-dot 1.8s ease-in-out 2; }
         .contextual-tip-progress { animation: contextual-tip-progress 11s linear both; }
         @keyframes contextual-tip-in {
-          from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+          from { opacity: 0; transform: translateY(-14px) scale(0.96); }
           to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes contextual-tip-icon-in {
+          from { opacity: 0; transform: rotate(-10deg) scale(0.65); }
+          to { opacity: 1; transform: rotate(0) scale(1); }
+        }
+        @keyframes contextual-tip-glow {
+          from { opacity: 0; transform: scale(0.55); }
+          55% { opacity: 0.18; }
+          to { opacity: 0.1; transform: scale(1); }
+        }
+        @keyframes contextual-tip-dot {
+          0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 38%, transparent); }
+          50% { box-shadow: 0 0 0 5px transparent; }
         }
         @keyframes contextual-tip-progress {
           from { transform: scaleX(1); }
           to { transform: scaleX(0); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .contextual-tip, .contextual-tip-progress { animation: none; }
+          .contextual-tip, .contextual-tip-icon, .contextual-tip-glow, .contextual-tip-dot, .contextual-tip-progress { animation: none; }
         }
       `}</style>
     </aside>
