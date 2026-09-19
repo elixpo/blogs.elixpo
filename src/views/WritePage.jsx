@@ -23,6 +23,7 @@ import {
     resumeMediaUpload,
 } from "../utils/mediaUploadQueue";
 import { generateBlogBanner, generatePixelAvatar } from "../utils/pixelAvatar";
+import ContextualTipToast, { emitContextualTip } from "../components/ContextualTipToast";
 
 function escapeExportHtml(value) {
     return String(value || "").replace(
@@ -1424,6 +1425,7 @@ export default function WritePage({ slugid }) {
                             setSyncStatus("synced");
                             if (showToast) {
                                 setShowSavedToast(true);
+                                emitContextualTip("draft-saved");
                                 setTimeout(
                                     () => setShowSavedToast(false),
                                     3000,
@@ -2994,6 +2996,7 @@ export default function WritePage({ slugid }) {
 
     return (
         <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] edit-page">
+            <ContextualTipToast />
             {/* Header */}
             <header className="seasonal-themed-header fixed top-0 left-0 w-full h-14 border-b border-[var(--border-default)] flex items-center justify-between px-5 bg-[var(--bg-app)]/95 backdrop-blur-md z-50">
                 {/* Left: Logo + breadcrumb */}
