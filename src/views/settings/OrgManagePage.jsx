@@ -62,6 +62,7 @@ export default function OrgManagePage({ slug }) {
   // General editing state
   const [name, setName] = useState('');
   const [slugInput, setSlugInput] = useState('');
+  const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
   const [bio, setBio] = useState('');
   const [website, setWebsite] = useState('');
@@ -108,6 +109,7 @@ export default function OrgManagePage({ slug }) {
         setOrg(found);
         setName(found.name || '');
         setSlugInput(found.slug || '');
+        setTagline(found.tagline || '');
         setDescription(found.description || '');
         setBio(found.bio || '');
         setWebsite(found.website || '');
@@ -156,7 +158,7 @@ export default function OrgManagePage({ slug }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orgId: org.id, name, description, bio, website, visibility,
+          orgId: org.id, name, tagline, description, bio, website, visibility,
           timezone, location, contact_email: contactEmail,
           links: activeLinks,
           ...(slugChanged ? { slug: slugInput.trim() } : {}),
@@ -479,6 +481,10 @@ export default function OrgManagePage({ slug }) {
               <h3 className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-widest mb-4">Identity</h3>
               <div className="space-y-4">
                 <Input label="Organization name" value={name} onChange={e => setName(e.target.value)} placeholder="My Organization" />
+                <div>
+                  <Input label="Tagline" sublabel="A short designation shown beside your organization name" value={tagline} onChange={e => setTagline(e.target.value)} placeholder="Open-source infrastructure and engineering" maxLength={100} />
+                  <p className="mt-1 text-right text-[10px] text-[var(--text-muted)]">{tagline.length}/100</p>
+                </div>
                 <div>
                   <label className="text-[13px] text-[var(--text-primary)] mb-1 block font-medium">Handle</label>
                   <p className="text-[11px] text-[var(--text-faint)] mb-2">Your public URL: blogs.elixpo.com/{slugInput || org.slug}. Changing it updates your links.</p>

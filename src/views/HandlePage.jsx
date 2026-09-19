@@ -1893,6 +1893,11 @@ function HandlePageInner({ path, initialData = null }) {
                                     <h1 className="text-[26px] font-extrabold text-[var(--text-primary)] tracking-tight leading-tight">
                                         {org.name}
                                     </h1>
+                                    {org.tagline && (
+                                        <p className="mt-1 text-[14px] font-semibold leading-snug text-[var(--text-secondary)]">
+                                            {org.tagline}
+                                        </p>
+                                    )}
                                     <p className="text-[var(--text-muted)] text-[15px] mt-0.5 font-medium">
                                         @{org.slug}
                                     </p>

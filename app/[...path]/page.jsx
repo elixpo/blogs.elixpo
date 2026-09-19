@@ -312,6 +312,7 @@ export async function generateMetadata({ params, searchParams }) {
                     .filter(Boolean)
                     .join(", ");
                 const description = describe([
+                    data.org.tagline,
                     data.org.description || data.org.bio,
                     `${dn} (${handle}) publishes on LixBlogs.`,
                     ownerName ? `Run by ${ownerName}.` : "",
@@ -322,7 +323,7 @@ export async function generateMetadata({ params, searchParams }) {
                     kind: "Organisation",
                     title: dn,
                     sub: ownerName ? `by ${ownerName}` : handle,
-                    subtitle: data.org.description || data.org.bio || "",
+                    subtitle: data.org.tagline || data.org.description || data.org.bio || "",
                     avatar: seoMediaUrl(data.org.logo_url || data.org.logo_r2_key, data.org.updated_at, "f_jpg,q_auto:eco,w_256,h_256,c_fill"),
                     banner: seoMediaUrl(data.org.banner_url || data.org.banner_r2_key, data.org.updated_at, "f_jpg,q_auto:eco,w_1200,h_630,c_fill"),
                     seed: data.org.slug || name,
@@ -586,7 +587,8 @@ async function buildJsonLd(path, origin) {
                 "@id": `${url}#org`,
                 name: o.name || name,
                 alternateName: o.slug ? `@${o.slug}` : undefined,
-                description: o.description || o.bio || undefined,
+                slogan: o.tagline || undefined,
+                description: describe([o.tagline, o.description || o.bio]) || undefined,
                 logo: img(o.logo_url || o.logo_r2_key),
                 url,
                 sameAs: o.website ? [o.website] : undefined,
@@ -655,6 +657,7 @@ async function buildJsonLd(path, origin) {
                                   "@type": "Organization",
                                   "@id": `${origin}/${orgOwner.slug || name}#org`,
                                   name: orgOwner.name,
+                                  slogan: orgOwner.tagline || undefined,
                                   url: `${origin}/${orgOwner.slug || name}`,
                                   logo: seoMediaUrl(
                                       orgOwner.logo_url || orgOwner.logo_r2_key,
