@@ -623,6 +623,7 @@ function getRandomOrgNames(count = 3) {
 function CreateOrgModal({ onClose, onCreated }) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
   const [bio, setBio] = useState('');
   const [website, setWebsite] = useState('');
@@ -665,7 +666,7 @@ function CreateOrgModal({ onClose, onCreated }) {
       const res = await fetch('/api/orgs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), slug, description, bio, website, visibility: 'public' }),
+        body: JSON.stringify({ name: name.trim(), slug, tagline, description, bio, website, visibility: 'public' }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -771,8 +772,15 @@ function CreateOrgModal({ onClose, onCreated }) {
           </div>
 
           <div>
+            <label className="text-[12px] text-[var(--text-muted)] mb-1.5 block font-medium">Tagline</label>
+            <input value={tagline} onChange={e => setTagline(e.target.value)} placeholder="Open-source infrastructure and engineering" maxLength={100}
+              className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] placeholder-[var(--text-faint)]" />
+            <p className="mt-1 text-right text-[10px] text-[var(--text-muted)]">{tagline.length}/100</p>
+          </div>
+
+          <div>
             <label className="text-[12px] text-[var(--text-muted)] mb-1.5 block font-medium">Description</label>
-            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short tagline"
+            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="What does your organization publish?" maxLength={160}
               className="w-full bg-[var(--bg-app)] text-[var(--text-primary)] rounded-lg px-3 py-2 outline-none text-[13px] border border-[var(--border-default)] focus:border-[var(--border-hover)] placeholder-[var(--text-faint)]" />
           </div>
 

@@ -204,6 +204,18 @@ function CrawlableArticle({ blog, blocks, owner }) {
             itemScope
             itemType="https://schema.org/BlogPosting"
         >
+            {blog.published_at && (
+                <meta
+                    itemProp="datePublished"
+                    content={new Date(blog.published_at * 1000).toISOString()}
+                />
+            )}
+            {blog.updated_at && (
+                <meta
+                    itemProp="dateModified"
+                    content={new Date(blog.updated_at * 1000).toISOString()}
+                />
+            )}
             {cover && (
                 <img
                     src={cover}
@@ -237,10 +249,31 @@ function CrawlableArticle({ blog, blocks, owner }) {
                     className="blog-preview-byline mt-5 text-sm"
                     style={{ color: "var(--text-faint)" }}
                 >
-                    By <span itemProp="author">{author}</span>
-                    {designation ? ` · ${designation}` : ""}
+                    By {blog.secret || !blog.author_username ? (
+                        <span itemProp="author">{author}</span>
+                    ) : (
+                        <span
+                            itemProp="author"
+                            itemScope
+                            itemType="https://schema.org/Person"
+                        >
+                            <Link
+                                href={`/${encodeURIComponent(blog.author_username)}`}
+                                rel="author"
+                                itemProp="url"
+                            >
+                                <span itemProp="name">{author}</span>
+                            </Link>
+                            {designation ? (
+                                <>
+                                    {" · "}
+                                    <span itemProp="jobTitle">{designation}</span>
+                                </>
+                            ) : ""}
+                        </span>
+                    )}
                     {blog.published_at
-                        ? ` · ${formatUtcDate(blog.published_at, { year: "numeric", month: "short", day: "numeric" })}`
+                        ? <>{" · "}<time dateTime={new Date(blog.published_at * 1000).toISOString()}>{formatUtcDate(blog.published_at, { year: "numeric", month: "short", day: "numeric" })}</time></>
                         : ""}
                 </p>
                 {!!blog.tags?.length && (
@@ -1860,6 +1893,11 @@ function HandlePageInner({ path, initialData = null }) {
                                     <h1 className="text-[26px] font-extrabold text-[var(--text-primary)] tracking-tight leading-tight">
                                         {org.name}
                                     </h1>
+                                    {org.tagline && (
+                                        <p className="mt-1 text-[14px] font-semibold leading-snug text-[var(--text-secondary)]">
+                                            {org.tagline}
+                                        </p>
+                                    )}
                                     <p className="text-[var(--text-muted)] text-[15px] mt-0.5 font-medium">
                                         @{org.slug}
                                     </p>

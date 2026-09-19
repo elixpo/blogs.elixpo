@@ -51,7 +51,7 @@ export default function SearchPage() {
       const [blogs, users, orgs] = await Promise.all([
         fetch(`/api/search/blogs?q=${enc}&limit=20&fields=slugid,slug,title,author,tags,likes,comments`).then(r => r.json()).catch(() => ({ blogs: [] })),
         fetch(`/api/search/users?q=${enc}&limit=20&fields=id,username,display_name,avatar_url,bio,followers,blogs`).then(r => r.json()).catch(() => ({ users: [] })),
-        fetch(`/api/search/orgs?q=${enc}&limit=20&fields=id,slug,name,logo_url,description,members,blogs`).then(r => r.json()).catch(() => ({ orgs: [] })),
+        fetch(`/api/search/orgs?q=${enc}&limit=20&fields=id,slug,name,tagline,logo_url,description,members,blogs`).then(r => r.json()).catch(() => ({ orgs: [] })),
       ]);
       setResults({ blogs: blogs.blogs || [], users: users.users || [], orgs: orgs.orgs || [] });
       setUnknown(blogs.unknown || []);
@@ -581,8 +581,8 @@ export default function SearchPage() {
                               @{o.slug}
                               {typeof o.member_count === 'number' ? ` · ${o.member_count} member${o.member_count === 1 ? '' : 's'}` : ''}
                             </p>
-                            {(o.description || o.bio) && (
-                              <p className="text-[12px] mt-1 line-clamp-1" style={{ color: 'var(--text-muted)' }}>{o.description || o.bio}</p>
+                            {(o.tagline || o.description || o.bio) && (
+                              <p className="text-[12px] mt-1 line-clamp-1" style={{ color: 'var(--text-muted)' }}>{o.tagline || o.description || o.bio}</p>
                             )}
                           </div>
                         </Link>

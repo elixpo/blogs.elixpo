@@ -19,6 +19,32 @@ const ONBOARDING_ACTIONS = [
   { label: 'Publishing basics', description: 'Know what works here', href: '/docs', icon: 'shield-checkmark-outline', color: '#10b981' },
 ];
 
+function BrandIntro() {
+  return (
+    <section className="mx-6 mt-5 overflow-hidden rounded-3xl border border-[var(--border-default)] bg-[var(--card-bg)]" aria-labelledby="lixblogs-intro-title">
+      <div className="bg-[radial-gradient(circle_at_90%_10%,color-mix(in_srgb,var(--accent)_20%,transparent),transparent_36%),linear-gradient(135deg,var(--card-bg),var(--bg-surface))] px-6 py-8 sm:px-8 sm:py-10">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Open-source publishing</p>
+        <h1 id="lixblogs-intro-title" className="mt-3 max-w-xl font-serif text-3xl font-extrabold leading-tight text-[var(--text-primary)] sm:text-4xl">
+          Write once. Publish from anywhere.
+        </h1>
+        <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--text-muted)] sm:text-[15px]">
+          LixBlogs is an open-source blogging platform for writers, developers and teams. Create rich stories, collaborate live, and publish from the web, CLI or API.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/explore" className="rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-white">Explore stories</Link>
+          <Link href="/new-blog" className="rounded-full border border-[var(--border-default)] bg-[var(--bg-app)] px-5 py-2.5 text-sm font-bold text-[var(--text-secondary)]">Start writing</Link>
+        </div>
+        <nav aria-label="Learn about LixBlogs" className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-[var(--divider)] pt-5 text-xs font-semibold text-[var(--text-muted)]">
+          <Link href="/about" className="hover:text-[var(--accent)]">About the platform</Link>
+          <Link href="/docs/cli" className="hover:text-[var(--accent)]">Publish with the CLI</Link>
+          <Link href="/docs/api" className="hover:text-[var(--accent)]">Automate with the API</Link>
+          <Link href="/contests" className="hover:text-[var(--accent)]">Writing contests</Link>
+        </nav>
+      </div>
+    </section>
+  );
+}
+
 function NewUserActions({ user, authLoading }) {
   const [visible, setVisible] = useState(false);
 
@@ -571,7 +597,7 @@ function feedPostHref(post) {
   return `/${parts.map(part => encodeURIComponent(part)).join('/')}`;
 }
 
-export default function App({ initialPosts = [] }) {
+export default function App({ initialPosts = [], showBrandIntro = false }) {
   const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState(initialPosts);
   const [topPicks, setTopPicks] = useState([]);
@@ -644,6 +670,7 @@ export default function App({ initialPosts = [] }) {
       <div className="flex justify-center">
         {/* Center Feed */}
         <div className="w-full max-w-[740px] min-w-0" style={{ borderRight: '1px solid var(--divider)' }}>
+          {showBrandIntro && <BrandIntro />}
           {/* Search + Topic Tabs — sticky header */}
           <div className="sticky top-14 z-40 backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--bg-app) 92%, transparent)', borderBottom: '1px solid var(--divider)' }}>
             <div className="max-w-[680px] mx-auto">
