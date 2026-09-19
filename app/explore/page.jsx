@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import AppShell from '../../src/components/AppShell';
 import PublicStoryCard from '../../src/components/PublicStoryCard';
 import { listPublicStories, publicStoryPath } from '../../lib/publicDiscovery';
 import { safeJsonLd } from '../../src/utils/seoContent';
+import { getSession } from '../../lib/auth';
+import { getDB } from '../../lib/cloudflare';
+import { loadRecommendationContext } from '../../lib/recommendations';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -42,7 +46,9 @@ export async function generateMetadata({ searchParams }) {
 export default async function ExplorePage({ searchParams }) {
   const params = searchParams ? await searchParams : {};
   const page = pageNumber(params.page);
-  const discovery = await listPublicStories({ page, pageSize: PAGE_SIZE });
+  const [session, requestHeaders] = await Promise.all([getSession().catch(() => null), headers()]);
+  const recommendationContext = await loadRecommendationContext(getDB(), session?.userId, requestHeaders);
+  const discovery = await listPublicStories({ page, pageSize: PAGE_SIZE, recommendationContext });
   if (page > discovery.pageCount) notFound();
 
   const canonical = `${SITE_URL}${pageHref(page)}`;
@@ -72,7 +78,7 @@ export default async function ExplorePage({ searchParams }) {
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Public archive</p>
           <h1 className="mt-2 font-serif text-4xl font-extrabold tracking-[-0.025em] text-[var(--text-primary)]">Explore stories</h1>
           <p className="mt-3 max-w-2xl text-[15px] leading-6 text-[var(--text-muted)]">
-            Recent writing from people, communities, and organizations publishing on LixBlogs.
+            Stories ranked predictably by your topics, language, region, freshness, and quality.
           </p>
         </header>
 

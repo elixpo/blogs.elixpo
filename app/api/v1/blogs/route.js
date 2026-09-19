@@ -22,6 +22,7 @@ import { compressBlogContent } from '../../../../lib/compress';
 import { excerptFromBlocks } from '../../../../lib/excerpt';
 import { ensureUniqueBlogSlug } from '../../../../lib/namespace';
 import { credentialAllowsPublishedAs } from '../../../../lib/api/v1/personalAccessTokens';
+import { contentDiscoveryMetadata } from '../../../../lib/recommendations';
 
 const LIST_SCOPE = 'lixblogs:blog:read';
 const ALLOWED_STATUSES = new Set(['all', 'draft', 'published', 'unlisted', 'trashed']);
@@ -40,6 +41,8 @@ function serializeBlog(row) {
     coverUrl: row.cover_image_r2_key || null,
     memberOnly: Boolean(row.member_only),
     license: row.license || 'all-rights-reserved',
+    language: row.language || 'und',
+    region: row.region || 'global',
     secret: Boolean(row.secret),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -183,17 +186,19 @@ export async function POST(request) {
     });
     const compressed = compressBlogContent(input.content);
     const excerpt = excerptFromBlocks(input.content);
+    const profile = await db.prepare('SELECT locale FROM users WHERE id = ?').bind(auth.userId).first();
+    const discovery = contentDiscoveryMetadata({ language: input.language, region: input.region, locale: profile?.locale, headers: request.headers });
     const preference = await db.prepare('SELECT default_license FROM curation_preferences WHERE user_id = ?').bind(auth.userId).first();
     const license = input.license || preference?.default_license || 'all-rights-reserved';
     await db.prepare(`
       INSERT INTO blogs
         (id, slug, title, subtitle, content, excerpt, author_id, published_as, collection_id,
-         status, page_emoji, cover_image_r2_key, secret, member_only, license, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)
+         status, page_emoji, cover_image_r2_key, secret, member_only, license, language, region, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, slug, input.title, input.subtitle || '', compressed, excerpt, auth.userId,
       target.publishedAs, target.collectionId, input.emoji || '', input.coverUrl || '',
-      input.secret ? 1 : 0, input.memberOnly ? 1 : 0, license, now, now,
+      input.secret ? 1 : 0, input.memberOnly ? 1 : 0, license, discovery.language, discovery.region, now, now,
     ).run();
     for (const tag of input.tags || []) {
       await db.prepare('INSERT OR IGNORE INTO blog_tags (blog_id, tag) VALUES (?, ?)').bind(id, tag).run();

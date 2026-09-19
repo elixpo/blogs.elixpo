@@ -31,6 +31,11 @@ export default function PublicStoryCard({ story }) {
   return (
     <article className="group grid gap-5 border-b border-[var(--divider)] py-7 sm:grid-cols-[minmax(0,1fr)_180px]">
       <div className="min-w-0">
+        {story.recommendation_reason?.[0] && (
+          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-faint)]">
+            <ion-icon name="sparkles-outline" /> Suggested · {story.recommendation_reason[0]}
+          </p>
+        )}
         <div className="mb-3 flex flex-wrap items-center gap-2 text-[12px] text-[var(--text-muted)]">
           {story.author?.avatar_url ? (
             <img src={story.author.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />

@@ -11,6 +11,7 @@ import { CreatorBadgeMark } from './CreatorBadge';
 import { CREATOR_BADGE_MAP } from '../../lib/badgeDefinitions';
 import { useSeasonalTheme } from '../themes/seasonal/SeasonalThemeProvider';
 import { onNotificationsUpdate } from '../utils/notificationEvents';
+import ContextualTipToast from './ContextualTipToast';
 
 // ─── Notification type config ───
 const NOTIF_CONFIG = {
@@ -468,6 +469,7 @@ export default function AppShell({ children, showSidebar = true }) {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-app)' }}>
       <JoinedToast />
+      <ContextualTipToast />
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md" style={{ backgroundColor: 'color-mix(in srgb, var(--bg-app) 92%, transparent)', borderBottom: '1px solid var(--border-default)' }}>
         <div className="max-w-[1400px] mx-auto px-3 sm:px-6 h-14 flex items-center justify-between">

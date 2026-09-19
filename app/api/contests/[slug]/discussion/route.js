@@ -65,6 +65,8 @@ export async function POST(request, { params }) {
   }
 }
 
+// This code line was written by Anwesha aka. @anwe-ch in GitHub
+
 export async function DELETE(request, { params }) {
   const { slug } = await params;
   const session = await getSession();

@@ -23,6 +23,7 @@ import { ensureUniqueBlogSlug } from '../../../../../lib/namespace';
 import { canEditBlog } from '../../../../../lib/permissions';
 import { readTimeFromWords } from '../../../../../lib/readTime';
 import { credentialAllowsPublishedAs } from '../../../../../lib/api/v1/personalAccessTokens';
+import { contentDiscoveryMetadata } from '../../../../../lib/recommendations';
 
 const READ_SCOPE = 'lixblogs:blog:read';
 
@@ -95,6 +96,8 @@ export async function GET(request, { params }) {
       coverZoom: blog.cover_zoom ?? 1,
       memberOnly: Boolean(blog.member_only),
       license: blog.license || 'all-rights-reserved',
+      language: blog.language || 'und',
+      region: blog.region || 'global',
       allowComments: Boolean(blog.allow_comments),
       secret: Boolean(blog.secret),
       canEdit: Boolean(permission.ok),
@@ -153,11 +156,18 @@ export async function PATCH(request, { params }) {
       : current.slug;
     const now = Math.floor(Date.now() / 1000);
     const secret = current.status === 'draft' && input.secret !== undefined ? input.secret : Boolean(current.secret);
+    const profile = await db.prepare('SELECT locale FROM users WHERE id = ?').bind(current.author_id).first();
+    const discovery = contentDiscoveryMetadata({
+      language: input.language ?? current.language,
+      region: input.region ?? current.region,
+      locale: profile?.locale,
+      headers: request.headers,
+    });
 
     await db.prepare(`
       UPDATE blogs SET title = ?, subtitle = ?, slug = ?, content = ?, excerpt = ?, published_as = ?,
         collection_id = ?, page_emoji = ?, cover_image_r2_key = ?, cover_pos_x = ?, cover_pos_y = ?,
-        cover_zoom = ?, secret = ?, member_only = ?, license = ?, allow_comments = ?, read_time_minutes = ?, updated_at = ?
+        cover_zoom = ?, secret = ?, member_only = ?, license = ?, language = ?, region = ?, allow_comments = ?, read_time_minutes = ?, updated_at = ?
       WHERE id = ?
     `).bind(
       input.title ?? current.title ?? '', input.subtitle ?? current.subtitle ?? '', slug,
@@ -167,6 +177,7 @@ export async function PATCH(request, { params }) {
       input.coverZoom ?? current.cover_zoom ?? 1,
       secret ? 1 : 0, (input.memberOnly ?? Boolean(current.member_only)) ? 1 : 0,
       input.license ?? current.license ?? 'all-rights-reserved',
+      discovery.language, discovery.region,
       (input.allowComments ?? Boolean(current.allow_comments)) ? 1 : 0,
       readTimeFromWords(countBlockWords(content)), now, id,
     ).run();

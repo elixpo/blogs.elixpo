@@ -242,6 +242,19 @@ function FeedCardMenu({ post, onHide }) {
 
   const followAuthor = () => { if (needAuth() || fAuthor) return; setFAuthor(true); post_(`/api/users/${author.username}/follow`); setOpen(false); };
   const followOrg = () => { if (needAuth() || fOrg) return; setFOrg(true); post_(`/api/orgs/${org.slug}/follow`); setOpen(false); };
+  const showLess = () => {
+    if (needAuth()) return;
+    post_('/api/signals', { blogId: post.id, tags: post.tags || [], type: 'show_less', weight: -2 });
+    if ((post.tags || []).length) {
+      fetch('/api/users/me/interests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remove: post.tags }),
+      }).catch(() => {});
+    }
+    setOpen(false);
+    onHide?.(post.id);
+  };
   const muteAuthor = () => { if (needAuth()) return; post_('/api/mutes', { targetType: 'author', targetId: post.author_id }); setOpen(false); onHide?.(post.id); };
   const muteOrg = () => { if (needAuth()) return; post_('/api/mutes', { targetType: 'org', targetId: org.id }); setOpen(false); onHide?.(post.id); };
   const muteTopics = () => { if (needAuth()) return; (post.tags || []).forEach(t => post_('/api/mutes', { targetType: 'tag', targetId: t, blogId: post.id })); setOpen(false); onHide?.(post.id); };
@@ -279,6 +292,7 @@ function FeedCardMenu({ post, onHide }) {
               {!ownsAuthor && !isSelf && item(fAuthor ? `Following ${author.display_name || author.username}` : `Follow ${author.display_name || author.username}`, followAuthor, false, false, fAuthor)}
               {org && !ownsPublication && item(fOrg ? `Following ${org.name}` : `Follow ${org.name}`, followOrg, false, false, fOrg)}
               <div className="my-1.5" style={{ borderTop: '1px solid var(--divider)' }} />
+              {item('Show less like this', showLess)}
               {!ownsAuthor && !isSelf && item('Mute author', muteAuthor)}
               {org && !ownsPublication && item('Mute publication', muteOrg)}
               {(post.tags || []).length > 0 && item('Mute topics', muteTopics, false, true)}
@@ -399,6 +413,11 @@ function FeedCard({ post, onHide }) {
         <div className="flex items-center gap-1.5 mb-2 text-[12px] font-medium" style={{ color: 'var(--text-faint)' }}>
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
           Reposted by {post.reshared_by.display_name || post.reshared_by.username}
+        </div>
+      )}
+      {!post.reshared_by && post.recommendation_reason?.[0] && (
+        <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium" style={{ color: 'var(--text-faint)' }}>
+          <ion-icon name="sparkles-outline" /> Suggested · {post.recommendation_reason[0]}
         </div>
       )}
       <Link href={href} className="flex gap-5 cursor-pointer">

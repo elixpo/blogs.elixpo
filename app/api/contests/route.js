@@ -12,6 +12,7 @@ import {
   recordContestAudit,
   serializeContest,
 } from '../../../lib/contests';
+import { contentDiscoveryMetadata, loadRecommendationContext, rankContests } from '../../../lib/recommendations';
 
 function timestamp(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return Math.floor(value);
@@ -42,6 +43,10 @@ export async function GET(request) {
     if (mine) {
       if (!session?.userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
       contests = contests.filter((contest) => contest.organizer.id === session.userId);
+    }
+    if (!mine) {
+      const context = await loadRecommendationContext(db, session?.userId, request.headers);
+      contests = rankContests(contests, context);
     }
     return NextResponse.json({ contests });
   } catch (error) {
@@ -80,13 +85,15 @@ export async function POST(request) {
       return NextResponse.json({ error: 'That contest slug is already used' }, { status: 409 });
     }
     const id = crypto.randomUUID();
+    const profile = await db.prepare('SELECT locale FROM users WHERE id = ?').bind(session.userId).first();
+    const discovery = contentDiscoveryMetadata({ language: input.language, region: input.region, locale: profile?.locale, headers: request.headers });
     await db.prepare(`
       INSERT INTO contests (
         id, organizer_id, slug, title, description, problem_statement, rules, theme,
         cover_url, template_content, status, starts_at, submissions_close_at,
         judging_closes_at, results_at, required_topics, tags, allowed_targets, eligibility,
-        per_author_limit, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())
+        per_author_limit, language, region, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch())
     `).bind(
       id, session.userId, slug, title,
       String(input.description || '').trim().slice(0, 1000),
@@ -99,7 +106,7 @@ export async function POST(request) {
       JSON.stringify(normalizeStringArray(input.tags)),
       JSON.stringify(normalizeStringArray(input.allowedTargets || ['personal'])),
       JSON.stringify(normalizeContestEligibility({ ...input.eligibility, minimumAccountAgeMonths })),
-      perAuthorLimit,
+      perAuthorLimit, discovery.language, discovery.region,
     ).run();
     await recordContestAudit(db, { contestId: id, actorId: session.userId, action: 'contest.created' });
     return NextResponse.json({ ok: true, id, slug, status: 'draft' }, { status: 201 });

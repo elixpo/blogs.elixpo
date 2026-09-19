@@ -29,6 +29,12 @@ function BlogRow({ b }) {
         </div>
         <p className="text-[16px] font-bold leading-snug group-hover:opacity-80 transition-opacity" style={{ color: 'var(--text-primary)', fontFamily: "'Source Serif 4', Georgia, serif" }}>{b.title || 'Untitled'}</p>
         {b.subtitle && <p className="text-[13px] mt-0.5 line-clamp-1" style={{ color: 'var(--text-muted)' }}>{b.subtitle}</p>}
+        {Number(b.resume_progress) >= 0.05 && Number(b.resume_progress) < 0.9 && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--bg-elevated)]"><span className="block h-full rounded-full bg-[var(--accent)]" style={{ width: `${Math.round(Number(b.resume_progress) * 100)}%` }} /></span>
+            <span className="text-[10px] font-semibold text-[var(--accent)]">Continue at {Math.round(Number(b.resume_progress) * 100)}%</span>
+          </div>
+        )}
       </div>
       {b.cover_image_r2_key && <img src={b.cover_image_r2_key} alt="" className="w-[80px] h-[80px] rounded-md object-cover flex-shrink-0 self-center hidden sm:block" />}
     </Link>
@@ -79,7 +85,7 @@ export default function LibraryPage() {
     if (!user) return;
     if (activeTab === 0) loadCollections();
     if (activeTab === 1) fetch('/api/library/bookmarks').then(r => r.json()).then(d => setBookmarks(d.bookmarks || [])).catch(() => {});
-    if (activeTab === 2) fetch('/api/library/history').then(r => r.json()).then(d => setHistory(d.history || [])).catch(() => {});
+    if (activeTab === 2) fetch('/api/library/history?limit=5').then(r => r.json()).then(d => setHistory(d.history || [])).catch(() => {});
   }, [user, activeTab, loadCollections]);
 
   const createList = async () => {

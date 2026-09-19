@@ -7,6 +7,7 @@ import { generatePixelAvatar } from '../../utils/pixelAvatar';
 import AppShell from '../../components/AppShell';
 import TabBar from '../../components/TabBar';
 import Link from 'next/link';
+import TopicPreferences from '../../components/TopicPreferences';
 
 const TABS = [
   { label: 'Account', icon: 'person-outline' },
@@ -352,6 +353,10 @@ function AccountTab({ user, refetchUser }) {
           ))}
         </div>
       </section>
+
+      <div className="h-px bg-[#1e2736]" />
+
+      <TopicPreferences />
 
       <div className="h-px bg-[#1e2736]" />
 
