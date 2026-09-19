@@ -12,11 +12,99 @@ const OG_RESPONSE_OPTIONS = {
     width: 1200,
     height: 630,
     headers: {
-        "Cache-Control": "public, max-age=3600, s-maxage=604800, stale-while-revalidate=2592000",
-        "CDN-Cache-Control": "public, max-age=604800, stale-while-revalidate=2592000",
+        // Metadata appends the entity's updated_at value to media and card URLs.
+        // A changed profile/blog therefore gets a new cache key; unchanged cards
+        // can safely stay at the edge instead of rerendering for every crawler.
+        "Cache-Control": "public, max-age=86400, s-maxage=31536000, stale-while-revalidate=2592000, immutable",
+        "CDN-Cache-Control": "public, max-age=31536000, stale-while-revalidate=2592000, immutable",
         "X-Content-Type-Options": "nosniff",
     },
 };
+
+const OG_RETRY_RESPONSE_OPTIONS = {
+    width: 1200,
+    height: 630,
+    headers: {
+        // A deterministic fallback is still a complete card, but keep its cache
+        // short so a temporarily slow origin image is retried on the next crawl.
+        "Cache-Control": "public, max-age=300, s-maxage=900, stale-while-revalidate=3600",
+        "CDN-Cache-Control": "public, max-age=900, stale-while-revalidate=3600",
+        "X-Content-Type-Options": "nosniff",
+    },
+};
+
+const REMOTE_IMAGE_TIMEOUT_MS = 1200;
+const REMOTE_IMAGE_MAX_BYTES = 1_750_000;
+
+function base64FromBytes(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+    }
+    return btoa(binary);
+}
+
+function publicHttpsUrl(value) {
+    try {
+        const url = new URL(value);
+        if (url.protocol !== "https:" || url.username || url.password) return false;
+        const host = url.hostname.toLowerCase();
+        if (host === "localhost" || host.endsWith(".local")) return false;
+
+        const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+        if (ipv4) {
+            const [, first, second] = ipv4.map(Number);
+            if (
+                first === 0
+                || first === 10
+                || first === 127
+                || (first === 169 && second === 254)
+                || (first === 172 && second >= 16 && second <= 31)
+                || (first === 192 && second === 168)
+            ) return false;
+        }
+
+        const ipv6 = host.replace(/^\[|\]$/g, "");
+        if (ipv6 === "::1" || ipv6.startsWith("fc") || ipv6.startsWith("fd") || ipv6.startsWith("fe80:")) {
+            return false;
+        }
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// Satori otherwise performs its own unbounded remote fetch while rendering. Resolve
+// media concurrently, reuse Cloudflare's fetch cache, and embed supported bytes. A
+// slow, oversized, or unsupported image falls back to local deterministic SVG art,
+// so the social card itself is never lost because an upstream image is unavailable.
+async function resolveRemoteImage(url) {
+    if (!url || !publicHttpsUrl(url)) return { src: "", loaded: false };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REMOTE_IMAGE_TIMEOUT_MS);
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal,
+            cache: "force-cache",
+            headers: { Accept: "image/jpeg,image/png" },
+            cf: { cacheEverything: true, cacheTtl: 2_592_000 },
+        });
+        if (!response.ok) return { src: "", loaded: false };
+        const responseType = String(response.headers.get("content-type") || "").split(";")[0].toLowerCase();
+        const contentType = responseType === "image/jpg" ? "image/jpeg" : responseType;
+        if (!new Set(["image/jpeg", "image/png"]).has(contentType)) return { src: "", loaded: false };
+        const contentLength = Number(response.headers.get("content-length") || 0);
+        if (contentLength > REMOTE_IMAGE_MAX_BYTES) return { src: "", loaded: false };
+        const bytes = await response.arrayBuffer();
+        if (!bytes.byteLength || bytes.byteLength > REMOTE_IMAGE_MAX_BYTES) return { src: "", loaded: false };
+        return { src: `data:${contentType};base64,${base64FromBytes(bytes)}`, loaded: true };
+    } catch {
+        return { src: "", loaded: false };
+    } finally {
+        clearTimeout(timer);
+    }
+}
 
 // GitHub-style social cards on a clean white background.
 //   type=profile    → real logo + avatar + name + @handle + bio (users & orgs)
@@ -41,7 +129,7 @@ export async function GET(request) {
 
     // satori can't decode WebP — force Cloudinary to deliver JPEG.
     const ogSafeImage = (url, width) => {
-        if (!url || !/^https?:\/\//.test(url)) return "";
+        if (!url || !publicHttpsUrl(url)) return "";
         if (url.includes("res.cloudinary.com")) {
             let u = url.replace(/f_webp/g, "f_jpg").replace(/f_auto/g, "f_jpg");
             if (!/f_(jpg|png)/.test(u))
@@ -53,21 +141,38 @@ export async function GET(request) {
         }
         return url;
     };
-    const avatar = ogSafeImage(searchParams.get("avatar") || "", 256);
-    const cover = ogSafeImage(searchParams.get("cover") || "", 1200);
-    const banner = ogSafeImage(searchParams.get("banner") || "", 1200);
+    const requestedAvatar = ogSafeImage(searchParams.get("avatar") || "", 256);
+    const requestedCover = ogSafeImage(searchParams.get("cover") || "", 1200);
+    const requestedBanner = ogSafeImage(searchParams.get("banner") || "", 1200);
     const seed = (searchParams.get("seed") || title).slice(0, 160);
     const avatarSeed = (searchParams.get("avatarSeed") || seed).slice(0, 160);
     const defaultCover = generateBlogBanner(seed);
-    const hasAvatar = !!avatar;
-    const hasCover = !!cover;
-    const hasBanner = !!banner;
-
     // Deterministic fallbacks — zero network, instant.
     // Profile banner: when a real avatar exists but no banner, tint the
     // generated banner palette to the avatar URL hash so they visually match.
-    const defaultBanner = generateProfileBanner(seed, avatar || undefined);
+    const defaultBanner = generateProfileBanner(seed, requestedAvatar || undefined);
     const defaultAvatar = generatePixelAvatar(avatarSeed);
+
+    const wantsAvatar = type === "profile" || type === "collection" || type === "blog";
+    const wantsBanner = type === "profile" || type === "collection";
+    const wantsCover = type === "blog";
+    const [resolvedAvatar, resolvedBanner, resolvedCover] = await Promise.all([
+        wantsAvatar ? resolveRemoteImage(requestedAvatar) : { src: "", loaded: false },
+        wantsBanner ? resolveRemoteImage(requestedBanner) : { src: "", loaded: false },
+        wantsCover ? resolveRemoteImage(requestedCover) : { src: "", loaded: false },
+    ]);
+    const avatar = resolvedAvatar.src;
+    const banner = resolvedBanner.src;
+    const cover = resolvedCover.src;
+    const hasAvatar = resolvedAvatar.loaded;
+    const hasBanner = resolvedBanner.loaded;
+    const hasCover = resolvedCover.loaded;
+    const remoteMediaFailed = Boolean(
+        (wantsAvatar && requestedAvatar && !hasAvatar)
+        || (wantsBanner && requestedBanner && !hasBanner)
+        || (wantsCover && requestedCover && !hasCover),
+    );
+    const responseOptions = remoteMediaFailed ? OG_RETRY_RESPONSE_OPTIONS : OG_RESPONSE_OPTIONS;
 
     // Real LixBlogs logo, inlined as a data URI (see ./lixLogo). Inlining avoids a
     // request-time self-fetch, which is unreliable in the Cloudflare edge runtime
@@ -269,7 +374,7 @@ export async function GET(request) {
                     </div>
                 </div>
             </div>,
-            OG_RESPONSE_OPTIONS,
+            responseOptions,
         );
     }
 
@@ -422,7 +527,7 @@ export async function GET(request) {
                     </div>
                 </div>
             </div>,
-            OG_RESPONSE_OPTIONS,
+            responseOptions,
         );
     }
 
@@ -553,6 +658,6 @@ export async function GET(request) {
                 </div>
             </div>
         </div>,
-        OG_RESPONSE_OPTIONS,
+        responseOptions,
     );
 }
