@@ -7,39 +7,65 @@ export default function TopicInterestChips({ tags = [] }) {
   const { user, loading } = useAuth();
   const userId = user?.id;
   const [interests, setInterests] = useState([]);
+  const [interestsLoaded, setInterestsLoaded] = useState(false);
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
   const normalized = useMemo(() => [...new Set(tags.map(tag => String(tag).trim()).filter(Boolean))], [tags]);
+  const interestSet = useMemo(() => new Set(interests.map(item => String(item).toLowerCase())), [interests]);
 
   useEffect(() => {
-    if (!userId) return;
-    fetch('/api/users/me/interests')
+    if (loading) return undefined;
+    if (!userId) {
+      setInterests([]);
+      setInterestsLoaded(true);
+      return undefined;
+    }
+    const controller = new AbortController();
+    setInterestsLoaded(false);
+    fetch('/api/users/me/interests', { signal: controller.signal })
       .then(response => response.ok ? response.json() : null)
       .then(data => data && setInterests(data.interests || []))
-      .catch(() => {});
-  }, [userId]);
+      .catch(() => {})
+      .finally(() => {
+        if (!controller.signal.aborted) setInterestsLoaded(true);
+      });
+    return () => controller.abort();
+  }, [loading, userId]);
 
-  const addInterest = async tag => {
+  useEffect(() => {
+    const sync = event => {
+      if (Array.isArray(event.detail?.interests)) {
+        setInterests(event.detail.interests);
+        setInterestsLoaded(true);
+      }
+    };
+    window.addEventListener('lixblogs:interests-changed', sync);
+    return () => window.removeEventListener('lixblogs:interests-changed', sync);
+  }, []);
+
+  const toggleInterest = async tag => {
     if (loading) return;
     if (!userId) {
       window.location.href = `/sign-in?next=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
     const key = tag.toLowerCase();
-    if (interests.some(item => item.toLowerCase() === key)) return;
+    if (!interestsLoaded) return;
+    const active = interestSet.has(key);
     setBusy(key);
     try {
       const response = await fetch('/api/users/me/interests', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ add: [tag] }),
+        body: JSON.stringify(active ? { remove: [tag] } : { add: [tag] }),
       });
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
         setInterests(data.interests || []);
-        setMessage(`Added #${tag} to your interests`);
+        window.dispatchEvent(new CustomEvent('lixblogs:interests-changed', { detail: { interests: data.interests || [] } }));
+        setMessage(active ? `Removed #${tag} from your interests` : `Added #${tag} to your interests`);
       } else {
-        setMessage(data.error || 'This topic could not be added');
+        setMessage(data.error || 'This topic preference could not be updated');
       }
       setTimeout(() => setMessage(''), 2200);
     } finally {
@@ -53,23 +79,25 @@ export default function TopicInterestChips({ tags = [] }) {
     <div className="mb-3">
       <div className="flex flex-wrap gap-1.5" aria-label="Story topics">
         {normalized.map(tag => {
-          const active = interests.some(item => item.toLowerCase() === tag.toLowerCase());
+          const active = interestsLoaded && interestSet.has(tag.toLowerCase());
+          const pending = Boolean(userId) && !interestsLoaded;
           return (
             <button
               key={tag}
               type="button"
-              disabled={busy === tag.toLowerCase() || active}
-              onClick={() => addInterest(tag)}
-              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors disabled:cursor-default"
+              aria-pressed={active}
+              disabled={busy === tag.toLowerCase() || pending}
+              onClick={() => toggleInterest(tag)}
+              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors disabled:cursor-wait disabled:opacity-70"
               style={{
                 color: active ? 'var(--accent)' : 'var(--text-muted)',
                 backgroundColor: active ? 'var(--accent-subtle)' : 'var(--bg-surface)',
                 borderColor: active ? 'color-mix(in srgb, var(--accent) 30%, var(--border-default))' : 'var(--border-default)',
               }}
-              title={active ? `${tag} is one of your interests` : `Add ${tag} to your interests`}
+              title={pending ? 'Checking your interests…' : active ? `Remove ${tag} from your interests` : `Add ${tag} to your interests`}
             >
               <span>#{tag}</span>
-              <ion-icon name={active ? 'checkmark' : 'add'} style={{ fontSize: '13px' }} />
+              <ion-icon name={pending ? 'ellipsis-horizontal' : active ? 'checkmark' : 'add'} style={{ fontSize: '13px' }} />
             </button>
           );
         })}

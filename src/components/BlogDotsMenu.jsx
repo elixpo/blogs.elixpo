@@ -68,7 +68,12 @@ export default function BlogDotsMenu({ blogId, authorId, author = {}, org = null
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ remove: tags }),
-      }).catch(() => {});
+      }).then(response => response.ok ? response.json() : null)
+        .then(data => {
+          if (Array.isArray(data?.interests)) {
+            window.dispatchEvent(new CustomEvent('lixblogs:interests-changed', { detail: { interests: data.interests } }));
+          }
+        }).catch(() => {});
     }
     flash('We’ll show you less like this');
   };
