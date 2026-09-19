@@ -9,6 +9,7 @@ import AuthorAttribution from "../components/AuthorAttribution";
 import BlogComments from "../components/BlogComments";
 import BlogDotsMenu from "../components/BlogDotsMenu";
 import BlogFollowCard, { FollowToggle } from "../components/BlogFollowButtons";
+import ReaderCompanion from "../components/ReaderCompanion";
 import BlogInteractionBar from "../components/BlogInteractionBar";
 import BlogInviteOverlay from "../components/BlogInviteOverlay";
 import BlogRecommendations from "../components/BlogRecommendations";
@@ -1018,6 +1019,33 @@ function HandlePageInner({ path, initialData = null }) {
                             </Link>
                         )}
                     </nav>
+                    {!blog.secret && (
+                        <ReaderCompanion
+                            author={{
+                                username: blog.author_username,
+                                displayName: blog.author_name,
+                                designation: blog.author_designation,
+                                avatarUrl: blog.author_avatar,
+                            }}
+                            org={
+                                data.owner?.type === "org"
+                                    ? {
+                                          slug: data.owner.slug,
+                                          name: data.owner.name,
+                                          tagline: data.owner.tagline,
+                                          logoUrl:
+                                              data.owner.logo_url ||
+                                              data.owner.logo_r2_key,
+                                      }
+                                    : null
+                            }
+                            primaryTag={
+                                Array.isArray(blog.tags)
+                                    ? blog.tags[0]
+                                    : null
+                            }
+                        />
+                    )}
                     {canEdit && (
                         <div className="flex items-center justify-end mb-4">
                             <Link
