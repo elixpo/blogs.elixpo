@@ -150,10 +150,10 @@ async function queryInterests(db, userId, now, limit) {
     FROM blogs b
     WHERE b.status = 'published'${EXCLUDE_TEST} AND b.published_at > ?
       AND b.id IN (
-        SELECT blog_id FROM blog_tags WHERE tag IN (
-          SELECT tag FROM user_interests WHERE user_id = ?
+        SELECT blog_id FROM blog_tags WHERE LOWER(tag) IN (
+          SELECT LOWER(tag) FROM user_interests WHERE user_id = ?
           UNION
-          SELECT DISTINCT tag FROM user_signals WHERE user_id = ? AND tag IS NOT NULL AND weight > 0 AND created_at > ?
+          SELECT DISTINCT LOWER(tag) FROM user_signals WHERE user_id = ? AND tag IS NOT NULL AND weight > 0 AND created_at > ?
         )
       )
       AND b.author_id != ?

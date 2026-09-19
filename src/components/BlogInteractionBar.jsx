@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { rememberReadingProgress } from '../utils/readingProgress';
 
 /**
  * BlogInteractionBar — renders at the bottom of a blog post.
  * Handles: view recording, read progress, likes, claps, bookmarks, share.
  * Also reports dwell time as a taste signal.
  */
-export default function BlogInteractionBar({ blogId, blogAuthorId, canRepost = false, dotsMenu = null }) {
+export default function BlogInteractionBar({ blogId, blogTitle, blogAuthorId, canRepost = false, dotsMenu = null }) {
   const { user } = useAuth();
   const [interactions, setInteractions] = useState(null);
   const [clapAnim, setClapAnim] = useState(false);
@@ -69,6 +70,7 @@ export default function BlogInteractionBar({ blogId, blogAuthorId, canRepost = f
     if (!blogId) return;
 
     const sendProgress = (progress, dwellSeconds = 0, beacon = false) => {
+      rememberReadingProgress({ blogId, title: blogTitle, url: window.location.pathname, progress, readerKey: user?.id || 'guest' });
       const complete = progress >= 0.9;
       const url = user ? `/api/blogs/${blogId}/progress` : '/api/analytics/event';
       const body = user
@@ -102,11 +104,13 @@ export default function BlogInteractionBar({ blogId, blogAuthorId, canRepost = f
       clearInterval(interval);
       window.removeEventListener('scroll', reportProgress);
       const dwellSeconds = Math.floor((Date.now() - startTime.current) / 1000);
-      if (dwellSeconds > 10) {
+      // A revisit that never scrolls must not erase the position from the
+      // previous session. Explicit "Start over" uses the reset endpoint.
+      if (dwellSeconds > 10 && progressReported.current >= 0.02) {
         sendProgress(progressReported.current, dwellSeconds, true);
       }
     };
-  }, [blogId, user]);
+  }, [blogId, blogTitle, user]);
 
   const [likeAnim, setLikeAnim] = useState(false);
 

@@ -17,7 +17,7 @@ export async function GET(request) {
     const db = getDB();
 
     const result = await db.prepare(`
-      SELECT rh.read_at, rh.read_progress,
+      SELECT rh.read_at, rh.read_progress, rh.resume_progress,
         b.id as blog_id, b.slug, b.title, b.subtitle, b.cover_image_r2_key, b.page_emoji, b.secret,
         b.read_time_minutes, b.published_at,
         CASE WHEN b.secret = 0 THEN b.author_id END as author_id,

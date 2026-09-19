@@ -242,6 +242,19 @@ function FeedCardMenu({ post, onHide }) {
 
   const followAuthor = () => { if (needAuth() || fAuthor) return; setFAuthor(true); post_(`/api/users/${author.username}/follow`); setOpen(false); };
   const followOrg = () => { if (needAuth() || fOrg) return; setFOrg(true); post_(`/api/orgs/${org.slug}/follow`); setOpen(false); };
+  const showLess = () => {
+    if (needAuth()) return;
+    post_('/api/signals', { blogId: post.id, tags: post.tags || [], type: 'show_less', weight: -2 });
+    if ((post.tags || []).length) {
+      fetch('/api/users/me/interests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remove: post.tags }),
+      }).catch(() => {});
+    }
+    setOpen(false);
+    onHide?.(post.id);
+  };
   const muteAuthor = () => { if (needAuth()) return; post_('/api/mutes', { targetType: 'author', targetId: post.author_id }); setOpen(false); onHide?.(post.id); };
   const muteOrg = () => { if (needAuth()) return; post_('/api/mutes', { targetType: 'org', targetId: org.id }); setOpen(false); onHide?.(post.id); };
   const muteTopics = () => { if (needAuth()) return; (post.tags || []).forEach(t => post_('/api/mutes', { targetType: 'tag', targetId: t, blogId: post.id })); setOpen(false); onHide?.(post.id); };
@@ -279,6 +292,7 @@ function FeedCardMenu({ post, onHide }) {
               {!ownsAuthor && !isSelf && item(fAuthor ? `Following ${author.display_name || author.username}` : `Follow ${author.display_name || author.username}`, followAuthor, false, false, fAuthor)}
               {org && !ownsPublication && item(fOrg ? `Following ${org.name}` : `Follow ${org.name}`, followOrg, false, false, fOrg)}
               <div className="my-1.5" style={{ borderTop: '1px solid var(--divider)' }} />
+              {item('Show less like this', showLess)}
               {!ownsAuthor && !isSelf && item('Mute author', muteAuthor)}
               {org && !ownsPublication && item('Mute publication', muteOrg)}
               {(post.tags || []).length > 0 && item('Mute topics', muteTopics, false, true)}

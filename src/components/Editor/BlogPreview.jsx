@@ -10,6 +10,7 @@ import { renderMermaidSvg } from '../../utils/mermaidRenderer';
 import { getLixShikiHighlighter, normalizeShikiLanguage } from '../../utils/shikiHighlighter';
 import { clearInheritedBlockTextColors } from '../../utils/blockColorNormalization';
 import { normalizeLegacyChecklistBlocks } from '../../utils/checklistBlocks';
+import TopicInterestChips from '../TopicInterestChips';
 
 let previewLanguageLoadTail = Promise.resolve();
 const previewLoadedLanguages = new Set();
@@ -1072,13 +1073,15 @@ export default function BlogPreview({
 
       {/* Tags — directly under the title */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {tags.map((tag) => (
-            <span key={tag} className="px-2.5 py-0.5 bg-[#9b7bf70a] rounded-full text-[13px] text-[#9b7bf7]">
-              #{tag}
-            </span>
-          ))}
-        </div>
+        readerMode ? <TopicInterestChips tags={tags} /> : (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {tags.map((tag) => (
+              <span key={tag} className="px-2.5 py-0.5 bg-[#9b7bf70a] rounded-full text-[13px] text-[#9b7bf7]">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )
       )}
 
       {/* Author bar — under title. Primary author + accepted co-authors, with

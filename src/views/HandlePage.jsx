@@ -10,6 +10,7 @@ import BlogComments from "../components/BlogComments";
 import BlogDotsMenu from "../components/BlogDotsMenu";
 import BlogFollowCard, { FollowToggle } from "../components/BlogFollowButtons";
 import ReaderCompanion from "../components/ReaderCompanion";
+import ReadingResumePrompt from "../components/ReadingResumePrompt";
 import BlogInteractionBar from "../components/BlogInteractionBar";
 import BlogInviteOverlay from "../components/BlogInviteOverlay";
 import BlogRecommendations from "../components/BlogRecommendations";
@@ -1046,6 +1047,7 @@ function HandlePageInner({ path, initialData = null }) {
                             }
                         />
                     )}
+                    <ReadingResumePrompt blogId={blog.id} />
                     {canEdit && (
                         <div className="flex items-center justify-end mb-4">
                             <Link
@@ -1134,6 +1136,7 @@ function HandlePageInner({ path, initialData = null }) {
                             headerActions={
                                 <BlogInteractionBar
                                     blogId={blog.id}
+                                    blogTitle={blog.title}
                                     blogAuthorId={blog.author_id}
                                     canRepost={!isAuthor && !myCoRole}
                                     dotsMenu={
