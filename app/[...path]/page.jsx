@@ -6,6 +6,7 @@ import { cache } from "react";
 import {
     articleImageVariants,
     blogExcerpt,
+    blogSearchDescription,
     safeJsonLd,
 } from "../../src/utils/seoContent";
 import { getCloudinaryUrl } from "../../lib/cloudinary";
@@ -169,16 +170,11 @@ export async function generateMetadata({ params, searchParams }) {
                 : primary
                   ? `By ${primary} on LixBlogs.`
                   : "Published on LixBlogs.";
-            const tagLine = (b.tags || []).length
-                ? `Topics: ${b.tags.slice(0, 4).join(", ")}.`
-                : "";
-            const excerpt = blogExcerpt(b, 180);
-            const description = describe([
-                excerpt,
-                byline,
-                readTime ? `${readTime}.` : "",
-                tagLine,
-            ]);
+            // Google primarily generates snippets from visible article text and may
+            // use this meta description when it is the clearer summary. Keep the
+            // limited space about the article; authorship and dates have dedicated
+            // metadata and structured-data fields.
+            const description = blogSearchDescription(b) || describe([byline, readTime ? `${readTime}.` : ""]);
             const og = ogUrl({
                 type: "blog",
                 title,
@@ -615,17 +611,25 @@ async function buildJsonLd(path, origin) {
             ].filter((author) => author.name);
             const orgOwner = data.owner?.type === "org" ? data.owner : null;
             const fallbackImage = `${origin}/api/og?${new URLSearchParams({ type: "blog", title: b.title || "Untitled", seed: b.id || b.slugid || b.slug || url })}`;
-            const images = articleImageVariants(
-                img(b.cover_image_r2_key) || fallbackImage,
+            const articleSummary = blogSearchDescription(b, 240) || blogExcerpt(b, 240);
+            const coverImage = seoMediaUrl(
+                b.cover_image_r2_key,
+                b.updated_at,
+                "",
             );
+            const images = articleImageVariants(coverImage || fallbackImage);
             return {
                 "@context": "https://schema.org",
                 "@graph": [
                     {
                         "@type": "BlogPosting",
                         "@id": `${url}#post`,
+                        url,
+                        name: b.title || "Untitled",
                         headline: b.title || "Untitled",
-                        description: blogExcerpt(b) || undefined,
+                        alternativeHeadline: b.subtitle || undefined,
+                        description: articleSummary || undefined,
+                        abstract: articleSummary || undefined,
                         // The generated OG card is also the stable default image when a post
                         // has no uploaded cover, so every indexed post has an image.
                         image: images,
@@ -637,6 +641,9 @@ async function buildJsonLd(path, origin) {
                             : undefined,
                         author: authors.map((author) => ({
                             "@type": "Person",
+                            "@id": author.username
+                                ? `${origin}/${author.username}#person`
+                                : undefined,
                             name: author.name,
                             jobTitle: author.designation || undefined,
                             url: author.username
@@ -646,21 +653,35 @@ async function buildJsonLd(path, origin) {
                         publisher: orgOwner
                             ? {
                                   "@type": "Organization",
+                                  "@id": `${origin}/${orgOwner.slug || name}#org`,
                                   name: orgOwner.name,
-                                  logo: img(
+                                  url: `${origin}/${orgOwner.slug || name}`,
+                                  logo: seoMediaUrl(
                                       orgOwner.logo_url || orgOwner.logo_r2_key,
-                                  ),
+                                      orgOwner.updated_at,
+                                      "f_png,q_auto,w_512,h_512,c_fit",
+                                  ) || undefined,
                               }
                             : { "@id": `${origin}/#organization` },
                         keywords: (b.tags || []).length
                             ? b.tags.join(", ")
+                            : undefined,
+                        articleSection: (b.tags || []).length
+                            ? b.tags[0]
+                            : undefined,
+                        about: (b.tags || []).length
+                            ? b.tags.map((tag) => ({
+                                  "@type": "Thing",
+                                  name: tag,
+                                  url: `${origin}/tag/${encodeURIComponent(tag)}`,
+                              }))
                             : undefined,
                         timeRequired: b.read_time_minutes
                             ? `PT${b.read_time_minutes}M`
                             : undefined,
                         inLanguage: "en",
                         mainEntityOfPage: { "@type": "WebPage", "@id": url },
-                        isPartOf: { "@id": `${origin}/#website` },
+                        isPartOf: { "@id": `${origin}/#blog` },
                         isAccessibleForFree: !b.member_only,
                         ...(b.member_only
                             ? {
