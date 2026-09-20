@@ -588,6 +588,21 @@ function FeedSkeleton() {
 }
 
 const FIXED_TAGS = ['Tech', 'Finance', 'Sports', 'Entertainment'];
+const FEED_REQUEST_TTL_MS = 5_000;
+const feedRequests = new Map();
+
+function fetchFeedOnce(url) {
+  const now = Date.now();
+  const cached = feedRequests.get(url);
+  if (cached && now - cached.startedAt < FEED_REQUEST_TTL_MS) return cached.promise;
+
+  const promise = fetch(url, { cache: 'no-store' }).then(response => {
+    if (!response.ok) throw new Error(`Feed request failed (${response.status})`);
+    return response.json();
+  });
+  feedRequests.set(url, { promise, startedAt: now });
+  return promise;
+}
 
 function recommendedTopics(interests, popular) {
   const seen = new Set();
@@ -618,6 +633,8 @@ function feedPostHref(post) {
 
 export default function App({ initialPosts = [], showBrandIntro = false }) {
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id || null;
+  const isSignedIn = Boolean(userId);
   const [posts, setPosts] = useState(initialPosts);
   const [topPicks, setTopPicks] = useState([]);
   const [popularTags, setPopularTags] = useState([]);
@@ -652,9 +669,12 @@ export default function App({ initialPosts = [], showBrandIntro = false }) {
 
   // Fetch feed — a Recommended-topic pill (tagFilter) overrides the tab.
   useEffect(() => {
+    // Waiting for auth prevents an anonymous request immediately followed by the
+    // same request again for the resolved account. `fetchFeedOnce` also absorbs
+    // React's development effect replay without hiding the server-rendered feed.
+    if (authLoading) return undefined;
     const preserveServerStories = firstFeedLoadRef.current
       && hasServerStoriesRef.current
-      && !user
       && !tagFilter
       && activeTopic === 0;
     if (!preserveServerStories) setLoading(true);
@@ -662,25 +682,28 @@ export default function App({ initialPosts = [], showBrandIntro = false }) {
     if (tagFilter) url += `&tag=${encodeURIComponent(tagFilter)}`;
     else if (topics[activeTopic]?.filter) url += `&filter=${topics[activeTopic].filter}`;
 
-    fetch(url, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(data => setPosts(data.posts || []))
-      .catch(() => { if (!preserveServerStories) setPosts([]); })
+    let active = true;
+    fetchFeedOnce(url)
+      .then(data => { if (active) setPosts(data.posts || []); })
+      .catch(() => { if (active && !preserveServerStories) setPosts([]); })
       .finally(() => {
+        if (!active) return;
         firstFeedLoadRef.current = false;
         setLoading(false);
       });
-  }, [activeTopic, tagFilter, user]);
+    return () => { active = false; };
+  }, [activeTopic, authLoading, isSignedIn, tagFilter]);
 
   // Fetch sidebar data once
   useEffect(() => {
+    if (authLoading) return;
     fetch('/api/feed/trending?limit=3').then(r => r.json()).then(d => setTopPicks(d.posts || [])).catch(() => {});
     fetch('/api/tags/popular?limit=12').then(r => r.json()).then(d => setPopularTags(d.tags || [])).catch(() => {});
     fetch('/api/contests', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => setLiveContests((d?.contests || []).filter(contest => contest.status === 'live').slice(0, 4))).catch(() => {});
-    if (user) {
+    if (isSignedIn) {
       fetch('/api/users/me/interests').then(r => r.json()).then(d => setUserInterests(d.interests || [])).catch(() => {});
     }
-  }, [user]);
+  }, [authLoading, isSignedIn]);
 
   const topicSuggestions = recommendedTopics(userInterests, popularTags);
 
