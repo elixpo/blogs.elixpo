@@ -11,7 +11,7 @@ import { CreatorBadgeMark } from './CreatorBadge';
 import { CREATOR_BADGE_MAP } from '../../lib/badgeDefinitions';
 import { useSeasonalTheme } from '../themes/seasonal/SeasonalThemeProvider';
 import { onNotificationsUpdate } from '../utils/notificationEvents';
-import ContextualTipToast from './ContextualTipToast';
+import ContextualTipToast, { ContextualTipButton } from './ContextualTipToast';
 
 // ─── Notification type config ───
 const NOTIF_CONFIG = {
@@ -524,7 +524,10 @@ export default function AppShell({ children, showSidebar = true }) {
             ) : user ? (
               <>
                 <NotificationDropdown />
-                <ProfileDropdown user={user} logout={logout} />
+                <ContextualTipButton />
+                <div className="ml-1 sm:ml-2">
+                  <ProfileDropdown user={user} logout={logout} />
+                </div>
               </>
             ) : (
               // Single sign-in entry point (Sign In and Get Started did the same thing).

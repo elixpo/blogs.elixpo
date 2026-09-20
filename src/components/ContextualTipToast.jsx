@@ -9,11 +9,14 @@ import { profileAgeStage } from '../utils/siteTips';
 const STORAGE_KEY = 'lixblogs:contextual-tips:v1';
 const SESSION_KEY = 'lixblogs:contextual-tips:session:v1';
 const TIP_EVENT = 'lixblogs:contextual-tip';
+const TIP_OPEN_EVENT = 'lixblogs:contextual-tip-open';
+const TIP_STATE_EVENT = 'lixblogs:contextual-tip-state';
 const ROUTE_DELAY_MS = 9_000;
 const ROUTE_COOLDOWN_MS = 20 * 60_000;
 const EVENT_COOLDOWN_MS = 90_000;
 const REPEAT_AFTER_MS = 30 * 86_400_000;
 const MAX_PER_SESSION = 3;
+const TIP_SNOOZE_MS = 7 * 86_400_000;
 const STAGE_LABELS = {
   guest: 'Quick tip',
   newcomer: 'Getting started',
@@ -167,7 +170,14 @@ function readJson(storage, key, fallback) {
 }
 
 function readState() {
-  return readJson(localStorage, STORAGE_KEY, { shown: {}, lastShownAt: 0 });
+  return readJson(localStorage, STORAGE_KEY, { shown: {}, lastShownAt: 0, lastTipId: '', pendingTipId: '', snoozedUntil: 0 });
+}
+
+function writeState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    window.dispatchEvent(new CustomEvent(TIP_STATE_EVENT));
+  } catch {}
 }
 
 function sessionCount() {
@@ -190,9 +200,25 @@ function rememberTip(tip, now) {
     .sort((a, b) => Number(b[1]) - Number(a[1]))
     .slice(0, 40);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ shown: Object.fromEntries(recentEntries), lastShownAt: now }));
+    writeState({
+      ...state,
+      shown: Object.fromEntries(recentEntries),
+      lastShownAt: now,
+      lastTipId: tip.id,
+      pendingTipId: '',
+    });
     sessionStorage.setItem(SESSION_KEY, String(sessionCount() + 1));
   } catch {}
+}
+
+function rememberPendingTip(tip) {
+  const state = readState();
+  if (state.pendingTipId === tip.id) return;
+  writeState({ ...state, pendingTipId: tip.id, lastTipId: tip.id });
+}
+
+function updateTipPause(snoozedUntil) {
+  writeState({ ...readState(), snoozedUntil });
 }
 
 export function emitContextualTip(eventName) {
@@ -200,25 +226,78 @@ export function emitContextualTip(eventName) {
   window.dispatchEvent(new CustomEvent(TIP_EVENT, { detail: { eventName } }));
 }
 
+export function ContextualTipButton() {
+  const [tipState, setTipState] = useState({ pending: false, paused: false });
+
+  useEffect(() => {
+    const sync = () => {
+      const state = readState();
+      setTipState({
+        pending: Boolean(state.pendingTipId),
+        paused: Number(state.snoozedUntil || 0) > Date.now(),
+      });
+    };
+    sync();
+    window.addEventListener(TIP_STATE_EVENT, sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener(TIP_STATE_EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={() => window.dispatchEvent(new CustomEvent(TIP_OPEN_EVENT))}
+      className="relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
+      style={{ color: tipState.pending ? 'var(--accent)' : 'var(--text-muted)' }}
+      onMouseEnter={event => { event.currentTarget.style.backgroundColor = 'var(--bg-hover)'; }}
+      onMouseLeave={event => { event.currentTarget.style.backgroundColor = 'transparent'; }}
+      aria-label={tipState.paused ? 'Open tips; automatic tips are paused' : 'Open contextual tips'}
+      title={tipState.paused ? 'Tips paused — open latest tip' : 'Tips and shortcuts'}
+    >
+      <ion-icon name="information-circle-outline" style={{ fontSize: '19px' }} />
+      {tipState.pending && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />}
+    </button>
+  );
+}
+
 export default function ContextualTipToast() {
   const pathname = usePathname() || '/';
   const { user, loading: authLoading } = useAuth();
   const stage = profileAgeStage(user);
   const [tip, setTip] = useState(null);
+  const [tipsPaused, setTipsPaused] = useState(false);
   const hideTimerRef = useRef(null);
 
-  const showTip = useCallback((candidate, { eventDriven = false } = {}) => {
-    if (!candidate || !matchesProfile(candidate, stage) || document.visibilityState === 'hidden' || sessionCount() >= MAX_PER_SESSION) return;
+  const showTip = useCallback((candidate, { eventDriven = false, manual = false } = {}) => {
+    if (!candidate || !matchesProfile(candidate, stage) || document.visibilityState === 'hidden' || (!manual && sessionCount() >= MAX_PER_SESSION)) return;
     const now = Date.now();
     const state = readState();
+    if (!manual && Number(state.snoozedUntil || 0) > now) {
+      rememberPendingTip(candidate);
+      setTipsPaused(true);
+      return;
+    }
     const cooldown = eventDriven ? EVENT_COOLDOWN_MS : ROUTE_COOLDOWN_MS;
-    if (now - Number(state.lastShownAt || 0) < cooldown || !eligible(candidate, state, now)) return;
+    if (!manual && (now - Number(state.lastShownAt || 0) < cooldown || !eligible(candidate, state, now))) return;
 
     clearTimeout(hideTimerRef.current);
-    rememberTip(candidate, now);
+    if (manual) {
+      writeState({ ...state, pendingTipId: '', lastTipId: candidate.id });
+    } else {
+      rememberTip(candidate, now);
+    }
+    setTipsPaused(Number(state.snoozedUntil || 0) > now);
     setTip(candidate);
     hideTimerRef.current = setTimeout(() => setTip(null), 11_000);
   }, [stage]);
+
+  useEffect(() => {
+    const state = readState();
+    setTipsPaused(Number(state.snoozedUntil || 0) > Date.now());
+  }, []);
 
   useEffect(() => {
     setTip(null);
@@ -245,7 +324,29 @@ export default function ContextualTipToast() {
     return () => window.removeEventListener(TIP_EVENT, handleTipEvent);
   }, [showTip, stage]);
 
+  useEffect(() => {
+    const openLatestTip = () => {
+      const state = readState();
+      const candidate = TIPS.find(item => item.id === (state.pendingTipId || state.lastTipId) && matchesProfile(item, stage))
+        || TIPS.find(item => item.match?.(pathname) && matchesProfile(item, stage));
+      if (candidate) showTip(candidate, { manual: true });
+    };
+    window.addEventListener(TIP_OPEN_EVENT, openLatestTip);
+    return () => window.removeEventListener(TIP_OPEN_EVENT, openLatestTip);
+  }, [pathname, showTip, stage]);
+
   useEffect(() => () => clearTimeout(hideTimerRef.current), []);
+
+  const toggleTipPause = () => {
+    if (tipsPaused) {
+      updateTipPause(0);
+      setTipsPaused(false);
+      return;
+    }
+    updateTipPause(Date.now() + TIP_SNOOZE_MS);
+    setTipsPaused(true);
+    setTip(null);
+  };
 
   if (!tip) return null;
 
@@ -271,11 +372,17 @@ export default function ContextualTipToast() {
           </p>
           <p className="text-[13px] font-bold leading-tight text-[var(--text-primary)]">{tip.title}</p>
           <p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-muted)]">{tip.message}</p>
-          {tip.href && (
-            <Link href={tip.href} onClick={() => setTip(null)} className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-[var(--accent-subtle)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--accent)] transition hover:-translate-y-px hover:bg-[var(--bg-hover)]">
-              {tip.action || 'Try it'} <ion-icon name="arrow-forward-outline" style={{ fontSize: '12px' }} />
-            </Link>
-          )}
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            {tip.href && (
+              <Link href={tip.href} onClick={() => setTip(null)} className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-subtle)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--accent)] transition hover:-translate-y-px hover:bg-[var(--bg-hover)]">
+                {tip.action || 'Try it'} <ion-icon name="arrow-forward-outline" style={{ fontSize: '12px' }} />
+              </Link>
+            )}
+            <button type="button" onClick={toggleTipPause} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-faint)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-muted)]">
+              <ion-icon name={tipsPaused ? 'play-outline' : 'time-outline'} style={{ fontSize: '12px' }} />
+              {tipsPaused ? 'Resume tips' : 'Pause for 7 days'}
+            </button>
+          </div>
         </div>
       </div>
       <button
