@@ -1461,13 +1461,26 @@ export default function WritePage({ slugid }) {
         [blogId, syncSubpageDrafts],
     );
 
-    // Ctrl+S → save + sync, Ctrl+O → import markdown, Ctrl+D → insert date
+    // Catch Save in capture phase: focused BlockNote/custom block editors may
+    // stop bubbling, which otherwise lets the browser open its Save As dialog.
+    useEffect(() => {
+        function handleSaveShortcut(event) {
+            if (
+                !(event.ctrlKey || event.metaKey) ||
+                event.altKey ||
+                event.key.toLowerCase() !== "s"
+            ) return;
+            event.preventDefault();
+            if (!event.repeat) void syncToCloud({ showToast: true });
+        }
+        window.addEventListener("keydown", handleSaveShortcut, true);
+        return () =>
+            window.removeEventListener("keydown", handleSaveShortcut, true);
+    }, [syncToCloud]);
+
+    // Ctrl+O → import markdown, Ctrl+D → insert date
     useEffect(() => {
         function handleKeyDown(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-                e.preventDefault();
-                syncToCloud({ showToast: true });
-            }
             if ((e.ctrlKey || e.metaKey) && e.key === "o") {
                 e.preventDefault();
                 mdUploadRef.current?.click();
@@ -1501,7 +1514,7 @@ export default function WritePage({ slugid }) {
         }
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [syncToCloud]);
+    }, []);
 
     // Escape consistently returns focus to the document by closing editor chrome.
     useEffect(() => {
