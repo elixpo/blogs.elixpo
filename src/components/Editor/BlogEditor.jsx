@@ -2400,7 +2400,7 @@ const BlogEditor = forwardRef(function BlogEditor(
             return (
                 /^#{1,6}\s|^\s*[-*+]\s|^\s*\d+\.\s|^\s*>\s|^\s*\[[ xX]\](?:\s|$)|```|^\|.+\|/m.test(
                     text,
-                ) || /\*\*.+\*\*|\[.+\]\(.+\)|!\[/.test(text)
+                ) || /(?:^|\n)[ \t]*~{3,}|\*\*.+\*\*|\[.+\]\(.+\)|!\[/.test(text)
             );
         }
 
@@ -2416,6 +2416,8 @@ const BlogEditor = forwardRef(function BlogEditor(
             );
             const hasClipboardMermaid =
                 extractedClipboardMermaid.diagrams.length > 0;
+            const hasMarkdownFence =
+                /(?:^|\n)[ \t]*(?:`{3,}|~{3,})[ \t]*[^\r\n]*\r?\n/.test(textData);
 
             // If pasting a bare URL, convert to a link inline
             if (
@@ -2473,10 +2475,10 @@ const BlogEditor = forwardRef(function BlogEditor(
                 textData &&
                 (looksLikeMarkdown(textData) || hasClipboardMermaid)
             ) {
-                // Raw Markdown is intercepted normally. Rich clipboard data is
-                // intercepted only when it explicitly contains Mermaid; other
-                // rich text should continue through BlockNote's HTML parser.
-                if (!htmlData || hasClipboardMermaid) {
+                // Fenced Markdown must go through the Markdown parser even
+                // when a clipboard app also supplies HTML. Otherwise a code
+                // sample can become paragraphs with escaped line breaks (\\).
+                if (!htmlData || hasClipboardMermaid || hasMarkdownFence) {
                     e.preventDefault();
                     e.stopPropagation();
 
@@ -2844,11 +2846,13 @@ const BlogEditor = forwardRef(function BlogEditor(
             }
         }
 
-        editorEl.addEventListener("paste", handlePaste);
+        // Handle Markdown fences before ProseMirror converts them into a
+        // generic code block (or stops the bubbling paste event).
+        editorEl.addEventListener("paste", handlePaste, true);
         editorEl.addEventListener("drop", handleEditorDrop);
         editorEl.addEventListener("dragover", handleEditorDragOver);
         return () => {
-            editorEl.removeEventListener("paste", handlePaste);
+            editorEl.removeEventListener("paste", handlePaste, true);
             editorEl.removeEventListener("drop", handleEditorDrop);
             editorEl.removeEventListener("dragover", handleEditorDragOver);
         };
