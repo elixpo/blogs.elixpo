@@ -24,6 +24,7 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
   const ref = useRef(null);
+  const inputRef = useRef(null);
   const router = useRouter();
 
   // Keep in sync when the URL changes underneath us (back/forward on /search).
@@ -33,6 +34,25 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
     function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Global '/' shortcut focuses the search bar unless typing in an editable field.
+  useEffect(() => {
+    function handleGlobalKeyDown(e) {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const active = document.activeElement;
+      if (active) {
+        const tag = active.tagName?.toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select' || active.isContentEditable) {
+          return;
+        }
+      }
+      e.preventDefault();
+      inputRef.current?.focus();
+      setOpen(true);
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
   const loadSuggestions = useCallback((prefix = '') => {
@@ -122,12 +142,13 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
       >
         <ion-icon name="search-outline" style={{ fontSize: '16px', color: 'var(--text-faint)' }} />
         <input
+          ref={inputRef}
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onKeyDown={e => {
             if (e.key === 'Enter') { e.preventDefault(); submitSearch(); }
-            else if (e.key === 'Escape') setOpen(false);
+            else if (e.key === 'Escape') { setOpen(false); inputRef.current?.blur(); }
           }}
           placeholder="Search blogs, people, topics... or try tag:hacktoberfest"
           autoFocus={autoFocus}
