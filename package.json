@@ -7,10 +7,10 @@
   "homepage": "https://blogs.elixpo.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/elixpo/lixblogs"
+    "url": "https://github.com/elixpo/blogs.elixpo"
   },
   "bugs": {
-    "url": "https://github.com/elixpo/lixblogs/issues"
+    "url": "https://github.com/elixpo/blogs.elixpo/issues"
   },
   "keywords": [
     "blog",
