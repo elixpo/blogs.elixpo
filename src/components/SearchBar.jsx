@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -23,6 +23,7 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const ref = useRef(null);
   const router = useRouter();
 
@@ -114,6 +115,69 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
   const topics = suggestions.filter(s => s.type !== 'recent');
   const showPanel = open && (hasResults || suggestions.length > 0 || loading || query.trim().length >= 2);
 
+  // Flattened list of visible entries for keyboard navigation
+  const options = useMemo(() => {
+    if (!showPanel) return [];
+    const list = [];
+    if (!hasResults) {
+      recents.forEach(s => list.push({ type: 'suggestion', item: s }));
+      topics.forEach(s => list.push({ type: 'suggestion', item: s }));
+    } else {
+      results.blogs.forEach(b => list.push({ type: 'blog', item: b }));
+      results.users.forEach(u => list.push({ type: 'user', item: u }));
+      results.orgs.forEach(o => list.push({ type: 'org', item: o }));
+    }
+    if (query.trim().length >= 2) list.push({ type: 'all' });
+    return list;
+  }, [showPanel, hasResults, recents, topics, results, query]);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [query, results, suggestions, open]);
+
+  const listRef = useRef(null);
+  useEffect(() => {
+    if (activeIndex >= 0 && listRef.current) {
+      const activeEl = listRef.current.querySelector('[data-active="true"]');
+      activeEl?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [activeIndex]);
+
+  const handleKeyDown = (e) => {
+    if (!showPanel || options.length === 0) {
+      if (e.key === 'Enter') { e.preventDefault(); submitSearch(); }
+      else if (e.key === 'Escape') setOpen(false);
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(i => (i + 1) % options.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(i => (i - 1 + options.length) % options.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex >= 0 && options[activeIndex]) {
+        const sel = options[activeIndex];
+        if (sel.type === 'all') submitSearch();
+        else handleSelect(sel.type, sel.item);
+      } else {
+        submitSearch();
+      }
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+      setActiveIndex(-1);
+    }
+  };
+
+  const recentsOffset = 0;
+  const topicsOffset = recents.length;
+  const blogsOffset = 0;
+  const usersOffset = results.blogs.length;
+  const orgsOffset = usersOffset + results.users.length;
+  const allIndex = options.length - 1;
+
   return (
     <div className="relative" ref={ref}>
       <div
@@ -125,10 +189,7 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
           value={query}
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') { e.preventDefault(); submitSearch(); }
-            else if (e.key === 'Escape') setOpen(false);
-          }}
+          onKeyDown={handleKeyDown}
           placeholder="Search blogs, people, topics... or try tag:hacktoberfest"
           autoFocus={autoFocus}
           className="flex-1 bg-transparent outline-none text-[14px] min-w-0"
@@ -145,7 +206,7 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
       </div>
 
       {showPanel && (
-        <div className="absolute left-0 right-0 top-full mt-2 rounded-xl shadow-xl z-50 overflow-hidden max-h-[440px] overflow-y-auto" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
+        <div ref={listRef} className="absolute left-0 right-0 top-full mt-2 rounded-xl shadow-xl z-50 overflow-hidden max-h-[440px] overflow-y-auto" style={{ backgroundColor: 'var(--dropdown-bg)', border: '1px solid var(--dropdown-border)' }}>
 
           {/* Recent searches — with per-item forget and a clear-all */}
           {!hasResults && recents.length > 0 && (
@@ -161,47 +222,59 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
                   {clearing ? 'Clearing…' : 'Clear history'}
                 </button>
               </div>
-              {recents.map((s, i) => (
-                <div
-                  key={`r${i}`}
-                  onClick={() => handleSelect('suggestion', s)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-lg transition-colors text-[13px] cursor-pointer group"
-                  style={{ color: 'var(--text-secondary)' }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <ion-icon name="time-outline" style={{ fontSize: '14px', color: 'var(--text-faint)' }} />
-                  <span className="truncate">{s.query}</span>
-                  <button
-                    onClick={(e) => forgetOne(e, s.query)}
-                    className="ml-auto flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0"
-                    style={{ color: 'var(--text-faint)' }}
-                    title="Remove from history"
+              {recents.map((s, i) => {
+                const active = activeIndex === recentsOffset + i;
+                return (
+                  <div
+                    key={`r${i}`}
+                    data-active={active}
+                    onClick={() => handleSelect('suggestion', s)}
+                    onMouseEnter={() => setActiveIndex(recentsOffset + i)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-lg transition-colors text-[13px] cursor-pointer group"
+                    style={{
+                      color: 'var(--text-secondary)',
+                      backgroundColor: active ? 'var(--bg-hover)' : 'transparent',
+                    }}
                   >
-                    <ion-icon name="close" style={{ fontSize: '12px' }} />
-                  </button>
-                </div>
-              ))}
+                    <ion-icon name="time-outline" style={{ fontSize: '14px', color: 'var(--text-faint)' }} />
+                    <span className="truncate">{s.query}</span>
+                    <button
+                      onClick={(e) => forgetOne(e, s.query)}
+                      className="ml-auto flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0"
+                      style={{ color: 'var(--text-faint)' }}
+                      title="Remove from history"
+                    >
+                      <ion-icon name="close" style={{ fontSize: '12px' }} />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
           {/* Topic suggestions */}
           {!hasResults && topics.length > 0 && (
             <div className="p-2 pt-0">
-              {topics.map((s, i) => (
-                <button
-                  key={`t${i}`}
-                  onClick={() => handleSelect('suggestion', s)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-lg transition-colors text-[13px]"
-                  style={{ color: 'var(--text-secondary)' }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <ion-icon name="pricetag-outline" style={{ fontSize: '14px', color: 'var(--text-faint)' }} />
-                  {s.query}
-                  <span className="ml-auto text-[10px]" style={{ color: 'var(--text-faint)' }}>Topic</span>
-                </button>
-              ))}
+              {topics.map((s, i) => {
+                const active = activeIndex === topicsOffset + i;
+                return (
+                  <button
+                    key={`t${i}`}
+                    data-active={active}
+                    onClick={() => handleSelect('suggestion', s)}
+                    onMouseEnter={() => setActiveIndex(topicsOffset + i)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-lg transition-colors text-[13px]"
+                    style={{
+                      color: 'var(--text-secondary)',
+                      backgroundColor: active ? 'var(--bg-hover)' : 'transparent',
+                    }}
+                  >
+                    <ion-icon name="pricetag-outline" style={{ fontSize: '14px', color: 'var(--text-faint)' }} />
+                    {s.query}
+                    <span className="ml-auto text-[10px]" style={{ color: 'var(--text-faint)' }}>Topic</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -209,53 +282,77 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
           {results.blogs.length > 0 && (
             <div>
               <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>Blogs</p>
-              {results.blogs.map(b => (
-                <button key={b.slugid || b.id} onClick={() => handleSelect('blog', b)} className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <ion-icon name="document-text-outline" style={{ fontSize: '16px', color: 'var(--text-faint)' }} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{b.title || 'Untitled'}</p>
-                    {b.author_username && <p className="text-[11px] truncate" style={{ color: 'var(--text-faint)' }}>by @{b.author_username}</p>}
-                  </div>
-                </button>
-              ))}
+              {results.blogs.map((b, i) => {
+                const active = activeIndex === blogsOffset + i;
+                return (
+                  <button
+                    key={b.slugid || b.id}
+                    data-active={active}
+                    onClick={() => handleSelect('blog', b)}
+                    onMouseEnter={() => setActiveIndex(blogsOffset + i)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
+                    style={{ backgroundColor: active ? 'var(--bg-hover)' : 'transparent' }}
+                  >
+                    <ion-icon name="document-text-outline" style={{ fontSize: '16px', color: 'var(--text-faint)' }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{b.title || 'Untitled'}</p>
+                      {b.author_username && <p className="text-[11px] truncate" style={{ color: 'var(--text-faint)' }}>by @{b.author_username}</p>}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {results.users.length > 0 && (
             <div>
               <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>People</p>
-              {results.users.map(u => (
-                <button key={u.id} onClick={() => handleSelect('user', u)} className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  {u.avatar_url
-                    ? <img src={u.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
-                    : <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-faint)' }}>{(u.display_name || u.username || '?')[0].toUpperCase()}</div>}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{u.display_name || u.username}</p>
-                    <p className="text-[11px] truncate" style={{ color: 'var(--text-faint)' }}>@{u.username}</p>
-                  </div>
-                </button>
-              ))}
+              {results.users.map((u, i) => {
+                const active = activeIndex === usersOffset + i;
+                return (
+                  <button
+                    key={u.id}
+                    data-active={active}
+                    onClick={() => handleSelect('user', u)}
+                    onMouseEnter={() => setActiveIndex(usersOffset + i)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
+                    style={{ backgroundColor: active ? 'var(--bg-hover)' : 'transparent' }}
+                  >
+                    {u.avatar_url
+                      ? <img src={u.avatar_url} alt="" className="w-6 h-6 rounded-full object-cover" />
+                      : <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-faint)' }}>{(u.display_name || u.username || '?')[0].toUpperCase()}</div>}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{u.display_name || u.username}</p>
+                      <p className="text-[11px] truncate" style={{ color: 'var(--text-faint)' }}>@{u.username}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {results.orgs.length > 0 && (
             <div>
               <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>Organizations</p>
-              {results.orgs.map(o => (
-                <button key={o.id} onClick={() => handleSelect('org', o)} className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <ion-icon name="people-outline" style={{ fontSize: '16px', color: 'var(--text-faint)' }} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{o.name}</p>
-                    <p className="text-[11px] truncate" style={{ color: 'var(--text-faint)' }}>@{o.slug}{o.tagline ? ` · ${o.tagline}` : ''}</p>
-                  </div>
-                </button>
-              ))}
+              {results.orgs.map((o, i) => {
+                const active = activeIndex === orgsOffset + i;
+                return (
+                  <button
+                    key={o.id}
+                    data-active={active}
+                    onClick={() => handleSelect('org', o)}
+                    onMouseEnter={() => setActiveIndex(orgsOffset + i)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
+                    style={{ backgroundColor: active ? 'var(--bg-hover)' : 'transparent' }}
+                  >
+                    <ion-icon name="people-outline" style={{ fontSize: '16px', color: 'var(--text-faint)' }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{o.name}</p>
+                      <p className="text-[11px] truncate" style={{ color: 'var(--text-faint)' }}>@{o.slug}{o.tagline ? ` · ${o.tagline}` : ''}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -271,10 +368,11 @@ export default function SearchBar({ defaultQuery = '', autoFocus = false, compac
           <div style={{ borderTop: '1px solid var(--dropdown-border)' }}>
             {query.trim().length >= 2 && (
               <button
+                data-active={activeIndex === allIndex}
                 onClick={() => submitSearch()}
+                onMouseEnter={() => setActiveIndex(allIndex)}
                 className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-left transition-colors"
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                style={{ backgroundColor: activeIndex === allIndex ? 'var(--bg-hover)' : 'transparent' }}
               >
                 <span className="text-[13px] font-medium truncate" style={{ color: 'var(--accent)' }}>
                   See all results for “{query.trim()}”
