@@ -27,8 +27,10 @@ const EXCLUDE_TEST = " AND b.author_id NOT IN (SELECT id FROM users WHERE LOWER(
  */
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-  const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 40);
+  const rawPage = Number.parseInt(searchParams.get('page') || '1', 10);
+  const rawLimit = Number.parseInt(searchParams.get('limit') || '20', 10);
+  const page = Number.isFinite(rawPage) ? Math.min(Math.max(rawPage, 1), 100) : 1;
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 40) : 20;
   const filterType = searchParams.get('filter') || '';
   const filterTag = searchParams.get('tag') || '';
   const offset = (page - 1) * limit;
@@ -90,12 +92,15 @@ export async function GET(request) {
     }
 
     posts = await enrichPosts(db, posts, userId);
+    // hasMore reflects the unmuted page: muting removes rows after paging,
+    // so measuring after filterMuted would end pagination early.
+    const hasMore = posts.length === limit;
     posts = await filterMuted(db, userId, posts);
 
     return NextResponse.json({
       posts,
       page,
-      hasMore: posts.length === limit,
+      hasMore,
     }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     console.error('Feed error:', e?.message || e);
@@ -245,7 +250,7 @@ async function queryRecent(db, limit, offset = 0) {
 
 // ─── Blended feed (3 buckets merged in JS) ───────────────────────────
 async function queryBlended(db, userId, headers, now, limit, offset = 0) {
-  const candidateLimit = Math.min(100, Math.max(40, limit * 3 + offset));
+  const candidateLimit = Math.min(200, Math.max(40, offset + limit * 3));
   const [reposts, following, interests, trending, recent] = await Promise.all([
     queryFollowedReposts(db, userId, now, candidateLimit),
     queryFollowing(db, userId, now, candidateLimit, 0),
@@ -281,7 +286,7 @@ async function queryBlended(db, userId, headers, now, limit, offset = 0) {
 }
 
 async function queryRecommendedAnonymous(db, headers, now, limit, offset) {
-  const candidateLimit = Math.min(120, Math.max(60, limit * 4 + offset));
+  const candidateLimit = Math.min(200, Math.max(60, offset + limit * 4));
   const recent = await queryRecent(db, candidateLimit, 0);
   await attachCandidateTags(db, recent);
   const context = await loadRecommendationContext(db, null, headers);
