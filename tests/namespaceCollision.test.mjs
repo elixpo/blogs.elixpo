@@ -43,8 +43,22 @@ function setup() {
   return { sqlite, db: d1(sqlite) };
 }
 
+// Stub the Accounts username check. `accounts` maps handle -> response body;
+// `null` simulates Accounts being unreachable.
+function stubAccounts(accounts = {}) {
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    const u = new URL(url).searchParams.get('u');
+    calls.push(u);
+    if (accounts[u] === null) throw new Error('network down');
+    return { ok: true, json: async () => accounts[u] ?? { available: true } };
+  };
+  return calls;
+}
+
 test('an org cannot claim a username whose namespace row is missing', { skip }, async () => {
   const { sqlite, db } = setup();
+  stubAccounts();
   const res = await tryReserveName(db, 'salonist', 'org', 'o1');
   assert.equal(res.success, false);
   assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM namespaces').get().n, 0);
@@ -52,11 +66,37 @@ test('an org cannot claim a username whose namespace row is missing', { skip }, 
 
 test('an org rename cannot claim an existing username either', { skip }, async () => {
   const { db } = setup();
+  stubAccounts();
   assert.equal((await reserveName(db, 'Salonist', 'org', 'o1')).success, false);
 });
 
 test('free names and user self-reservations still succeed', { skip }, async () => {
   const { db } = setup();
+  const calls = stubAccounts();
   assert.equal((await tryReserveName(db, 'salonist-hq', 'org', 'o1')).success, true);
   assert.equal((await tryReserveName(db, 'salonist', 'user', 'u1')).success, true);
+  // Users get their name from Accounts itself; only org claims ask Accounts.
+  assert.deepEqual(calls, ['salonist-hq']);
+});
+
+// The real incident: the org was created before the Accounts user's first sign-in.
+test('an org cannot claim an Accounts username that has not joined LixBlogs yet', { skip }, async () => {
+  const { sqlite, db } = setup();
+  stubAccounts({ acme: { available: false, reason: 'That username is taken.' } });
+  const res = await tryReserveName(db, 'acme', 'org', 'o1');
+  assert.deepEqual(res, { success: false, error: 'Taken by an Elixpo account' });
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM namespaces').get().n, 0);
+});
+
+test('org claims fail closed when Accounts cannot answer', { skip }, async () => {
+  const { db } = setup();
+  stubAccounts({ acme: null, beta: { available: false, reason: 'Could not check right now.' } });
+  assert.equal((await tryReserveName(db, 'acme', 'org', 'o1')).success, false);
+  assert.equal((await tryReserveName(db, 'beta', 'org', 'o1')).success, false);
+});
+
+test('names outside the Accounts username format stay available to orgs', { skip }, async () => {
+  const { db } = setup();
+  stubAccounts({ ab: { available: false, reason: 'Username must be at least 3 characters.' } });
+  assert.equal((await tryReserveName(db, 'ab', 'org', 'o1')).success, true);
 });
