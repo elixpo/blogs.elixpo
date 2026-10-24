@@ -2,6 +2,7 @@ export const runtime = "edge";
 
 import { NextResponse } from "next/server";
 import { buildPostsCursor, parsePostsCursor } from "../../../../../lib/postsCursor";
+import { escapeLikePattern } from "../../../../../lib/searchQuery";
 
 /**
  * GET /api/users/[username]/posts
@@ -100,8 +101,8 @@ export async function GET(request, { params }) {
 
         // Text search
         if (query) {
-            baseWhere += " AND (b.title LIKE ? OR b.subtitle LIKE ?)";
-            const like = `%${query}%`;
+            baseWhere += " AND (LOWER(b.title) LIKE ? ESCAPE '\\' OR LOWER(b.subtitle) LIKE ? ESCAPE '\\')";
+            const like = `%${escapeLikePattern(query)}%`;
             binds.push(like, like);
         }
 
