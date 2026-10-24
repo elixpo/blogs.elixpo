@@ -122,12 +122,33 @@ export async function POST(request) {
       }
     }
 
+    // The browser may only publish under an org the caller belongs to. A target
+    // that matches the stored row is allowed for existing collaborators.
+    const storedPublishAs = existing?.published_as || 'personal';
+    const effectivePublishAs = publishAs || storedPublishAs;
+    if (!existing || effectivePublishAs !== storedPublishAs) {
+      const { isBlogOwner, requirePublishTarget } = await import('../../../../lib/api/v1/blogInput');
+      if (existing && !(await isBlogOwner(db, existing, session.userId))) {
+        return NextResponse.json(
+          { error: 'Only the post owner can change the publication target' },
+          { status: 403 },
+        );
+      }
+      try {
+        await requirePublishTarget(db, session.userId, effectivePublishAs, null);
+      } catch (e) {
+        if (e?.name === 'BlogInputError') {
+          return NextResponse.json({ error: e.message }, { status: e.status || 400 });
+        }
+        throw e;
+      }
+    }
+
     // A collection belongs to exactly one org, so it's only valid when the blog
     // is published under that org. Publishing personally — or naming a collection
     // from a different org — clears it. (Co-author access stays blog-scoped either
     // way; filing under a collection never grants org/collection-level rights.)
     let finalCollectionId = null;
-    const effectivePublishAs = publishAs || existing?.published_as || 'personal';
     if (collectionId && effectivePublishAs.startsWith('org:')) {
       const orgId = effectivePublishAs.slice(4);
       const col = await db.prepare('SELECT id FROM collections WHERE id = ? AND org_id = ?')
@@ -138,7 +159,7 @@ export async function POST(request) {
     // Slugs are unique per owner (the URL is /owner/slug), not globally.
     const slugScope = {
       authorId: session.userId,
-      publishAs: existing?.published_as || publishAs || 'personal',
+      publishAs: effectivePublishAs,
     };
     const wantsSlugChange = !!(requestedSlug && requestedSlug.trim());
 
@@ -183,7 +204,7 @@ export async function POST(request) {
           collection_id = ?, status = ?, page_emoji = ?, cover_image_r2_key = ?, cover_pos_x = ?, cover_pos_y = ?, cover_zoom = ?,
           read_time_minutes = ?, secret = ?, member_only = ?, license = ?, language = ?, region = ?, updated_at = ?
       `;
-      const params = [title, subtitle || '', slug, compressedContent, excerpt, publishAs || 'personal',
+      const params = [title, subtitle || '', slug, compressedContent, excerpt, effectivePublishAs,
         finalCollectionId, targetStatus, pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region, now];
 
       if (publishedAt) {
@@ -213,7 +234,7 @@ export async function POST(request) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         slugid, slug, title, subtitle || '', compressedContent, excerpt,
-        session.userId, publishAs || 'personal', finalCollectionId, targetStatus,
+        session.userId, effectivePublishAs, finalCollectionId, targetStatus,
         pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region, now, now,
         (targetStatus === 'published' || targetStatus === 'unlisted') ? now : null
       )];
