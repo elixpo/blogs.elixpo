@@ -11,15 +11,14 @@ export async function GET(request) {
     const data = await kvCache(`v1:tags:popular:v2:${limit}`, 900, async () => {
       const { getDB } = await import('../../../../lib/cloudflare');
       const db = getDB();
-      // Only count tags on posts a signed-out reader can open. Drafts, trash,
-      // secret posts, and paywalled posts must not shape the public tag cloud.
+      // Count exactly the posts the tag page lists (queryByTag in feed/route.js:
+      // published only). Drafts, unlisted and trashed posts must not shape the
+      // public tag cloud; secret and member-only posts are listed there, so
+      // they count here too.
       const result = await db.prepare(`
         SELECT bt.tag, COUNT(*) as count
         FROM blog_tags bt JOIN blogs b ON b.id = bt.blog_id
-        WHERE b.status IN ('published', 'unlisted')
-          AND b.secret = 0
-          AND b.deleted_at IS NULL
-          AND COALESCE(b.member_only, 0) = 0
+        WHERE b.status = 'published' AND b.deleted_at IS NULL
         GROUP BY bt.tag ORDER BY count DESC LIMIT ?
       `).bind(limit).all();
       return { tags: result?.results || [] };
