@@ -663,12 +663,25 @@ function getCustomSlashMenuItems(editor, callbacks = {}) {
             group: "Custom Blocks",
             aliases: ["latex", "math", "equation", "formula", "katex"],
             icon: <Icon d="M4 4l4 16M12 4l4 16M7 8h10M6 16h10" />,
-            onItemClick: () =>
+            onItemClick: () => {
+                const anchor = editor.getTextCursorPosition().block;
                 editor.insertBlocks(
                     [{ type: "blockEquation" }],
-                    editor.getTextCursorPosition().block,
+                    anchor,
                     "after",
-                ),
+                );
+                // The equation editor uses the Mermaid textarea class, so the same
+                // focus helper puts the caret straight into the LaTeX source.
+                const documentBlocks = editor.document;
+                const anchorIndex = documentBlocks.findIndex(
+                    (block) => block.id === anchor.id,
+                );
+                if (anchorIndex >= 0) {
+                    requestMermaidEditorFocus(
+                        documentBlocks[anchorIndex + 1]?.id,
+                    );
+                }
+            },
         },
         {
             title: "Button",

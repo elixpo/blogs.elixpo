@@ -16,7 +16,7 @@ async function canManage(db, blogId, userId) {
   if (!blog) return { allowed: false, blog: null };
   if (blog.author_id === userId) return { allowed: true, blog };
   const coauthor = await db.prepare(
-    "SELECT role FROM blog_co_authors WHERE blog_id = ? AND user_id = ? AND role = 'admin'"
+    "SELECT role FROM blog_co_authors WHERE blog_id = ? AND user_id = ? AND role = 'admin' AND status = 'accepted'"
   ).bind(blogId, userId).first();
   return { allowed: !!coauthor, blog };
 }
