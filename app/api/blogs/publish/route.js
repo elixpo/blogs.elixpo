@@ -5,6 +5,7 @@ import { requestTooLarge, byteLength, MAX_BLOG_CONTENT_BYTES, MAX_TITLE_LEN, MAX
 import { readTimeFromWords } from '../../../../lib/readTime';
 import { BLOG_LICENSES } from '../../../../lib/curatedCollections';
 import { contentDiscoveryMetadata } from '../../../../lib/recommendations';
+import { countBlockWords } from '../../../../lib/api/v1/blogInput';
 
 export async function POST(request) {
   const session = await getSession();
@@ -55,7 +56,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Content too large' }, { status: 413 });
   }
   // Require real content before going public (drafts may be short/empty).
-  if (targetStatus !== 'draft' && countWords(editorContent) < 20) {
+  if (targetStatus !== 'draft' && countBlockWords(editorContent) < 20) {
     return NextResponse.json({ error: 'A post needs at least 20 words before publishing.' }, { status: 400 });
   }
 
@@ -66,7 +67,7 @@ export async function POST(request) {
     const { checkPublishSafety } = await import('../../../../lib/blog-version');
     const db = getDB();
     const now = Math.floor(Date.now() / 1000);
-    const readTime = readTimeFromWords(countWords(editorContent));
+    const readTime = readTimeFromWords(countBlockWords(editorContent));
     const compressedContent = editorContent ? compressBlogContent(editorContent) : '';
     const { excerptFromBlocks } = await import('../../../../lib/excerpt');
     const excerpt = editorContent ? excerptFromBlocks(editorContent) : '';
@@ -347,15 +348,4 @@ function parseEditorContent(content) {
   } catch {
     return content;
   }
-}
-
-function countWords(blocks) {
-  if (!blocks || !Array.isArray(blocks)) return 0;
-  return blocks
-    .map(b => (b.content && Array.isArray(b.content)) ? b.content.map(c => c.text || '').join('') : '')
-    .join(' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .length;
 }
