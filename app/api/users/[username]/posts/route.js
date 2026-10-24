@@ -1,6 +1,7 @@
 export const runtime = "edge";
 
 import { NextResponse } from "next/server";
+import { buildPostsCursor, parsePostsCursor } from "../../../../../lib/postsCursor";
 
 /**
  * GET /api/users/[username]/posts
