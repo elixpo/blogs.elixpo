@@ -8,12 +8,20 @@ export async function GET(request) {
 
   try {
     const { kvCache } = await import('../../../../lib/cache');
-    const data = await kvCache(`v1:tags:popular:${limit}`, 900, async () => {
+    const data = await kvCache(`v1:tags:popular:v2:${limit}`, 900, async () => {
       const { getDB } = await import('../../../../lib/cloudflare');
       const db = getDB();
-      const result = await db.prepare(
-        'SELECT tag, COUNT(*) as count FROM blog_tags GROUP BY tag ORDER BY count DESC LIMIT ?'
-      ).bind(limit).all();
+      // Only count tags on posts a signed-out reader can open. Drafts, trash,
+      // secret posts, and paywalled posts must not shape the public tag cloud.
+      const result = await db.prepare(`
+        SELECT bt.tag, COUNT(*) as count
+        FROM blog_tags bt JOIN blogs b ON b.id = bt.blog_id
+        WHERE b.status IN ('published', 'unlisted')
+          AND b.secret = 0
+          AND b.deleted_at IS NULL
+          AND COALESCE(b.member_only, 0) = 0
+        GROUP BY bt.tag ORDER BY count DESC LIMIT ?
+      `).bind(limit).all();
       return { tags: result?.results || [] };
     });
     return NextResponse.json(data);
