@@ -17,7 +17,11 @@ export async function POST(request) {
   }
 
   const body = await request.json();
-  const { slugid, title, subtitle, tags, publishAs, editorContent, pageEmoji, coverUrl, coverPos, coverZoom, status, lastKnownUpdatedAt, slug: requestedSlug, collectionId, secret, member_only, license: requestedLicense, language, region } = body;
+  const { slugid, title, subtitle, tags, publishAs, editorContent: rawEditorContent, pageEmoji, coverUrl, coverPos, coverZoom, status, lastKnownUpdatedAt, slug: requestedSlug, collectionId, secret, member_only, license: requestedLicense, language, region } = body;
+  // The editor sends its loaded content as a JSON string until the text is
+  // edited. A cover- or icon-only update then counted 0 words and was rejected
+  // as too short, and its excerpt came out empty. Accept both shapes.
+  const editorContent = parseEditorContent(rawEditorContent);
   if (requestedLicense !== undefined && !BLOG_LICENSES.has(requestedLicense)) {
     return NextResponse.json({ error: 'Unsupported content license' }, { status: 400 });
   }
@@ -313,6 +317,15 @@ function generateSlug(title) {
     .replace(/-+/g, '-')
     .slice(0, 80)
     .replace(/^-|-$/g, '');
+}
+
+function parseEditorContent(content) {
+  if (typeof content !== 'string') return content;
+  try {
+    return JSON.parse(content);
+  } catch {
+    return content;
+  }
 }
 
 function countWords(blocks) {
