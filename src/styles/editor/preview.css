@@ -223,7 +223,7 @@ body:has(.preview-back-to-top) .global-scroll-to-top {
   --reader-layout-gap: 48px;
   max-width: 1332px;
   margin: 0 auto;
-  padding: 46px 42px 104px;
+  padding: 16px 42px 104px;
 }
 
 .reader-story-main {
@@ -552,7 +552,7 @@ body:has(.preview-back-to-top) .global-scroll-to-top {
 
 @media (max-width: 639px) {
   .reader-frame {
-    padding: 20px 18px 64px;
+    padding: 12px 18px 64px;
   }
 
   .reader-page .blog-preview-hero {
