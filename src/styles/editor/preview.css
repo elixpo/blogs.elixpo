@@ -1425,3 +1425,47 @@ body:has(.preview-back-to-top) .global-scroll-to-top {
     bottom: 8px;
   }
 }
+
+
+/* ===== Heading Section Anchor Link (#248) ===== */
+.blog-preview-content h1,
+.blog-preview-content h2,
+.blog-preview-content h3,
+.blog-preview-content h4,
+.blog-preview-content h5,
+.blog-preview-content h6 {
+  position: relative;
+}
+
+.preview-heading-anchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  vertical-align: middle;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.blog-preview-content h1:hover .preview-heading-anchor,
+.blog-preview-content h2:hover .preview-heading-anchor,
+.blog-preview-content h3:hover .preview-heading-anchor,
+.blog-preview-content h4:hover .preview-heading-anchor,
+.blog-preview-content h5:hover .preview-heading-anchor,
+.blog-preview-content h6:hover .preview-heading-anchor,
+.preview-heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+.preview-heading-anchor:hover {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
