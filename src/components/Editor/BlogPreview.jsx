@@ -931,14 +931,20 @@ export default function BlogPreview({
         e.preventDefault();
         e.stopPropagation();
         const url = `${window.location.origin}${window.location.pathname}#${id}`;
-        navigator.clipboard.writeText(url);
+        // The hash still lands in the address bar if copying is unavailable or
+        // denied, so the reader can copy it from there; only confirm on success.
         window.history.replaceState(null, '', `#${id}`);
-        linkBtn.innerHTML = checkIcon;
-        linkBtn.style.color = '#4ade80';
-        setTimeout(() => {
-          linkBtn.innerHTML = linkIcon;
-          linkBtn.style.color = '';
-        }, 1500);
+        const copy = navigator.clipboard?.writeText
+          ? navigator.clipboard.writeText(url)
+          : Promise.reject(new Error('Clipboard unavailable'));
+        copy.then(() => {
+          linkBtn.innerHTML = checkIcon;
+          linkBtn.style.color = '#4ade80';
+          setTimeout(() => {
+            linkBtn.innerHTML = linkIcon;
+            linkBtn.style.color = '';
+          }, 1500);
+        }).catch(() => {});
       };
       heading.appendChild(linkBtn);
     });

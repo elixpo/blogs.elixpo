@@ -1435,6 +1435,8 @@ body:has(.preview-back-to-top) .global-scroll-to-top {
 .blog-preview-content h5,
 .blog-preview-content h6 {
   position: relative;
+  /* Land below the 56px sticky app bar when opened via #section links. */
+  scroll-margin-top: 72px;
 }
 
 .preview-heading-anchor {
@@ -1468,4 +1470,11 @@ body:has(.preview-back-to-top) .global-scroll-to-top {
 .preview-heading-anchor:hover {
   background: var(--bg-hover);
   color: var(--accent);
+}
+
+/* Touch screens have no hover, so keep the button visible, just quieter. */
+@media (hover: none) {
+  .preview-heading-anchor {
+    opacity: 0.6;
+  }
 }
