@@ -30,8 +30,7 @@ Workspace packages (this monorepo, licensed under the Elixpo standard / MIT):
 Fonts:
 
   * KaTeX math fonts (bundled with KaTeX)            - SIL OFL 1.1
-  * Lix brand fonts (public/fonts/lix*.*)            - CC-BY-4.0 WITH
-                                                       Oreo-trademarks
+  * Lix brand fonts (public/fonts/lix*.*)            - CC-BY-4.0
   * Google Fonts loaded via the Fonts API
     (Inter, Onest, Funnel Display, et al.)           - SIL OFL 1.1
 
