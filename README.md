@@ -279,18 +279,56 @@ graph TB
 
 <br />
 
-## Running locally
+## Warm-up (no keys)
 
-Copy [`.env.example`](.env.example) to `.env.local` and fill in the values
-before starting the app. Only the **Auth** block is needed to sign in locally;
-every other section is marked optional and only affects its own feature.
-It is the single source for local secrets used by both Next.js and the
-Cloudflare platform proxy. Do not create `.dev.vars`; Wrangler gives that file
-precedence and it can silently shadow `.env.local` with stale values.
+<!-- Commands match .github/workflows/pr-tests.yml (Node 22, npm ci, npm test). -->
+
+You need Node.js 22 (see [`.nvmrc`](.nvmrc)) on Linux, macOS, or Windows via
+WSL. No Elixpo keys, accounts or `.env.local` are needed.
 
 ```bash
-cp .env.example .env.local
-npm install
+npm ci
+npm test
+```
+
+**What works:** installing from the lockfile and the full unit suite
+(`node --test`). Tests set their own throwaway values, so they never read
+configuration. **Expected result:** the summary at the end reports `fail 0`.
+
+**Optional, not yet part of PR CI:** the CLI package has its own suite.
+
+```bash
+cd packages/lixblogs-cli && npm ci && npm test
+```
+
+**Starting the app without keys:** `npm run dev` also starts without
+`.env.local`. It prints a "no keys" warning and ignores the encrypted values in
+the committed `.env`. Public pages are expected to render; sign-in, uploads,
+email and AI features stay off because they need keys. If something asks you
+for a secret, open an issue instead of working around it.
+
+## Configuration and access
+
+This repository keeps configuration encrypted with SOPS. Applicants do not need
+any keys: setup, tests and warm-up tasks run locally without decrypting
+configuration. Once accepted, contributors receive SOPS access scoped to their
+work (for example integration tests or staging), revoked when the programme
+ends. Do not try to decrypt or commit configuration; if setup asks for a
+secret, open an issue.
+
+## Running locally
+
+`npm run dev` works without any configuration (see
+[Warm-up (no keys)](#warm-up-no-keys)). To sign in locally, copy
+[`.env.example`](.env.example) to `.env.local` and fill in the **Auth** block
+with your own Elixpo Accounts OAuth client; every other section is optional
+and only affects its own feature. `.env.local` is the single source for local
+values used by both Next.js and the Cloudflare platform proxy. Do not create
+`.dev.vars`; Wrangler gives that file precedence and it can silently shadow
+`.env.local` with stale values.
+
+```bash
+npm ci
 npm run dev
 ```
 
