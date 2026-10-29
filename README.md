@@ -363,6 +363,40 @@ provide the evidence for individual contributions. See
 **[CONTRIBUTING.md](CONTRIBUTING.md)**, **[GOVERNANCE.md](GOVERNANCE.md)**, and
 our **[Code of Conduct](CODE_OF_CONDUCT.md)** before participating.
 
+## Google Summer of Code 2027
+
+Elixpo is applying to be a mentoring organisation for Google Summer of Code
+2027. Google has not announced the 2027 programme yet, and Elixpo has not been
+accepted. LixBlogs hosts two proposed project ideas:
+
+| Idea | Size | Difficulty | Mentors (primary / backup) |
+| --- | --- | --- | --- |
+| [LixBlogs read-access policy and offline conformance harness](https://gsoc.elixpo.com/ideas/lixblogs-read-access-policy/) | 175 h | Hard | [Divyanshu](https://github.com/divyanshuj91) / [Vivek Yadav](https://github.com/ez-vivek) |
+| [LixBlogs CLI automation contract v1](https://gsoc.elixpo.com/ideas/lixblogs-cli-contract/) | 90 h | Easy | [Divyanshu](https://github.com/divyanshuj91) / [Ayushman Bhattacharya](https://github.com/Circuit-Overtime) |
+
+**How to start**
+
+1. Read the idea page and the programme site at [gsoc.elixpo.com](https://gsoc.elixpo.com).
+2. Run LixBlogs locally by following [Running locally](#running-locally).
+   No keys are needed for this; see "Configuration and access" below.
+3. Read [CONTRIBUTING.md](CONTRIBUTING.md), then pick a small issue from the
+   [issue tracker](https://github.com/elixpo/blogs.elixpo/issues) to learn the
+   codebase and review process.
+
+**Configuration and access**
+
+This repository keeps configuration encrypted with SOPS. Applicants do not need
+any keys: the warm-up tasks and the core of the idea run locally without
+decrypting configuration. Once accepted, contributors receive SOPS access
+scoped to their project (for example for integration tests or staging), which
+is revoked when the programme ends.
+
+Questions go to **gsoc@elixpo.com**. GitHub Discussions for GSoC open once
+Google announces the 2027 dates.
+
+_Google Summer of Code is a programme of Google LLC; Elixpo is applying as a
+mentoring organisation and is not affiliated with or endorsed by Google._
+
 ## Get involved
 
 - 💬 **Join the conversation** in [GitHub Discussions](https://github.com/orgs/elixpo/discussions).
