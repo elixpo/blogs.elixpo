@@ -339,12 +339,19 @@ accepted. LixBlogs hosts two proposed project ideas:
 **How to start**
 
 1. Read the idea page and the programme site at [gsoc.elixpo.com](https://gsoc.elixpo.com).
-2. Run LixBlogs locally by following [Running locally](#running-locally): copy
-   [`.env.example`](.env.example) to `.env.local`; only the Auth block is
-   needed to sign in.
+2. Run LixBlogs locally by following [Running locally](#running-locally).
+   No keys are needed for this; see "Configuration and access" below.
 3. Read [CONTRIBUTING.md](CONTRIBUTING.md), then pick a small issue from the
    [issue tracker](https://github.com/elixpo/blogs.elixpo/issues) to learn the
    codebase and review process.
+
+**Configuration and access**
+
+This repository keeps configuration encrypted with SOPS. Applicants do not need
+any keys: the warm-up tasks and the core of the idea run locally without
+decrypting configuration. Once accepted, contributors receive SOPS access
+scoped to their project (for example for integration tests or staging), which
+is revoked when the programme ends.
 
 Questions go to **gsoc@elixpo.com**. GitHub Discussions for GSoC open once
 Google announces the 2027 dates.
