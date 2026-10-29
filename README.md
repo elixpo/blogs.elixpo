@@ -15,7 +15,7 @@ real-time collaboration, and organizations — all on the edge.
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/elixpo/blogs.elixpo)
 [![npm](https://img.shields.io/npm/v/@elixpo/lixeditor?style=for-the-badge&color=cb3837&logo=npm&logoColor=white&label=@elixpo/lixeditor)](https://www.npmjs.com/package/@elixpo/lixeditor)
 [![VS Code](https://img.shields.io/badge/VS_Code-Extension-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=elixpo.lixeditor)
-[![License](https://img.shields.io/badge/License-See_repository_terms-6b7280?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-6b7280?style=for-the-badge)](LICENSE)
 
 [![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
@@ -358,17 +358,18 @@ mascot marks, `og-image`, and the Lix\* brand fonts under
 
 ## Licensing and official distributions
 
-Read [`LICENSE`](LICENSE), the repository [notice board](LICENSES/NOTICE), and
-applicable third-party notices before reuse. Elixpo is separating future code,
-content, hardware, and trademark policies; this repository must not be treated
-as evidence that every Elixpo project uses one universal license.
+The code is licensed under the [MIT License](LICENSE). Brand and visual assets
+are licensed under [CC-BY-4.0](LICENSES/preferred/CC-BY-4.0). The Elixpo and
+Oreo names, mascot, E-badge, and elixpo.com domains are covered by
+[`TRADEMARKS.md`](TRADEMARKS.md), not by either licence. See also the repository
+[notice board](LICENSES/NOTICE) and third-party notices.
 
 Copyright permissions do not grant permission to impersonate Elixpo or present
 another deployment as the official service. This repository currently ships:
 
-- **npm package `@elixpo/lixeditor`** (from [`packages/lixeditor/`](packages/lixeditor/)) — the published package name on the npm registry is reserved to Elixpo; reuse of the source is governed by this repository's current license and notice.
-- **VS Code Marketplace extension `elixpo.lixeditor`** (publisher `elixpo`, from [`packages/vscode-lixeditor/`](packages/vscode-lixeditor/)) — the Marketplace listing and the `elixpo` publisher identity are reserved to Elixpo; source reuse remains subject to this repository's current terms.
-- **Hosted service `blogs.elixpo.com`** — the official LixBlogs deployment; the brand, deployment, and operational data are reserved, while source reuse is governed by this repository's current terms.
+- **npm package `@elixpo/lixeditor`** (from [`packages/lixeditor/`](packages/lixeditor/)) — the published package name on the npm registry is reserved to Elixpo; the source is MIT and may be reused.
+- **VS Code Marketplace extension `elixpo.lixeditor`** (publisher `elixpo`, from [`packages/vscode-lixeditor/`](packages/vscode-lixeditor/)) — the Marketplace listing and the `elixpo` publisher identity are reserved to Elixpo; the source is MIT.
+- **Hosted service `blogs.elixpo.com`** — the official LixBlogs deployment; the brand, deployment, and operational data are reserved, while the source is MIT.
 
 Developers can use **[`@elixpo/lixeditor`](https://www.npmjs.com/package/@elixpo/lixeditor)** (npm) and the **[LixEditor VS Code extension](https://marketplace.visualstudio.com/items?itemName=elixpo.lixeditor)** in their own projects under MIT.
 
