@@ -1,235 +1,372 @@
+
 #!/usr/bin/env node
 
 /**
- * openai-normalize.js — CCR transformer for any non-Anthropic provider.
+ * openai-normalize.js
  *
- * Originally written for Vertex Gemini's `thought_signature` requirement, the
- * same flatten-and-strip pass is needed for every non-Anthropic model served
- * through an OpenAI-style proxy (Pollinations: kimi, qwen-coder, perplexity-*,
- * glm, gemini, gemini-search, and friends). Each validates OpenAI schema
- * strictly and rejects:
- *   - `content: [{type: 'text', text: '...'}, ...]` structured arrays,
- *   - `cache_control: {type: 'ephemeral'}` markers on text blocks,
- *   - Anthropic-style `tool_use` / `tool_result` blocks in history.
+ * CCR transformer for normalizing conversation messages
+ * sent to non-Anthropic OpenAI-compatible providers.
  *
- * The fix: before the request hits the proxy, collapse every message's
- * content into a plain string and drop cache_control by virtue of the join.
+ * Features:
+ * - Converts structured text blocks into plain strings.
+ * - Removes unsupported cache_control metadata.
+ * - Converts Anthropic tool_use/tool_result exchanges
+ *   into readable conversation history.
+ * - Converts OpenAI tool-call history into user narratives.
+ * - Removes unsupported tool_calls and tool_call_id fields.
+ * - Merges consecutive user messages.
+ * - Preserves native Anthropic formats for Claude models.
  *
- * Rules:
- *   1. Tool exchanges (tool_use → tool_result) become user-role narrative
- *      notes like "Earlier I ran X(args). It returned: Y".
- *   2. Assistant messages that contained ONLY tool_use (no real text) are
- *      dropped entirely — no placeholders to copy.
- *   3. Assistant messages with real text keep that text only; any tool_use
- *      blocks inside are discarded (their context moves to the next user
- *      note).
- *   4. System and user messages with array content are joined to a single
- *      string; cache_control on individual text blocks is dropped in the join.
- *   5. Consecutive user messages are merged so the proxy sees clean alternation.
+ * Supported provider examples:
+ * Gemini, Kimi, Qwen, GLM, Perplexity and other
+ * OpenAI-compatible providers.
  *
- * The current turn's response is untouched; real tool calls still flow.
+ * CCR registration:
  *
- * The filter: SKIP flattening only for models that accept Anthropic-native
- * structured content (real Claude). Everything else gets the flatten pass.
- *
- * CCR contract: `registerTransformerFromConfig` calls `new Ctor(options)`.
- * Register at top-level and reference by name:
- *
- *   {
- *     "transformers": [{"path": "/abs/path/openai-normalize.js"}],
- *     "Providers": [{
- *       "transformer": { "use": ["openai-normalize", "openai", ...] }
- *     }]
- *   }
+ * {
+ *   "transformers": [
+ *     { "path": "/abs/path/openai-normalize.js" }
+ *   ],
+ *   "Providers": [{
+ *     "transformer": {
+ *       "use": ["openai-normalize", "openai"]
+ *     }
+ *   }]
+ * }
  */
 
-// Only SKIP flattening for models we know accept Anthropic-native structured
-// content. Everything else needs the flatten pass.
-const ANTHROPIC_NATIVE_RE = /^claude(-|$)/i;
+'use strict';
 
-function asString(x) {
-    if (x == null) return "";
-    if (typeof x === "string") return x;
+// Only bypass normalization for Claude models.
+const ANTHROPIC_NATIVE_RE = /^claude(?:-|$)/i;
+
+/**
+ * Safely convert values to strings.
+ */
+function asString(value) {
+    if (value == null) return '';
+
+    if (typeof value === 'string') {
+        return value;
+    }
+
     try {
-        return JSON.stringify(x);
+        return JSON.stringify(value);
     } catch {
-        return String(x);
+        return String(value);
     }
 }
 
+/**
+ * Extract readable text from structured content.
+ */
+function extractText(content) {
+    if (content == null) return '';
+
+    if (typeof content === 'string') {
+        return content;
+    }
+
+    if (!Array.isArray(content)) {
+        return asString(content);
+    }
+
+    return content
+        .map(block => {
+            if (!block || typeof block !== 'object') {
+                return asString(block);
+            }
+
+            if (block.type === 'text') {
+                return typeof block.text === 'string'
+                    ? block.text
+                    : '';
+            }
+
+            return '';
+        })
+        .filter(Boolean)
+        .join('\n');
+}
+
+/**
+ * Build an index of tool calls from assistant messages.
+ */
 function buildToolUseIndex(messages) {
     const index = new Map();
-    for (const m of messages) {
-        if (m?.role !== "assistant") continue;
-        if (Array.isArray(m.content)) {
-            for (const b of m.content) {
-                if (b?.type === "tool_use" && b.id) {
-                    index.set(b.id, { name: b.name, input: asString(b.input) });
-                }
-            }
-        } else if (Array.isArray(m.tool_calls)) {
-            for (const tc of m.tool_calls) {
-                if (tc?.id) {
-                    const fn = tc.function || {};
-                    index.set(tc.id, {
-                        name: fn.name,
-                        input: fn.arguments || "{}",
+
+    for (const message of messages) {
+        if (!message || message.role !== 'assistant') {
+            continue;
+        }
+
+        // Anthropic-style tool calls.
+        if (Array.isArray(message.content)) {
+            for (const block of message.content) {
+                if (block?.type === 'tool_use' && block.id) {
+                    index.set(block.id, {
+                        name: block.name || 'unknown',
+                        input: asString(block.input ?? {})
                     });
                 }
             }
         }
+
+        // OpenAI-style tool calls.
+        if (Array.isArray(message.tool_calls)) {
+            for (const toolCall of message.tool_calls) {
+                if (!toolCall?.id) continue;
+
+                const fn = toolCall.function || {};
+
+                index.set(toolCall.id, {
+                    name: fn.name || 'unknown',
+                    input: asString(fn.arguments ?? '{}')
+                });
+            }
+        }
     }
+
     return index;
 }
 
-function toolResultNarrative(toolUseIndex, toolUseId, resultContent) {
-    const tu = toolUseIndex.get(toolUseId);
-    const result = asString(resultContent);
-    return tu
-        ? `Earlier I ran ${tu.name} with ${tu.input}. It returned: ${result}`
-        : `Earlier tool output: ${result}`;
-}
+/**
+ * Convert tool results into readable conversation notes.
+ */
+function toolResultNarrative(index, toolId, resultContent) {
+    const tool = index.get(toolId);
+    const result = extractText(resultContent) ||
+        asString(resultContent);
 
-function narrate(index, toolId, result) {
-    return toolResultNarrative(index, toolId, result);
-}
-
-function isAnthropicModel(model) {
-    return typeof model === "string" && ANTHROPIC_NATIVE_RE.test(model);
-}
-
-function flattenTextBlocks(content) {
-    // Join `[{type:'text',text:'...'}, ...]` into a single string, dropping
-    // any cache_control markers and non-text blocks (images, documents, etc.).
-    if (typeof content === "string") return content;
-    if (!Array.isArray(content)) return asString(content);
-    const parts = [];
-    for (const b of content) {
-        if (b && b.type === "text" && typeof b.text === "string") {
-            parts.push(b.text);
-        }
+    if (tool) {
+        return `Earlier I ran ${tool.name} with ${tool.input}. It returned: ${result}`;
     }
-    return parts.join("\n");
+
+    return `Earlier tool output: ${result}`;
 }
 
-function flattenMessages(messages) {
-    const toolUseIndex = buildToolUseIndex(messages);
-    const out = [];
+/**
+ * Check whether the model supports native Anthropic content.
+ */
+function isAnthropicModel(model) {
+    return typeof model === 'string' &&
+        ANTHROPIC_NATIVE_RE.test(model);
+}
 
-    for (const m of messages) {
-        if (!m || typeof m !== "object") continue;
-        const role = m.role;
+/**
+ * Normalize an individual message.
+ */
+function normalizeMessage(message, toolIndex) {
+    if (!message || typeof message !== 'object') {
+        return null;
+    }
 
-        // System messages: flatten content array, drop cache_control.
-        if (role === "system") {
-            const content = flattenTextBlocks(m.content);
-            if (content) out.push({ role: "system", content });
-            continue;
-        }
+    const role = message.role;
 
-        if (role === "assistant" && Array.isArray(m.content)) {
-            const texts = [];
-            for (const b of m.content) {
-                if (b?.type === "text" && b.text) texts.push(b.text);
-            }
-            if (texts.length > 0) {
-                const content = texts.join("\n");
-                out.push({ role: "assistant", content });
-            }
-            continue;
-        }
-
-        const toolCalls = m.tool_calls;
-        const isToolCallArray = Array.isArray(toolCalls);
-        const hasToolCalls = isToolCallArray && toolCalls.length > 0;
-        if (role === "assistant" && hasToolCalls) {
-            const c = asString(m.content);
-            if (c) out.push({ role: "assistant", content: c });
-            continue;
-        }
-
-        if (role === "assistant") {
-            const c = asString(m.content);
-            if (c) out.push({ role: "assistant", content: c });
-            continue;
-        }
-
-        if (role === "user" && Array.isArray(m.content)) {
+    // System, developer and user messages.
+    if (
+        role === 'system' ||
+        role === 'developer' ||
+        role === 'user'
+    ) {
+        if (Array.isArray(message.content)) {
             const parts = [];
-            for (const b of m.content) {
-                if (b?.type === "text" && b.text) parts.push(b.text);
-                else if (b?.type === "tool_result") {
-                    const toolId = b.tool_use_id;
-                    const result = b.content;
-                    const index = toolUseIndex;
-                    const narrative = narrate(index, toolId, result);
-                    parts.push(narrative);
+
+            for (const block of message.content) {
+                if (!block || typeof block !== 'object') {
+                    continue;
+                }
+
+                if (
+                    block.type === 'text' &&
+                    typeof block.text === 'string'
+                ) {
+                    parts.push(block.text);
+                }
+
+                // Convert Anthropic tool results.
+                else if (block.type === 'tool_result') {
+                    parts.push(
+                        toolResultNarrative(
+                            toolIndex,
+                            block.tool_use_id,
+                            block.content
+                        )
+                    );
                 }
             }
-            if (parts.length > 0) {
-                const content = parts.join("\n");
-                out.push({ role: "user", content });
-            }
-            continue;
+
+            const content = parts.filter(Boolean).join('\n');
+
+            if (!content) return null;
+
+            return {
+                ...message,
+                content
+            };
         }
 
-        if (role === "tool") {
-            const toolId = m.tool_call_id;
-            const result = m.content;
-            out.push({
-                role: "user",
-                content: toolResultNarrative(toolUseIndex, toolId, result),
-            });
-            continue;
-        }
+        const content = extractText(message.content);
 
-        out.push(m);
+        if (!content) return null;
+
+        return {
+            ...message,
+            content
+        };
     }
 
-    const merged = [];
-    for (const m of out) {
-        const last = merged[merged.length - 1];
-        if (last && last.role === "user" && m.role === "user") {
-            last.content = `${last.content}\n${m.content}`;
+    // Assistant messages.
+    if (role === 'assistant') {
+        let content = '';
+
+        if (Array.isArray(message.content)) {
+            content = extractText(message.content);
         } else {
-            merged.push(m);
+            content = extractText(message.content);
+        }
+
+        // Remove tool-only assistant messages.
+        if (!content.trim()) {
+            return null;
+        }
+
+        const normalized = {
+            ...message,
+            content
+        };
+
+        delete normalized.tool_calls;
+        delete normalized.tool_call_id;
+
+        return normalized;
+    }
+
+    // OpenAI-style tool result messages.
+    if (role === 'tool') {
+        return {
+            role: 'user',
+            content: toolResultNarrative(
+                toolIndex,
+                message.tool_call_id,
+                message.content
+            )
+        };
+    }
+
+    // Handle other message roles without changing their structure.
+    return {
+        ...message
+    };
+}
+
+/**
+ * Merge consecutive user messages.
+ */
+function mergeConsecutiveUserMessages(messages) {
+    const merged = [];
+
+    for (const message of messages) {
+        if (!message) continue;
+
+        const previous = merged[merged.length - 1];
+
+        if (
+            previous &&
+            previous.role === 'user' &&
+            message.role === 'user'
+        ) {
+            previous.content = [
+                previous.content,
+                message.content
+            ].filter(Boolean).join('\n');
+
+        } else {
+            merged.push({ ...message });
         }
     }
 
-    for (const m of merged) {
-        if (m && typeof m === "object") {
-            m.tool_calls = undefined;
-            m.tool_call_id = undefined;
-        }
-    }
     return merged;
 }
 
+/**
+ * Normalize the complete message history.
+ */
+function flattenMessages(messages) {
+    const toolIndex = buildToolUseIndex(messages);
+
+    const normalized = messages
+        .map(message => normalizeMessage(message, toolIndex))
+        .filter(Boolean);
+
+    const merged = mergeConsecutiveUserMessages(normalized);
+
+    return merged.map(message => {
+        const result = { ...message };
+
+        delete result.tool_calls;
+        delete result.tool_call_id;
+
+        return result;
+    });
+}
+
+/**
+ * CCR Transformer.
+ */
 class OpenAINormalizeAdapter {
-    constructor(options) {
-        this.name = "openai-normalize";
-        this.options = options || {};
+    constructor(options = {}) {
+        this.name = 'openai-normalize';
+        this.options = options;
     }
 
     async transformRequestIn(request) {
         return this._flatten(request);
     }
+
     async transformRequestOut(request) {
         return this._flatten(request);
     }
 
+    /**
+     * Normalize request messages without mutating
+     * the original request object.
+     */
     _flatten(request) {
-        const body = request?.body ? request.body : request;
-        if (!body || typeof body !== "object") return request;
-        if (!Array.isArray(body.messages)) return request;
-        // Only pass through unchanged for real Claude models; everything else
-        // (kimi, qwen, perplexity, glm, gemini, ...) gets flattened.
+        if (!request || typeof request !== 'object') {
+            return request;
+        }
+
+        const hasBody =
+            request.body &&
+            typeof request.body === 'object' &&
+            !Array.isArray(request.body);
+
+        const body = hasBody ? request.body : request;
+
+        if (!Array.isArray(body.messages)) {
+            return request;
+        }
+
+        // Preserve native Anthropic content for Claude.
         if (isAnthropicModel(body.model)) {
             return request;
         }
 
-        body.messages = flattenMessages(body.messages);
-        return request;
+        const normalizedBody = {
+            ...body,
+            messages: flattenMessages(body.messages)
+        };
+
+        // Preserve the original request wrapper.
+        if (hasBody) {
+            return {
+                ...request,
+                body: normalizedBody
+            };
+        }
+
+        return normalizedBody;
     }
 }
 
