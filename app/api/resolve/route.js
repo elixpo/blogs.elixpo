@@ -319,7 +319,7 @@ export async function GET(request) {
             const user = await db
                 .prepare(`
         SELECT id, username, display_name, designation, bio, avatar_url, banner_r2_key,
-          location, timezone, pronouns, website, company, links, tier, created_at, updated_at
+          location, timezone, pronouns, website, company, links, tier, top_pick_ids, created_at, updated_at
         FROM users WHERE id = ?
       `)
                 .bind(ownerId)
@@ -490,6 +490,14 @@ export async function GET(request) {
                 type: "user",
                 user: {
                     ...user,
+                    top_pick_ids: (() => {
+                        try {
+                            const ids = JSON.parse(user.top_pick_ids || "[]");
+                            return Array.isArray(ids) ? ids.filter((id) => typeof id === "string").slice(0, 3) : [];
+                        } catch {
+                            return [];
+                        }
+                    })(),
                     followers: followerCount?.c || 0,
                     following: followingCount?.c || 0,
                     badges,
