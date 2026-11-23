@@ -388,6 +388,21 @@ const COMMANDS = [
     notes: ['Exports refuse to overwrite an existing file.'],
   },
   {
+    command: 'lixblogs notification list',
+    args: '[--limit <n>] [--cursor <cursor>] [--unread] [--json]',
+    summary: 'List notifications.',
+  },
+  {
+    command: 'lixblogs notification read',
+    args: '<notification-id> [--yes] [--json]',
+    summary: 'Mark one notification as read.',
+  },
+  {
+    command: 'lixblogs notification read --all',
+    args: '--all [--yes] [--json]',
+    summary: 'Mark all notifications as read.',
+  },
+  {
     command: 'lixblogs integrations cloudinary-status',
     args: '[--json]',
     summary: 'Show the Cloudinary connection.',
