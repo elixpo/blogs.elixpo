@@ -265,6 +265,12 @@ export async function POST(request) {
     if (compressedContent && targetStatus !== 'draft') {
       try { const { snapshotVersion } = await import('../../../../lib/blogVersions'); await snapshotVersion(db, slugid, compressedContent, { label: 'published', userId: session.userId }); } catch {}
     }
+    if (targetStatus === 'published' || targetStatus === 'unlisted') {
+      try {
+        const { recordActivationMilestone } = await import('../../../../lib/activation');
+        await recordActivationMilestone(db, session.userId, 'first_publication');
+      } catch {}
+    }
 
     // Refresh both reader-facing discovery caches and the sitemap. This runs for
     // publish, update, unlist, and draft transitions handled by this endpoint.

@@ -71,6 +71,17 @@ export async function PUT(request) {
       normLinks ? JSON.stringify(normLinks) : null, now, session.userId,
     ).run();
 
+    const profile = await db.prepare(`
+      SELECT display_name, designation, bio, avatar_url, banner_r2_key
+      FROM users WHERE id = ?
+    `).bind(session.userId).first();
+    if (profile?.display_name && (profile.designation || profile.bio || profile.avatar_url || profile.banner_r2_key)) {
+      try {
+        const { recordActivationMilestone } = await import('../../../../lib/activation');
+        await recordActivationMilestone(db, session.userId, 'completed_profile');
+      } catch {}
+    }
+
     // Profile metadata and its sitemap last-modified value changed together.
     try {
       const { kvInvalidate, PUBLIC_SITEMAP_CACHE_KEY } = await import('../../../../lib/cache');
