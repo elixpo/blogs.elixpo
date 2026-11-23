@@ -271,8 +271,12 @@ export async function POST(request) {
     try {
       const { invalidateBlogLifecycleCaches } = await import('../../../../lib/api/v1/blogCache');
       const { kvInvalidate, mediaInventoryCacheKey } = await import('../../../../lib/cache');
+      let author = null;
+      try {
+        author = await db.prepare('SELECT username, timezone FROM users WHERE id = ?').bind(session.userId).first();
+      } catch {}
       await Promise.all([
-        invalidateBlogLifecycleCaches(slugid),
+        invalidateBlogLifecycleCaches(slugid, author),
         kvInvalidate(mediaInventoryCacheKey(session.userId)),
       ]);
     } catch {}
