@@ -43,6 +43,7 @@ import { IntegrationsClient } from "../src/api/IntegrationsClient.js";
 import { MediaClient } from "../src/api/MediaClient.js";
 import { CollectionClient } from "../src/api/CollectionClient.js";
 import { ContestClient } from "../src/api/ContestClient.js";
+import { NotificationClient } from "../src/api/NotificationClient.js";
 import { EXIT_CODES, errorEnvelope, normalizeCommand } from "../src/cli/contract.js";
 import { GLOBAL_HELP, commandHelp } from "../src/cli/help.js";
 import {
@@ -87,6 +88,7 @@ import {
 } from "../src/commands/collab/index.js";
 import { skillInspect, skillInstall, skillInstallAll, skillList } from "../src/commands/skill/index.js";
 import { analyticsExport, analyticsQuery } from "../src/commands/analytics/index.js";
+import { notificationList, notificationRead } from "../src/commands/notification/index.js";
 import { cloudinaryDisconnect } from "../src/commands/integrations/cloudinary-disconnect.js";
 import { cloudinaryStatus } from "../src/commands/integrations/cloudinary-status.js";
 import { mediaDelete, mediaGenerate, mediaUpload } from "../src/commands/media/index.js";
@@ -138,6 +140,7 @@ const OPTIONS = {
   mine: { type: "boolean", default: false },
   limit: { type: "string" },
   cursor: { type: "string" },
+  unread: { type: "boolean", default: false },
   range: { type: "string" },
   from: { type: "string" },
   to: { type: "string" },
@@ -638,6 +641,11 @@ const ANALYTICS_COMMANDS = {
   export: analyticsExport,
 };
 
+const NOTIFICATION_COMMANDS = {
+  list: notificationList,
+  read: notificationRead,
+};
+
 const MEDIA_COMMANDS = { generate: mediaGenerate, upload: mediaUpload, delete: mediaDelete };
 const COMMENT_COMMANDS = { list: commentList, add: commentAdd, reply: commentReply, delete: commentDelete };
 const COLLECTION_COMMANDS = {
@@ -902,6 +910,35 @@ async function runAnalytics(opts, _args, action) {
       console.log(successLine(`Exported ${result.rows} rows to ${result.output}.`, colorEnabled()));
       return;
     }
+
+    async function runNotification(opts, args, action) {
+      const context = await authenticatedBlogClient(opts);
+      if (!context) return;
+      const client = new NotificationClient(context.http);
+      const normalized = {
+        ...opts,
+        limit: opts.limit === undefined ? undefined : Number.parseInt(opts.limit, 10),
+      };
+      try {
+        const result = await withProgress(
+          opts,
+          action === 'list' ? 'Loading notifications…' : 'Updating notifications…',
+          () => NOTIFICATION_COMMANDS[action]({ client, id: args[0], options: normalized }),
+        );
+        output(opts, { ok: true, data: result });
+        if (opts.json || opts.quiet) return;
+        if (action === 'list') {
+          for (const row of result.data || []) {
+            console.log(`${row.id}\t${row.read ? 'read' : 'unread'}\t${row.type}\t${row.target?.title || row.target?.url || ''}`);
+          }
+          if (result.meta?.nextCursor) console.log(infoLine(`Next cursor: ${result.meta.nextCursor}`, colorEnabled()));
+        } else {
+          console.log(successLine(opts.all ? 'All notifications marked as read.' : `Notification ${args[0]} marked as read.`, colorEnabled()));
+        }
+      } catch (error) {
+        fail(opts, error, error.status === 401 || error.status === 403 ? EXIT_CODES.AUTH : EXIT_CODES.ERROR);
+      }
+    }
     const payload = result.data;
     console.log(`${payload.scope.label} · ${payload.dimension} · ${payload.range.key}`);
     if (payload.dimension === 'overview') {
@@ -956,6 +993,10 @@ const ROUTES = {
   analytics: Object.fromEntries(Object.keys(ANALYTICS_COMMANDS).map((action) => [
     action,
     (opts, args) => runAnalytics(opts, args, action),
+  ])),
+  notification: Object.fromEntries(Object.keys(NOTIFICATION_COMMANDS).map((action) => [
+    action,
+    (opts, args) => runNotification(opts, args, action),
   ])),
   media: Object.fromEntries(Object.keys(MEDIA_COMMANDS).map((action) => [
     action,
