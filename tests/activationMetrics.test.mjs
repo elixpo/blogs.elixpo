@@ -35,3 +35,10 @@ test('activation conversion safely handles an empty funnel', () => {
   assert.equal(result.firstDraftRate, 0);
   assert.equal(result.firstPublicationRate, 0);
 });
+
+test('the admin funnel counts a signup cohort, not raw milestone events', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const route = await readFile(new URL('../app/api/admin/activation/route.js', import.meta.url), 'utf8');
+  assert.match(route, /JOIN activation_events s ON s\.user_id = e\.user_id AND s\.milestone = 'signup'/);
+  assert.match(route, /WHERE s\.occurred_at >= \?/);
+});
