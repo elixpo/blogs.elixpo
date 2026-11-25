@@ -20,6 +20,6 @@ test('blog lifecycle invalidation also refreshes crawler discovery', async () =>
   const webDelete = await source('app/api/blogs/[slugid]/route.js');
 
   assert.match(lifecycle, /PUBLIC_SITEMAP_CACHE_KEY/);
-  assert.match(webPublish, /invalidateBlogLifecycleCaches\(slugid\)/);
-  assert.match(webDelete, /invalidateBlogLifecycleCaches\(slugid\)/);
+  assert.match(webPublish, /invalidateBlogLifecycleCaches\(slugid\b/);
+  assert.match(webDelete, /invalidateBlogLifecycleCaches\(slugid\b/);
 });
