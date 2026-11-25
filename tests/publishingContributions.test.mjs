@@ -25,6 +25,14 @@ test('graph exposes accessible labels for keyboard and screen-reader users', asy
 
 test('lifecycle invalidation includes the author contribution cache', async () => {
   const cache = await source('lib/api/v1/blogCache.js');
-  assert.match(cache, /v1:contributions:\$\{name\}:UTC/);
-  assert.match(cache, /author\.timezone/);
+  assert.match(cache, /v1:contributions:\$\{name\}:\$\{zone\}/);
+  assert.match(cache, /'UTC'/);
+  // The route keys the cache by the canonical zone, so invalidation must too.
+  assert.match(cache, /normalizeTimezone\(author\.timezone/);
+});
+
+test('a stored zone alias invalidates the same key the route caches under', async () => {
+  const { normalizeTimezone } = await import('../lib/contributions.js');
+  // Accounts can store an alias; the route canonicalises it before keying.
+  assert.equal(normalizeTimezone('Asia/Kolkata'), normalizeTimezone('Asia/Calcutta'));
 });
