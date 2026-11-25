@@ -16,7 +16,8 @@ const SCHEMA = `
   CREATE TABLE users (
     id TEXT PRIMARY KEY, username TEXT NOT NULL, display_name TEXT, designation TEXT, bio TEXT,
     avatar_url TEXT, banner_r2_key TEXT, location TEXT, timezone TEXT, pronouns TEXT,
-    website TEXT, company TEXT, links TEXT, tier TEXT, created_at INTEGER, updated_at INTEGER
+    website TEXT, company TEXT, links TEXT, tier TEXT,
+    account_status TEXT NOT NULL DEFAULT 'active', created_at INTEGER, updated_at INTEGER
   );
   CREATE TABLE orgs (
     id TEXT PRIMARY KEY, slug TEXT NOT NULL, name TEXT, tagline TEXT, description TEXT, bio TEXT,
