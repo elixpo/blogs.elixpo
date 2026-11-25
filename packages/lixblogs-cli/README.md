@@ -167,6 +167,19 @@ Dimensions are `overview`, `timeline`, `posts`, `sources`, `devices`, and
 analytics also requires `lixblogs:organizations:read`. Results are
 aggregate-only, and exports refuse to overwrite an existing file.
 
+### Notifications
+
+```bash
+lixblogs notification list --limit 30 --json
+lixblogs notification list --unread --limit 30 --json
+lixblogs notification read NOTIFICATION_ID --yes --json
+lixblogs notification read --all --yes --json
+```
+
+Notification commands require `lixblogs:notifications:read`. Read-all and
+single-item mutations require explicit confirmation unless automation passes
+`--yes` or `--no-input --json`.
+
 ### Comments and media
 
 ```bash
