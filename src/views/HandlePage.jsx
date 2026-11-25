@@ -677,7 +677,7 @@ function ProfileContent({ username, initialBlogs = [], tags = [], timezone, badg
                                                 className={`max-w-full truncate rounded-full border px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${selected ? "border-[#9b7bf7]/40 bg-[#9b7bf7]/15 text-[#9b7bf7]" : "border-[var(--border-default)] bg-[var(--card-bg)] text-[var(--text-muted)]"}`}
                                                 title={blog.title || "Untitled"}
                                             >
-                                                {selected ? "? " : ""}{blog.title || "Untitled"}
+                                                {selected ? "✓ " : ""}{blog.title || "Untitled"}
                                             </button>
                                         );
                                     })}
