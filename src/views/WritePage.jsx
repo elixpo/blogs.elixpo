@@ -25,6 +25,7 @@ import {
 } from "../utils/mediaUploadQueue";
 import { generateBlogBanner, generatePixelAvatar } from "../utils/pixelAvatar";
 import ContextualTipToast, { emitContextualTip } from "../components/ContextualTipToast";
+import TagComposer from "../components/Editor/TagComposer";
 
 function escapeExportHtml(value) {
     return String(value || "").replace(
@@ -100,29 +101,6 @@ function BufferedSlugInput({ value, disabled, onCommit, onDraftChange }) {
             className="flex-1 min-w-0 bg-transparent outline-none disabled:cursor-not-allowed"
             style={{ color: "var(--text-primary)" }}
             placeholder="my-post"
-        />
-    );
-}
-
-function BufferedTagInput({ onAdd }) {
-    const [value, setValue] = useState("");
-    return (
-        <input
-            type="text"
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            onKeyDown={(event) => {
-                if (event.key !== "Enter") return;
-                event.preventDefault();
-                if (onAdd(value)) setValue("");
-            }}
-            placeholder="Add a tag, press Enter..."
-            className="w-full rounded-lg px-3 py-2 outline-none text-[13px] transition-colors"
-            style={{
-                backgroundColor: "var(--input-bg)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--input-border)",
-            }}
         />
     );
 }
@@ -1891,6 +1869,16 @@ export default function WritePage({ slugid }) {
             }),
         [],
     );
+
+    // Topics are edited in the writing area; close the panel and jump there.
+    const focusTopicComposer = useCallback(() => {
+        setShowPublishPanel(false);
+        requestAnimationFrame(() => {
+            const input = document.getElementById("lix-topic-input");
+            input?.scrollIntoView({ block: "center", behavior: "smooth" });
+            input?.focus({ preventScroll: true });
+        });
+    }, []);
 
     // Count words from blocks (handles both array and JSON string)
     const computeWordCount = useCallback((content) => {
@@ -3679,7 +3667,7 @@ export default function WritePage({ slugid }) {
                                 )
                                 ?.focus()
                         }
-                        onChangeTopics={() => setShowPublishPanel(true)}
+                        onChangeTopics={focusTopicComposer}
                         onRevisionHistory={() => {}}
                         onMoreSettings={() => setShowPublishPanel(true)}
                     />
@@ -4835,6 +4823,14 @@ export default function WritePage({ slugid }) {
                                                 until a slot frees up.
                                             </div>
                                         )}
+                                        {/* Topics live in the writing flow, right under the title. */}
+                                        <TagComposer
+                                            tags={tags}
+                                            onAdd={addTag}
+                                            onRemove={removeTag}
+                                            title={title}
+                                            disabled={roomFull}
+                                        />
                                         <div className="min-h-[60vh] mt-6 pb-[100px] relative">
                                             <BlockNoteEditor
                                                 ref={editorRef}
@@ -5484,37 +5480,42 @@ export default function WritePage({ slugid }) {
                         </p>
                     </div>
 
-                    {/* Tags */}
+                    {/* Topics are edited under the title; the panel shows a summary. */}
                     <div>
-                        <label
-                            className="text-[12px] font-medium mb-2 block"
-                            style={{ color: "var(--text-muted)" }}
-                        >
-                            Tags (up to 5){" "}
+                        <div className="mb-2 flex items-center justify-between">
                             <span
-                                className="font-normal"
+                                className="text-[12px] font-medium"
+                                style={{ color: "var(--text-muted)" }}
+                            >
+                                Topics ({tags.length}/5)
+                            </span>
+                            <button
+                                type="button"
+                                onClick={focusTopicComposer}
+                                className="text-[12px] font-semibold text-[#9b7bf7] hover:underline"
+                            >
+                                {tags.length ? "Edit topics" : "Add topics"}
+                            </button>
+                        </div>
+                        {tags.length ? (
+                            <div className="flex flex-wrap gap-2">
+                                {tags.map((tag) => (
+                                    <span
+                                        key={tag}
+                                        className="px-2.5 py-1 bg-[#9b7bf714] rounded-full text-[12px] text-[#9b7bf7]"
+                                    >
+                                        #{tag}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            <p
+                                className="text-[12px]"
                                 style={{ color: "var(--text-faint)" }}
                             >
-                                — press Enter to attach
-                            </span>
-                        </label>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                            {tags.map((tag) => (
-                                <span
-                                    key={tag}
-                                    className="flex items-center gap-1 px-2.5 py-1 bg-[#9b7bf714] rounded-full text-[12px] text-[#9b7bf7]"
-                                >
-                                    #{tag}
-                                    <button
-                                        onClick={() => removeTag(tag)}
-                                        className="text-[#9b7bf780] hover:text-[#9b7bf7] ml-0.5 text-[10px]"
-                                    >
-                                        &times;
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                        {tags.length < 5 && <BufferedTagInput onAdd={addTag} />}
+                                No topics yet. Topics help readers find your story.
+                            </p>
+                        )}
                     </div>
 
                     {/* Competitive publishing — only the owner may enter the blog. */}
