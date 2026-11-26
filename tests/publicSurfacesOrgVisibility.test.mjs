@@ -11,7 +11,7 @@ test('all three public surfaces exclude private org posts in their SQL queries',
 
   const predicate = /\(o\.id IS NULL OR LOWER\(COALESCE\(o\.visibility, 'public'\)\) != 'private'\)/;
 
-  assert.match(feedXml, predicate, 'feed.xml must exclude private orgs');
+  assert.match(feedXml, /indexableBlogSql\(/, 'feed.xml must use the shared indexability rule (excludes private orgs)');
   assert.match(tagPage, predicate, 'tag page must exclude private orgs');
   assert.match(searchBlogs, predicate, 'search blogs must exclude private orgs');
 });
