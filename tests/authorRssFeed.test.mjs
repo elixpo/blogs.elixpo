@@ -24,7 +24,7 @@ const SCHEMA = `
   );
   CREATE TABLE orgs (id TEXT PRIMARY KEY, slug TEXT NOT NULL, visibility TEXT);
   CREATE TABLE collections (id TEXT PRIMARY KEY, org_id TEXT, slug TEXT);
-  CREATE TABLE blogs (
+  CREATE TABLE blogs ( canonical_url TEXT,
     id TEXT PRIMARY KEY, slug TEXT NOT NULL, title TEXT, subtitle TEXT, excerpt TEXT,
     author_id TEXT NOT NULL, published_as TEXT, collection_id TEXT,
     status TEXT NOT NULL, secret INTEGER NOT NULL DEFAULT 0, deleted_at INTEGER,

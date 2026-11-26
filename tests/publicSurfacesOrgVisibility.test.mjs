@@ -48,7 +48,7 @@ function setupDb() {
       name TEXT NOT NULL
     );
 
-    CREATE TABLE blogs (
+    CREATE TABLE blogs ( canonical_url TEXT,
       id TEXT PRIMARY KEY,
       slug TEXT NOT NULL,
       title TEXT NOT NULL,

@@ -107,7 +107,7 @@ function setupSqlite() {
       name TEXT NOT NULL,
       visibility TEXT
     );
-    CREATE TABLE blogs (
+    CREATE TABLE blogs ( canonical_url TEXT,
       id TEXT PRIMARY KEY,
       slug TEXT NOT NULL,
       author_id TEXT NOT NULL,

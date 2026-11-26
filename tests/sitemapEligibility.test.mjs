@@ -17,7 +17,7 @@ const SCHEMA = `
   CREATE TABLE users (id TEXT PRIMARY KEY, username TEXT NOT NULL, updated_at INTEGER);
   CREATE TABLE orgs (id TEXT PRIMARY KEY, slug TEXT NOT NULL, name TEXT NOT NULL, visibility TEXT, updated_at INTEGER);
   CREATE TABLE collections (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, slug TEXT NOT NULL, name TEXT NOT NULL, created_at INTEGER);
-  CREATE TABLE blogs (
+  CREATE TABLE blogs ( canonical_url TEXT,
     id TEXT PRIMARY KEY, slug TEXT NOT NULL, author_id TEXT NOT NULL,
     published_as TEXT, collection_id TEXT, status TEXT NOT NULL DEFAULT 'draft',
     secret INTEGER NOT NULL DEFAULT 0, deleted_at INTEGER, member_only INTEGER NOT NULL DEFAULT 0,
