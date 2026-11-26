@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { filterShortcutGroups } from '../../utils/shortcutSearch';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform);
 const modifier = isMac ? '⌘' : 'Ctrl';
@@ -58,8 +59,12 @@ const SHORTCUT_GROUPS = [
 
 export default function KeyboardShortcutsModal({ onClose }) {
   const ref = useRef(null);
+  const searchRef = useRef(null);
+  const [query, setQuery] = useState('');
+  const groups = useMemo(() => filterShortcutGroups(SHORTCUT_GROUPS, query), [query]);
 
   useEffect(() => {
+    searchRef.current?.focus();
     function handleKey(e) {
       if (e.key === 'Escape') onClose();
     }
@@ -75,63 +80,101 @@ export default function KeyboardShortcutsModal({ onClose }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div className="lix-shortcuts-backdrop fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
       <div
         ref={ref}
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-[520px] max-h-[80vh] rounded-2xl shadow-2xl overflow-hidden"
-        style={{ backgroundColor: 'var(--card-bg)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-lg)' }}
+        aria-labelledby="lix-shortcuts-title"
+        className="lix-shortcuts-panel w-full max-w-[560px] max-h-[82vh] overflow-hidden rounded-2xl"
+        style={{
+          backgroundColor: 'var(--card-bg)',
+          border: '1px solid color-mix(in srgb, var(--accent) 22%, var(--border-default))',
+          boxShadow: '0 24px 64px rgba(15, 10, 35, 0.28), 0 4px 16px color-mix(in srgb, var(--accent) 14%, transparent)',
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--divider)' }}>
-          <div className="flex items-center gap-2.5">
-            <ion-icon name="keypad-outline" style={{ fontSize: '18px', color: '#9b7bf7' }} />
-            <h2 className="text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>Keyboard Shortcuts</h2>
+        <div className="px-6 pt-5 pb-4" style={{ borderBottom: '1px solid var(--divider)' }}>
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)]">
+                <ion-icon name="keypad-outline" style={{ fontSize: '18px' }} />
+              </span>
+              <div>
+                <h2 id="lix-shortcuts-title" className="text-[16px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>Keyboard shortcuts</h2>
+                <p className="text-[12px]" style={{ color: 'var(--text-faint)' }}>Write faster without leaving the keyboard</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close keyboard shortcuts"
+              className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+              style={{ color: 'var(--text-faint)' }}
+            >
+              <ion-icon name="close-outline" style={{ fontSize: '18px' }} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close keyboard shortcuts"
-            className="transition-colors p-1"
-            style={{ color: 'var(--text-faint)' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          <label className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
+            <ion-icon name="search-outline" style={{ fontSize: '15px', color: 'var(--text-faint)' }} />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Find a shortcut…"
+              aria-label="Find a shortcut"
+              className="w-full bg-transparent text-[13px] outline-none"
+              style={{ color: 'var(--text-primary)' }}
+            />
+          </label>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(80vh-60px)] p-6 space-y-6 scrollbar-thin">
-          {SHORTCUT_GROUPS.map((group) => (
-            <div key={group.title}>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider mb-3" style={{ color: '#9b7bf7' }}>{group.title}</h3>
-              <div className="space-y-1">
+        <div className="overflow-y-auto max-h-[calc(82vh-130px)] px-6 py-5 space-y-5 scrollbar-thin">
+          {groups.length === 0 && (
+            <p className="py-6 text-center text-[13px]" style={{ color: 'var(--text-faint)' }}>No shortcut matches “{query}”.</p>
+          )}
+          {groups.map((group) => (
+            <section key={group.title}>
+              <h3 className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">{group.title}</h3>
+              <div className="rounded-xl p-1" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
                 {group.shortcuts.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13px]" style={{ color: 'var(--text-body)' }}>{s.desc}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
+                  <div key={i} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-[var(--bg-hover)]">
+                    <span className="text-[13.5px]" style={{ color: 'var(--text-body)' }}>{s.desc}</span>
+                    <span className="flex shrink-0 items-center gap-1">
                       {s.keys.map((key, j) => (
-                        <span key={j}>
-                          {j > 0 && <span className="text-[10px] mx-0.5" style={{ color: 'var(--text-faint)' }}>+</span>}
+                        <span key={j} className="flex items-center gap-1">
+                          {j > 0 && <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>+</span>}
                           <kbd
-                            className="inline-block min-w-[24px] text-center px-1.5 py-0.5 text-[11px] font-medium rounded-md"
-                            style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
+                            className="inline-block min-w-[26px] rounded-md px-1.5 py-0.5 text-center font-mono text-[11.5px] font-semibold"
+                            style={{
+                              color: 'var(--text-secondary)',
+                              backgroundColor: 'var(--card-bg)',
+                              border: '1px solid var(--border-default)',
+                              borderBottomWidth: '2px',
+                            }}
                           >
                             {key}
                           </kbd>
                         </span>
                       ))}
-                    </div>
+                    </span>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
       </div>
+      <style jsx>{`
+        .lix-shortcuts-backdrop { animation: lix-shortcuts-fade 160ms ease-out; }
+        .lix-shortcuts-panel { animation: lix-shortcuts-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.15); }
+        @keyframes lix-shortcuts-fade { from { opacity: 0; } }
+        @keyframes lix-shortcuts-pop { from { opacity: 0; transform: translateY(10px) scale(0.97); } }
+        @media (prefers-reduced-motion: reduce) {
+          .lix-shortcuts-backdrop, .lix-shortcuts-panel { animation: none; }
+        }
+      `}</style>
     </div>
   );
 }

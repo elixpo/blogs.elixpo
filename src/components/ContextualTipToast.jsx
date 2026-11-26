@@ -17,6 +17,7 @@ const EVENT_COOLDOWN_MS = 90_000;
 const REPEAT_AFTER_MS = 30 * 86_400_000;
 const MAX_PER_SESSION = 3;
 const TIP_SNOOZE_MS = 7 * 86_400_000;
+const TIP_VISIBLE_MS = 11_000;
 const STAGE_LABELS = {
   guest: 'Quick tip',
   newcomer: 'Getting started',
@@ -287,6 +288,11 @@ export default function ContextualTipToast() {
   const [tip, setTip] = useState(null);
   const [tipsPaused, setTipsPaused] = useState(false);
   const hideTimerRef = useRef(null);
+  // Remaining visible time; the countdown pauses while the tip is hovered or
+  // focused so it never disappears mid-read.
+  const remainingRef = useRef(TIP_VISIBLE_MS);
+  const deadlineRef = useRef(0);
+  const [held, setHeld] = useState(false);
 
   const showTip = useCallback((candidate, { eventDriven = false, manual = false } = {}) => {
     if (!candidate || !matchesProfile(candidate, stage) || document.visibilityState === 'hidden' || (!manual && sessionCount() >= MAX_PER_SESSION)) return;
@@ -309,8 +315,28 @@ export default function ContextualTipToast() {
     setTipsPaused(Number(state.snoozedUntil || 0) > now);
     const mood = contextualMood(pathname, { eventDriven, manual });
     setTip({ ...candidate, mood: mood.name, presentation: candidate.presentation || mood.presentation });
-    hideTimerRef.current = setTimeout(() => setTip(null), 11_000);
+    remainingRef.current = TIP_VISIBLE_MS;
+    deadlineRef.current = Date.now() + TIP_VISIBLE_MS;
+    setHeld(false);
+    hideTimerRef.current = setTimeout(() => setTip(null), TIP_VISIBLE_MS);
   }, [pathname, stage]);
+
+  const holdTip = useCallback(() => {
+    if (!deadlineRef.current) return;
+    clearTimeout(hideTimerRef.current);
+    remainingRef.current = Math.max(1_500, deadlineRef.current - Date.now());
+    deadlineRef.current = 0;
+    setHeld(true);
+  }, []);
+
+  const releaseTip = useCallback((event) => {
+    // Moving focus between the tip's own buttons is not leaving it.
+    if (event?.relatedTarget && event.currentTarget.contains(event.relatedTarget)) return;
+    if (deadlineRef.current) return;
+    deadlineRef.current = Date.now() + remainingRef.current;
+    setHeld(false);
+    hideTimerRef.current = setTimeout(() => setTip(null), remainingRef.current);
+  }, []);
 
   useEffect(() => {
     const state = readState();
@@ -381,6 +407,11 @@ export default function ContextualTipToast() {
       }}
       role="status"
       aria-live="polite"
+      data-held={held ? 'true' : undefined}
+      onMouseEnter={holdTip}
+      onMouseLeave={releaseTip}
+      onFocusCapture={holdTip}
+      onBlurCapture={releaseTip}
     >
       <span aria-hidden="true" className="contextual-tip-glow pointer-events-none absolute -left-8 -top-10 h-24 w-24 rounded-full bg-[var(--accent)] opacity-[0.1] blur-2xl" />
       <div className="relative flex items-start gap-3.5 pr-7">
@@ -388,19 +419,19 @@ export default function ContextualTipToast() {
           <ion-icon name={tip.icon || 'bulb-outline'} style={{ fontSize: '20px' }} />
         </span>
         <div className="min-w-0">
-          <p className="mb-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
+          <p className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent)]">
             <span className="contextual-tip-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> {MOOD_LABELS[tip.mood] || STAGE_LABELS[stage]}
           </p>
-          <p className="text-[13px] font-bold leading-tight text-[var(--text-primary)]">{tip.title}</p>
-          <p className="mt-1 text-[12px] leading-[1.5] text-[var(--text-muted)]">{tip.message}</p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <p className="text-[15px] font-bold leading-snug text-[var(--text-primary)]">{tip.title}</p>
+          <p className="mt-1 text-[13.5px] leading-[1.55] text-[var(--text-muted)]">{tip.message}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             {tip.href && (
-              <Link href={tip.href} onClick={() => setTip(null)} className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-subtle)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--accent)] transition hover:-translate-y-px hover:bg-[var(--bg-hover)]">
-                {tip.action || 'Try it'} <ion-icon name="arrow-forward-outline" style={{ fontSize: '12px' }} />
+              <Link href={tip.href} onClick={() => setTip(null)} className="contextual-tip-cta inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-bold text-white shadow-sm transition hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]" style={{ background: 'linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)' }}>
+                {tip.action || 'Try it'} <ion-icon name="arrow-forward-outline" style={{ fontSize: '13px' }} />
               </Link>
             )}
-            <button type="button" onClick={toggleTipPause} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-faint)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-muted)]">
-              <ion-icon name={tipsPaused ? 'play-outline' : 'time-outline'} style={{ fontSize: '12px' }} />
+            <button type="button" onClick={toggleTipPause} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[12px] font-semibold text-[var(--text-faint)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]">
+              <ion-icon name={tipsPaused ? 'play-outline' : 'time-outline'} style={{ fontSize: '13px' }} />
               {tipsPaused ? 'Resume tips' : 'Pause for 7 days'}
             </button>
           </div>
@@ -422,6 +453,7 @@ export default function ContextualTipToast() {
         .contextual-tip-glow { animation: contextual-tip-glow 900ms 180ms ease-out both; }
         .contextual-tip-dot { animation: contextual-tip-dot 1.8s ease-in-out 2; }
         .contextual-tip-progress { animation: contextual-tip-progress 11s linear both; }
+        .contextual-tip[data-held='true'] .contextual-tip-progress { animation-play-state: paused; opacity: 0.35; }
         @keyframes contextual-tip-in {
           from { opacity: 0; transform: translateY(-14px) scale(0.96); }
           to { opacity: 1; transform: translateY(0) scale(1); }
