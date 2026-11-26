@@ -4640,12 +4640,12 @@ export default function WritePage({ slugid }) {
                                                         e.preventDefault();
                                                 }}
                                                 placeholder="Blog title..."
-                                                className={`w-full bg-transparent text-[2em] font-extrabold outline-none placeholder-[var(--text-faint)] mb-1 leading-tight resize-none overflow-hidden min-h-[1.2em] ${aiTitleKey > 0 ? "text-transparent" : ""}`}
+                                                className={`w-full bg-transparent text-[32px] sm:text-[40px] font-extrabold outline-none placeholder-[var(--text-faint)] mb-1 leading-tight resize-none overflow-hidden min-h-[1.2em] ${aiTitleKey > 0 ? "text-transparent" : ""}`}
                                                 rows={1}
                                             />
                                             {aiTitleKey > 0 && title && (
                                                 <div
-                                                    className="absolute inset-0 pointer-events-none text-[2em] font-extrabold leading-tight flex flex-wrap items-start"
+                                                    className="absolute inset-0 pointer-events-none text-[32px] sm:text-[40px] font-extrabold leading-tight flex flex-wrap items-start"
                                                     key={aiTitleKey}
                                                 >
                                                     {title
