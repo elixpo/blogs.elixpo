@@ -324,6 +324,10 @@ jobs:
     uses: elixpo/agent.elixpo/.github/workflows/deploy-cloudflare-pages.yml@main
     with:
       project-name: lixblogs
+      # Apply pending D1 migrations before the new build goes live. #603 moved
+      # this job to the shared workflow without this input, so 0055/0056 never
+      # ran and every user profile and personal post failed to resolve.
+      d1-database: lixblogs
       build-command: npm run pages:build
       output-directory: .vercel/output/static
       branch: main
