@@ -1187,6 +1187,7 @@ function HandlePageInner({ path, initialData = null }) {
                                 blog.published_as === `org:${STAFF_ORG_ID}`
                             }
                             publishedAt={blog.published_at}
+                            moderationStatus={blog.moderation_status}
                             hideHighlights={hideHighlights}
                             followSlot={
                                 !isAuthor ? (

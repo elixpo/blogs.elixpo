@@ -33,6 +33,7 @@ const SCHEMA = `
     member_only INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'draft', published_as TEXT,
     page_emoji TEXT, read_time_minutes INTEGER, published_at INTEGER, created_at INTEGER, updated_at INTEGER,
     author_id TEXT NOT NULL, secret INTEGER NOT NULL DEFAULT 0, deleted_at INTEGER, collection_id TEXT,
+    moderation_score REAL, moderation_status TEXT, moderation_reason TEXT, moderation_evaluated_at INTEGER,
     like_count INTEGER, comment_count INTEGER
   );
   CREATE TABLE blog_tags (blog_id TEXT NOT NULL, tag TEXT NOT NULL, PRIMARY KEY (blog_id, tag));

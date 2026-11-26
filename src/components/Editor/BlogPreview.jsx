@@ -412,7 +412,7 @@ function renderBlocksToHTML(blocks) {
 }
 
 export default function BlogPreview({
-  paywalled = false, title, subtitle, coverPreview, coverZoom, coverPos, pageEmoji, tags, html, blocks, user, org, coAuthorCount, coAuthors = [], wordCount, followSlot = null, memberOnly = false, featured = false, publishedAt = null, headerActions = null, hideHighlights = false, readTimeMinutes = 0, anonymous = false, readerMode = false, readerAside = null }) {
+  paywalled = false, title, subtitle, coverPreview, coverZoom, coverPos, pageEmoji, tags, html, blocks, user, org, coAuthorCount, coAuthors = [], wordCount, followSlot = null, memberOnly = false, featured = false, publishedAt = null, moderationStatus = null, headerActions = null, hideHighlights = false, readTimeMinutes = 0, anonymous = false, readerMode = false, readerAside = null }) {
   const { isDark } = useTheme();
   const contentRef = useRef(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -1114,6 +1114,26 @@ export default function BlogPreview({
               <ion-icon name="ribbon-outline" style={{ fontSize: '14px', color: '#9b7bf7' }} /> Featured
             </span>
           )}
+        </div>
+      )}
+
+      {readerMode && ['Unsafe-Medium', 'Unsafe-High'].includes(moderationStatus) && (
+        <div
+          role="note"
+          aria-label="Content advisory"
+          className="mb-4 rounded-lg border px-4 py-3 text-sm"
+          style={{
+            borderColor: moderationStatus === 'Unsafe-High' ? 'var(--warning, #d97706)' : 'var(--border-default)',
+            color: 'var(--text-body)',
+            backgroundColor: moderationStatus === 'Unsafe-High' ? 'rgba(217, 119, 6, 0.08)' : 'var(--bg-elevated)',
+          }}
+        >
+          <strong className="block mb-1">
+            {moderationStatus === 'Unsafe-High' ? 'Content warning' : 'Content advisory'}
+          </strong>
+          {moderationStatus === 'Unsafe-High'
+            ? 'This story may contain mature, sensitive, or high-risk material. Reader discretion is advised.'
+            : 'This story may include sensitive themes. Reader discretion is advised.'}
         </div>
       )}
 
