@@ -2812,7 +2812,12 @@ export default function WritePage({ slugid }) {
                     body: JSON.stringify({ blogId }),
                     keepalive: true,
                 }).catch(() => {});
-                window.location.replace(destination);
+                // Only the publisher's own landing carries the flag; the URL shared
+                // with collaborators above stays clean. The reader page strips it.
+                const flag = isPublished ? "updated" : "new";
+                window.location.replace(
+                    `${destination}${destination.includes("?") ? "&" : "?"}published=${flag}`,
+                );
                 return;
             }
 

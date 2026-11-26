@@ -12,6 +12,7 @@ import { FollowToggle } from "../components/BlogFollowButtons";
 import ReaderCompanion from "../components/ReaderCompanion";
 import ReadingResumePrompt from "../components/ReadingResumePrompt";
 import BlogInteractionBar from "../components/BlogInteractionBar";
+import PublishedShareModal from "../components/PublishedShareModal";
 import BlogInviteOverlay from "../components/BlogInviteOverlay";
 import BlogRecommendations from "../components/BlogRecommendations";
 import RevisionTimeline from "../components/RevisionTimeline";
@@ -1085,6 +1086,7 @@ function HandlePageInner({ path, initialData = null }) {
 
         return (
             <AppShell showSidebar={false}>
+                <PublishedShareModal title={blog.title} enabled={Boolean(canEdit)} />
                 <main className="reader-page w-full">
                 <div className="reader-frame w-full overflow-x-hidden">
                     <nav className="reader-context" aria-label="Story context">
