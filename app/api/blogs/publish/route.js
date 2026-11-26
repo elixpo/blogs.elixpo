@@ -61,10 +61,11 @@ export async function POST(request) {
   }
 
   try {
-    const { getDB } = await import('../../../../lib/cloudflare');
+    const { getDB, getEnv } = await import('../../../../lib/cloudflare');
     const { ensureUniqueBlogSlug } = await import('../../../../lib/namespace');
     const { compressBlogContent } = await import('../../../../lib/compress');
     const { checkPublishSafety } = await import('../../../../lib/blog-version');
+    const { canPublishModeratedContent, moderateBlogContent } = await import('../../../../lib/contentModeration');
     const db = getDB();
     const now = Math.floor(Date.now() / 1000);
     const readTime = readTimeFromWords(countBlockWords(editorContent));
@@ -199,7 +200,28 @@ export async function POST(request) {
           }, { status: 409 });
         }
       }
+    }
 
+    let moderation = null;
+    if (targetStatus !== 'draft') {
+      moderation = await moderateBlogContent({
+        title,
+        subtitle,
+        content: editorContent,
+        coverUrl: storedCover,
+      }, { apiKey: getEnv().POLLINATIONS_API_KEY || '' });
+      if (moderation.status === 'Unavailable') {
+        console.error('Blog content moderation unavailable:', moderation.error);
+      }
+      if (!canPublishModeratedContent(moderation.status)) {
+        return NextResponse.json({
+          error: 'This post was not published because it was classified as Unsafe-Very-High. Review the content and try again.',
+          moderation: { score: moderation.score, status: moderation.status },
+        }, { status: 422 });
+      }
+    }
+
+    if (existing) {
       const publishedAt = (targetStatus === 'published' || targetStatus === 'unlisted')
         ? (existing.status === 'draft' ? now : null)
         : null;
@@ -207,10 +229,13 @@ export async function POST(request) {
       let query = `
         UPDATE blogs SET title = ?, subtitle = ?, slug = ?, content = ?, excerpt = ?, published_as = ?,
           collection_id = ?, status = ?, page_emoji = ?, cover_image_r2_key = ?, cover_pos_x = ?, cover_pos_y = ?, cover_zoom = ?,
-          read_time_minutes = ?, secret = ?, member_only = ?, license = ?, language = ?, region = ?, updated_at = ?
+          read_time_minutes = ?, secret = ?, member_only = ?, license = ?, language = ?, region = ?,
+          moderation_score = ?, moderation_status = ?, moderation_reason = ?, moderation_evaluated_at = ?, updated_at = ?
       `;
       const params = [title, subtitle || '', slug, compressedContent, excerpt, effectivePublishAs,
-        finalCollectionId, targetStatus, pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region, now];
+        finalCollectionId, targetStatus, pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense,
+        discovery.language, discovery.region, moderation?.score ?? null, moderation?.status ?? null,
+        moderation?.reason ?? null, moderation?.evaluatedAt ?? null, now];
 
       if (publishedAt) {
         query += ', published_at = ?';
@@ -235,12 +260,14 @@ export async function POST(request) {
       // Create and publish in one step
       const statements = [db.prepare(`
         INSERT INTO blogs (id, slug, title, subtitle, content, excerpt, author_id, published_as, collection_id, status,
-          page_emoji, cover_image_r2_key, cover_pos_x, cover_pos_y, cover_zoom, read_time_minutes, secret, member_only, license, language, region, created_at, updated_at, published_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          page_emoji, cover_image_r2_key, cover_pos_x, cover_pos_y, cover_zoom, read_time_minutes, secret, member_only, license, language, region,
+          moderation_score, moderation_status, moderation_reason, moderation_evaluated_at, created_at, updated_at, published_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         slugid, slug, title, subtitle || '', compressedContent, excerpt,
         session.userId, effectivePublishAs, finalCollectionId, targetStatus,
-        pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region, now, now,
+        pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region,
+        moderation?.score ?? null, moderation?.status ?? null, moderation?.reason ?? null, moderation?.evaluatedAt ?? null, now, now,
         (targetStatus === 'published' || targetStatus === 'unlisted') ? now : null
       )];
       if (normalizedTags) {
@@ -320,6 +347,7 @@ export async function POST(request) {
       slugid,
       slug,
       status: targetStatus,
+      moderation: moderation ? { score: moderation.score, status: moderation.status } : null,
       updatedAt: now,
       url,
     });

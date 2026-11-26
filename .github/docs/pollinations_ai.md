@@ -77,6 +77,10 @@ Generate text responses using AI models. Fully compatible with the OpenAI Chat C
 
 **Available models:** openai, openai-fast, gpt-oss, gpt-5.4, gpt-5.4-mini, openai-large, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, mercury, command-a-plus, qwen-coder, mistral-small-3.2, mistral, openai-audio, openai-audio-large, gemini-3-flash, gemini, gemini-flash-lite-3.5, gemini-fast, deepseek, gemma, gemma-4-31b, deepseek-pro, grok, grok-4-20-reasoning, grok-large, grok-4.5, gemini-search, gemini-search-fast, gemini-search-large, midijourney, midijourney-large, claude-fast, claude, claude-sonnet-5, claude-opus-4.6, claude-opus-4.7, claude-large, claude-fable-5, perplexity-fast, perplexity-high, perplexity, perplexity-reasoning, kimi, kimi-code, kimi-k3, laguna, longcat, inkling, nemotron, mimo-v2.5, mimo-v2.5-pro, gemini-large, nova-fast, nova, glm, llama, llama-maverick, llama-scout, minimax-m2.7, minimax, muse-spark-1.1, mistral-large, qwen-coder-large, qwen-large, qwen3.7-max, qwen3.7-flash, qwen-vision, qwen-vision-pro, step-flash, step-3.5-flash, qwen-safety
 
+### Blog publishing moderation
+
+The blog publish endpoint can use `qwen-safety` to score article text and attached images. Configure `POLLINATIONS_API_KEY` as a server-side Cloudflare Pages secret; never expose it to client code. If the key is missing or the upstream request fails, publication continues and the moderation status is recorded as `Unavailable`.
+
 ### Prompt caching
 
 On Gemini, Claude, and Nova models, a large static prompt prefix can be cached so repeat requests bill it at a fraction of the input rate. Mark the end of the static prefix with `cache_control` on a content block (not on the message); everything before the marker must be byte-identical across requests, everything dynamic goes after. The first request creates the cache (`usage` reports `cache_creation_input_tokens`); repeat requests within the TTL report `prompt_tokens_details.cached_tokens` at the discounted rate.
