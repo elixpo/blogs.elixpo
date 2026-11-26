@@ -691,3 +691,72 @@
 .link-preview-edit-btn svg {
   color: #9b7bf7;
 }
+
+/* ===== Publish / Update buttons =====
+   The primary action of the editor: a gentle lift and a light sweep on hover,
+   a press on click, a visible keyboard ring, and a spinner while working. */
+.lix-publish-split,
+.lix-publish-cta {
+  position: relative;
+  isolation: isolate;
+  transition: transform 160ms ease, box-shadow 200ms ease, filter 200ms ease;
+}
+.lix-publish-split::after,
+.lix-publish-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  transform: translateX(-120%);
+}
+.lix-publish-split:not([data-disabled="true"]):hover,
+.lix-publish-cta:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(155, 123, 247, 0.38) !important;
+  filter: saturate(1.08);
+}
+.lix-publish-split:not([data-disabled="true"]):hover::after,
+.lix-publish-cta:not(:disabled):hover::after {
+  animation: lix-publish-sweep 900ms ease;
+}
+.lix-publish-split:not([data-disabled="true"]):active,
+.lix-publish-cta:not(:disabled):active {
+  transform: translateY(0) scale(0.97);
+}
+.lix-publish-split button:focus-visible,
+.lix-publish-cta:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+.lix-publish-cta {
+  background: linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%);
+  box-shadow: 0 2px 10px rgba(155, 123, 247, 0.28);
+}
+.lix-publish-cta:disabled {
+  box-shadow: none;
+}
+.lix-publish-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  animation: lix-publish-spin 700ms linear infinite;
+}
+@keyframes lix-publish-sweep {
+  to { transform: translateX(120%); }
+}
+@keyframes lix-publish-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lix-publish-split,
+  .lix-publish-cta { transition: none; }
+  .lix-publish-split:hover,
+  .lix-publish-cta:hover { transform: none; }
+  .lix-publish-split:hover::after,
+  .lix-publish-cta:hover::after { animation: none; }
+  .lix-publish-spinner { animation-duration: 1.6s; }
+}
