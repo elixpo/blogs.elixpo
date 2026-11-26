@@ -3347,7 +3347,8 @@ export default function WritePage({ slugid }) {
                             return (
                                 <>
                                     <div
-                                        className="flex items-stretch rounded-full overflow-hidden"
+                                        className="lix-publish-split flex items-stretch rounded-full overflow-hidden"
+                                        data-disabled={!canPublish}
                                         style={{
                                             background:
                                                 "linear-gradient(135deg, #9b7bf7 0%, #8b6ae6 100%)",
@@ -3381,15 +3382,31 @@ export default function WritePage({ slugid }) {
                                             disabled={!canPublish}
                                             className="px-4 py-1.5 text-white font-semibold text-[13px] transition-colors flex items-center gap-1.5 disabled:cursor-not-allowed hover:bg-black/10 active:bg-black/20"
                                         >
-                                            <ion-icon
-                                                name={
-                                                    isPublished
-                                                        ? "cloud-upload-outline"
-                                                        : "send-outline"
-                                                }
-                                                style={{ fontSize: "14px" }}
-                                            />
-                                            {isPublished ? "Update" : "Publish"}
+                                            {(() => {
+                                                // Name what the click will actually do: a published
+                                                // post with no edits only opens the live story.
+                                                const upToDate =
+                                                    isPublished && hasNoChanges();
+                                                return (
+                                                    <>
+                                                        <ion-icon
+                                                            name={
+                                                                upToDate
+                                                                    ? "open-outline"
+                                                                    : isPublished
+                                                                      ? "sync-outline"
+                                                                      : "rocket-outline"
+                                                            }
+                                                            style={{ fontSize: "15px" }}
+                                                        />
+                                                        {upToDate
+                                                            ? "View"
+                                                            : isPublished
+                                                              ? "Update"
+                                                              : "Publish"}
+                                                    </>
+                                                );
+                                            })()}
                                         </button>
                                         <button
                                             type="button"
@@ -3513,7 +3530,7 @@ export default function WritePage({ slugid }) {
                                                         }}
                                                     >
                                                         <ion-icon
-                                                            name="cloud-upload-outline"
+                                                            name="sync-outline"
                                                             style={{
                                                                 fontSize:
                                                                     "15px",
@@ -3535,7 +3552,7 @@ export default function WritePage({ slugid }) {
                                                             }}
                                                         >
                                                             <ion-icon
-                                                                name="send-outline"
+                                                                name="rocket-outline"
                                                                 style={{
                                                                     fontSize:
                                                                         "15px",
@@ -5872,15 +5889,27 @@ export default function WritePage({ slugid }) {
                                 else handlePublish();
                             }}
                             disabled={!canPublishNow || publishing || (isPublished && hasNoChanges())}
-                            className="w-full py-2.5 bg-[#9b7bf7] text-white font-bold rounded-xl text-[13px] hover:bg-[#b69aff] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="lix-publish-cta w-full py-3 text-white font-bold rounded-xl text-[14px] flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            {publishing
-                                ? isPublished
-                                    ? "Updating..."
-                                    : "Publishing..."
-                                : isPublished
-                                  ? "Update now"
-                                  : "Publish now"}
+                            {publishing ? (
+                                <>
+                                    <span className="lix-publish-spinner" aria-hidden="true" />
+                                    {isPublished ? "Updating your story…" : "Publishing your story…"}
+                                </>
+                            ) : isPublished && hasNoChanges() ? (
+                                <>
+                                    <ion-icon name="checkmark-circle-outline" style={{ fontSize: "17px" }} />
+                                    Up to date
+                                </>
+                            ) : (
+                                <>
+                                    <ion-icon
+                                        name={isPublished ? "sync-outline" : "rocket-outline"}
+                                        style={{ fontSize: "17px" }}
+                                    />
+                                    {isPublished ? "Update story" : "Publish story"}
+                                </>
+                            )}
                         </button>
                         {!canPublishNow && !publishing && !(isPublished && hasNoChanges()) && (
                             <div
