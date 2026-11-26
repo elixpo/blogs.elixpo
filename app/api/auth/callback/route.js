@@ -220,7 +220,10 @@ export async function GET(request) {
 
   // Honor a post-login redirect set by /api/auth/login (same-site relative paths only).
   const redirectTo = safeRelativeRedirect(request.cookies.get('oauth_next')?.value) || '/';
-  const response = NextResponse.redirect(new URL(redirectTo, request.url));
+  // First sign-in: run the step-by-step onboarding, then continue to where the
+  // user was headed. Every onboarding step can be skipped.
+  const landing = isNewUser ? `/intro?next=${encodeURIComponent(redirectTo)}` : redirectTo;
+  const response = NextResponse.redirect(new URL(landing, request.url));
   response.cookies.set('lixblogs_session', session, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
