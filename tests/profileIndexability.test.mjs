@@ -26,7 +26,7 @@ const SCHEMA = `
     contact_email TEXT, owner_id TEXT, created_at INTEGER, updated_at INTEGER
   );
   CREATE TABLE collections (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, slug TEXT NOT NULL, name TEXT, description TEXT, created_at INTEGER);
-  CREATE TABLE blogs (
+  CREATE TABLE blogs ( canonical_url TEXT,
     id TEXT PRIMARY KEY, slugid TEXT, slug TEXT NOT NULL, title TEXT, subtitle TEXT, excerpt TEXT,
     content TEXT, cover_image_r2_key TEXT, cover_pos_x INTEGER, cover_pos_y INTEGER, cover_zoom INTEGER,
     member_only INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'draft', published_as TEXT,

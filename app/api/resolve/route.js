@@ -350,7 +350,7 @@ export async function GET(request) {
           SELECT b.id, b.slug, b.title, b.subtitle, b.excerpt, b.content, b.cover_image_r2_key,
             b.cover_pos_x, b.cover_pos_y, b.cover_zoom, b.member_only,
             b.status, b.secret, b.deleted_at, b.published_as, b.page_emoji, b.read_time_minutes,
-            b.published_at, b.created_at, b.updated_at, b.author_id,
+            b.published_at, b.created_at, b.updated_at, b.author_id, b.canonical_url,
             u.username as author_username, u.display_name as author_name, u.designation as author_designation,
             u.avatar_url as author_avatar, u.tier as author_tier
           FROM blogs b

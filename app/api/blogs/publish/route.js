@@ -6,6 +6,7 @@ import { readTimeFromWords } from '../../../../lib/readTime';
 import { BLOG_LICENSES } from '../../../../lib/curatedCollections';
 import { contentDiscoveryMetadata } from '../../../../lib/recommendations';
 import { countBlockWords } from '../../../../lib/api/v1/blogInput';
+import { normalizeCanonicalUrl } from '../../../../lib/canonicalUrl';
 
 export async function POST(request) {
   const session = await getSession();
@@ -18,11 +19,17 @@ export async function POST(request) {
   }
 
   const body = await request.json();
-  const { slugid, title, subtitle, tags, publishAs, editorContent: rawEditorContent, pageEmoji, coverUrl, coverPos, coverZoom, status, lastKnownUpdatedAt, slug: requestedSlug, collectionId, secret, member_only, license: requestedLicense, language, region } = body;
+  const { slugid, title, subtitle, tags, publishAs, editorContent: rawEditorContent, pageEmoji, coverUrl, coverPos, coverZoom, status, lastKnownUpdatedAt, slug: requestedSlug, collectionId, secret, member_only, license: requestedLicense, language, region, canonicalUrl } = body;
   // The editor sends its loaded content as a JSON string until the text is
   // edited. A cover- or icon-only update then counted 0 words and was rejected
   // as too short, and its excerpt came out empty. Accept both shapes.
   const editorContent = parseEditorContent(rawEditorContent);
+  // Optional cross-post canonical. Omitted keeps the stored value, so clients
+  // that don't send it (older editors, unlisted publish) never clear it.
+  const canonicalCheck = canonicalUrl === undefined ? null : normalizeCanonicalUrl(canonicalUrl);
+  if (canonicalCheck && !canonicalCheck.ok) {
+    return NextResponse.json({ error: canonicalCheck.error }, { status: 400 });
+  }
   if (requestedLicense !== undefined && !BLOG_LICENSES.has(requestedLicense)) {
     return NextResponse.json({ error: 'Unsupported content license' }, { status: 400 });
   }
@@ -73,7 +80,7 @@ export async function POST(request) {
     const excerpt = editorContent ? excerptFromBlocks(editorContent) : '';
     const normalizedTags = Array.isArray(tags) ? normalizeTags(tags) : null;
 
-    const existing = await db.prepare('SELECT id, author_id, status, published_as, slug, secret, member_only, license, language, region FROM blogs WHERE id = ?').bind(slugid).first();
+    const existing = await db.prepare('SELECT id, author_id, status, published_as, slug, secret, member_only, license, language, region, canonical_url FROM blogs WHERE id = ?').bind(slugid).first();
     const profile = await db.prepare('SELECT locale FROM users WHERE id = ?').bind(existing?.author_id || session.userId).first();
     const discovery = contentDiscoveryMetadata({
       language: language ?? existing?.language,
@@ -81,6 +88,7 @@ export async function POST(request) {
       locale: profile?.locale,
       headers: request.headers,
     });
+    const finalCanonicalUrl = canonicalCheck ? canonicalCheck.value : (existing?.canonical_url ?? null);
     let finalLicense = requestedLicense || existing?.license;
     if (!finalLicense) {
       const preference = await db.prepare('SELECT default_license FROM curation_preferences WHERE user_id = ?')
@@ -207,10 +215,10 @@ export async function POST(request) {
       let query = `
         UPDATE blogs SET title = ?, subtitle = ?, slug = ?, content = ?, excerpt = ?, published_as = ?,
           collection_id = ?, status = ?, page_emoji = ?, cover_image_r2_key = ?, cover_pos_x = ?, cover_pos_y = ?, cover_zoom = ?,
-          read_time_minutes = ?, secret = ?, member_only = ?, license = ?, language = ?, region = ?, updated_at = ?
+          read_time_minutes = ?, secret = ?, member_only = ?, license = ?, language = ?, region = ?, canonical_url = ?, updated_at = ?
       `;
       const params = [title, subtitle || '', slug, compressedContent, excerpt, effectivePublishAs,
-        finalCollectionId, targetStatus, pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region, now];
+        finalCollectionId, targetStatus, pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region, finalCanonicalUrl, now];
 
       if (publishedAt) {
         query += ', published_at = ?';
@@ -235,12 +243,12 @@ export async function POST(request) {
       // Create and publish in one step
       const statements = [db.prepare(`
         INSERT INTO blogs (id, slug, title, subtitle, content, excerpt, author_id, published_as, collection_id, status,
-          page_emoji, cover_image_r2_key, cover_pos_x, cover_pos_y, cover_zoom, read_time_minutes, secret, member_only, license, language, region, created_at, updated_at, published_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          page_emoji, cover_image_r2_key, cover_pos_x, cover_pos_y, cover_zoom, read_time_minutes, secret, member_only, license, language, region, canonical_url, created_at, updated_at, published_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         slugid, slug, title, subtitle || '', compressedContent, excerpt,
         session.userId, effectivePublishAs, finalCollectionId, targetStatus,
-        pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region, now, now,
+        pageEmoji || '', storedCover, posX, posY, zoom, readTime, finalSecret, finalMemberOnly, finalLicense, discovery.language, discovery.region, finalCanonicalUrl, now, now,
         (targetStatus === 'published' || targetStatus === 'unlisted') ? now : null
       )];
       if (normalizedTags) {

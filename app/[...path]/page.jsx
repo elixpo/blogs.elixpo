@@ -212,7 +212,9 @@ export async function generateMetadata({ params, searchParams }) {
                                   url: `${url.split("/").slice(0, 3).join("/")}/${author.username}`,
                               })),
                       ],
-                alternates: { canonical: url },
+                // A cross-posted story credits the original: its canonical points
+                // there. The publish API only stores validated external http(s) URLs.
+                alternates: { canonical: b.canonical_url || url },
                 // Keep non-indexable articles out of search engines: an indexed anonymous
                 // post is a permanent crawlable artifact, and private-org/deleted rows must
                 // follow the same policy as the sitemaps. Historical revision views (?rev=)

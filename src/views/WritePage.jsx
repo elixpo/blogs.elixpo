@@ -25,6 +25,7 @@ import {
 } from "../utils/mediaUploadQueue";
 import { generateBlogBanner, generatePixelAvatar } from "../utils/pixelAvatar";
 import ContextualTipToast, { emitContextualTip } from "../components/ContextualTipToast";
+import { normalizeCanonicalUrl } from "../../lib/canonicalUrl";
 
 function escapeExportHtml(value) {
     return String(value || "").replace(
@@ -812,6 +813,8 @@ export default function WritePage({ slugid }) {
     // frozen by the server once the post has been public even once.
     const [secret, setSecret] = useState(false);
     const [memberOnly, setMemberOnly] = useState(false);
+    // Optional cross-post canonical: where this story was first published.
+    const [canonicalUrl, setCanonicalUrl] = useState("");
     const [ownerCanMarkMemberOnly, setOwnerCanMarkMemberOnly] = useState(null);
     // Sub-pages/canvases already on a post that's being switched to secret. They can't
     // come along, so the author (or a co-author) is told before they publish rather
@@ -919,7 +922,8 @@ export default function WritePage({ slugid }) {
     const titleWords = (title || "").trim().split(/\s+/).filter(Boolean).length;
     const titleValid = titleWords >= 2;
     const bodyValid = wordCount >= 20;
-    const canPublishNow = titleValid && bodyValid;
+    const canonicalCheck = normalizeCanonicalUrl(canonicalUrl);
+    const canPublishNow = titleValid && bodyValid && canonicalCheck.ok;
 
     const [conflict, setConflict] = useState(null); // { message, currentVersion, status }
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -1696,6 +1700,7 @@ export default function WritePage({ slugid }) {
                 if (cloud.published_as) setPublishAs(cloud.published_as);
                 setSecret(!!cloud.secret);
                 setMemberOnly(!!cloud.member_only);
+                setCanonicalUrl(cloud.canonical_url || "");
                 setOwnerCanMarkMemberOnly(!!cloud.can_mark_member_only);
                 setCollectionId(cloud.collection_id || null);
                 if (cloud.status === "published") {
@@ -2537,6 +2542,7 @@ export default function WritePage({ slugid }) {
             slug: pendingSlugRef.current || slug,
             secret,
             memberOnly,
+            canonicalUrl: canonicalUrl.trim(),
             ...overrides,
         });
     // Capture a baseline once the blog has finished loading.
@@ -2719,6 +2725,7 @@ export default function WritePage({ slugid }) {
                     lastKnownUpdatedAt: syncedUpdatedAt || lastKnownUpdatedAt,
                     secret,
                     member_only: memberOnly,
+                    canonicalUrl: canonicalUrl.trim(),
                 }),
             });
 
@@ -5448,6 +5455,47 @@ export default function WritePage({ slugid }) {
                         </div>
                     )}
 
+                    {/* Canonical URL — credit the original when cross-posting */}
+                    <div>
+                        <label
+                            htmlFor="lix-canonical-url"
+                            className="text-[12px] font-medium mb-1 block"
+                            style={{ color: "var(--text-muted)" }}
+                        >
+                            Canonical URL{" "}
+                            <span className="font-normal" style={{ color: "var(--text-faint)" }}>
+                                — optional
+                            </span>
+                        </label>
+                        <input
+                            id="lix-canonical-url"
+                            type="url"
+                            inputMode="url"
+                            value={canonicalUrl}
+                            onChange={(e) => setCanonicalUrl(e.target.value)}
+                            placeholder="https://your-site.com/original-post"
+                            aria-invalid={!canonicalCheck.ok}
+                            aria-describedby="lix-canonical-help"
+                            className="w-full px-3 py-2 rounded-lg text-[13px] outline-none transition-colors"
+                            style={{
+                                backgroundColor: "var(--input-bg)",
+                                border: `1px solid ${canonicalCheck.ok ? "var(--input-border)" : "#ef4444"}`,
+                                color: "var(--text-primary)",
+                            }}
+                        />
+                        <p
+                            id="lix-canonical-help"
+                            className="mt-1.5 text-[11px] leading-snug"
+                            style={{ color: canonicalCheck.ok ? "var(--text-faint)" : "#ef4444" }}
+                        >
+                            {!canonicalCheck.ok
+                                ? canonicalCheck.error
+                                : canonicalCheck.value
+                                  ? "Search engines will credit the original. This story stays readable here but is left out of the LixBlogs sitemap."
+                                  : "Published this elsewhere first? Paste the original link so search engines credit it."}
+                        </p>
+                    </div>
+
                     {/* Punchline (subtitle) — shown under the title on the published blog */}
                     <div>
                         <label
@@ -5892,7 +5940,9 @@ export default function WritePage({ slugid }) {
                                     boxShadow: "var(--shadow-sm)",
                                 }}
                             >
-                                {!titleValid && !bodyValid
+                                {!canonicalCheck.ok
+                                    ? "Fix the canonical URL to publish"
+                                    : !titleValid && !bodyValid
                                     ? "Title needs at least 2 words and body at least 20 words"
                                     : !titleValid
                                       ? "Title must have at least 2 words to publish"
